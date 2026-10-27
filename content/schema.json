@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "madingo Content Schema (Phase 1 & Phase 2)",
+  "type": "object",
+  "required": ["units", "dictionary", "typingTexts", "roadSigns"],
+  "properties": {
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "orderIndex", "slug", "landmarkKey", "levelCode", "title", "subtitle", "lessons"],
+        "properties": {
+          "id": { "type": "string" },
+          "orderIndex": { "type": "integer" },
+          "slug": { "type": "string" },
+          "unitType": { "type": "string", "enum": ["standard", "sign_garage"] },
+          "landmarkKey": {
+            "type": "string",
+            "enum": ["garage", "red_square", "sign_garage", "river_bridge", "metro", "vdnkh"]
+          },
+          "levelCode": { "type": "string", "enum": ["A1", "A2", "B1", "B2"] },
+          "title": { "$ref": "#/definitions/localizedText" },
+          "subtitle": { "$ref": "#/definitions/localizedText" },
+          "lessons": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id", "unitId", "orderIndex", "slug", "title", "description", "estimatedMinutes", "steps"],
+              "properties": {
+                "id": { "type": "string" },
+                "unitId": { "type": "string" },
+                "orderIndex": { "type": "integer" },
+                "slug": { "type": "string" },
+                "title": { "$ref": "#/definitions/localizedText" },
+                "description": { "$ref": "#/definitions/localizedText" },
+                "estimatedMinutes": { "type": "integer" },
+                "steps": {
+                  "type": "array",
+                  "minItems": 4,
+                  "items": {
+                    "type": "object",
+                    "required": ["id", "orderIndex", "type", "content"],
+                    "properties": {
+                      "id": { "type": "string" },
+                      "orderIndex": { "type": "integer" },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "letter_card",
+                          "phrase_card",
+                          "grammar_sign_card",
+                          "letter_sound",
+                          "word_builder",
+                          "picture_word",
+                          "sentence_builder",
+                          "translation_typing",
+                          "listening_dictation",
+                          "matching_pairs",
+                          "fill_blank",
+                          "stress_placement",
+                          "case_declension"
+                        ]
+                      },
+                      "content": { "type": "object" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "dictionary": {
+      "type": "array",
+      "minItems": 380,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "russian",
+          "stressed",
+          "translit",
+          "pos",
+          "level",
+          "isMadiTerm",
+          "verified",
+          "topic",
+          "audioSlug",
+          "translations",
+          "examples"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "russian": { "type": "string" },
+          "stressed": { "type": "string" },
+          "translit": { "type": "string" },
+          "pos": { "type": "string", "enum": ["noun", "verb", "adjective", "adverb", "phrase", "numeral"] },
+          "level": { "type": "string", "enum": ["A1", "A2", "B1", "B2", "C1", "C2"] },
+          "isMadiTerm": { "type": "boolean" },
+          "verified": { "type": "boolean" },
+          "topic": { "type": "string" },
+          "audioSlug": { "type": "string" },
+          "translations": { "$ref": "#/definitions/localizedText" }
+        }
+      }
+    },
+    "typingTexts": {
+      "type": "array",
+      "minItems": 40,
+      "items": {
+        "type": "object",
+        "required": ["id", "slug", "level", "topic", "title", "textStressed", "textClean", "audioSlug"],
+        "properties": {
+          "id": { "type": "string" },
+          "slug": { "type": "string" },
+          "level": { "type": "string", "enum": ["A1", "A2"] },
+          "topic": { "type": "string", "enum": ["campus", "greetings", "city_metro", "cars_roads"] },
+          "title": { "$ref": "#/definitions/localizedText" },
+          "textStressed": { "type": "string" },
+          "textClean": { "type": "string" },
+          "audioSlug": { "type": "string" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "localizedText": {
+      "type": "object",
+      "required": ["ru", "en", "ar", "fr"],
+      "properties": {
+        "ru": { "type": "string", "minLength": 1 },
+        "en": { "type": "string", "minLength": 1 },
+        "ar": { "type": "string", "minLength": 1 },
+        "fr": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

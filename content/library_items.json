@@ -1,0 +1,664 @@
+[
+  {
+    "id": "lib-01",
+    "title": {
+      "ru": "Путеводи́тель первоку́рсника МАДИ́",
+      "en": "MADI Freshman Campus & Metro Guide",
+      "ar": "دليل طالب السنة الأولى في جامعة مادي والمترو",
+      "fr": "Guide de l’étudiant de 1re année à MADI et du métro"
+    },
+    "author": "Кафедра русского языка МАДИ (Original Open Edition)",
+    "section": "textbooks",
+    "level": "A1",
+    "topic": "campus",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "MADI Open Educational Resource CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Гла́вный ко́рпус на Ленингра́дском проспе́кте",
+        "russianText": "Моско́вский автомоби́льно-доро́жный госуда́рственный техни́ческий университе́т (МАДИ́) нахо́дится на Ленингра́дском проспе́кте, ря́дом со ста́нцией метро́ Аэропо́рт. Ка́ждое у́тро студе́нты и преподава́тели спеша́т на ле́кции в гла́вный ко́рпус.",
+        "translationNotes": {
+          "ru": "Ключевые слова: университе́т, ста́нция метро́, ле́кция, гла́вный ко́рпус.",
+          "en": "Key vocabulary: university, metro station, lecture, main building.",
+          "ar": "المفردات الأساسية: جامعة، محطة مترو، محاضرة، المبنى الرئيسي.",
+          "fr": "Vocabulaire clé : université, station de métro, cours, bâtiment principal."
+        }
+      },
+      {
+        "pageNumber": 2,
+        "heading": "Библиоте́ка и студе́нческая столо́вая",
+        "russianText": "На тре́тьем этаже́ нахо́дится больша́я библиоте́ка и чита́льный зал. Здесь мо́жно взять уче́бник, слова́рь и чертёж. А в переры́ве студе́нты обе́дают в столо́вой: беру́т горя́чий суп, рис с ку́рицей и чай с лимо́ном.",
+        "translationNotes": {
+          "ru": "Обратите внимание на предложный падеж: на тре́тьем этаже́, в столо́вой.",
+          "en": "Notice the Prepositional case: на тре́тьем этаже́ (on the 3rd floor), в столо́вой (in the canteen).",
+          "ar": "لاحظ حالة الجر للمكان: في الطابق الثالث، في الكافتيريا.",
+          "fr": "Notez le cas prépositionnel : au troisième étage, à la cantine."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-02",
+    "title": {
+      "ru": "Шесть падеже́й ру́сского языка́ в табли́цах",
+      "en": "The Six Russian Cases in Road-Sign Tables",
+      "ar": "الحالات الإعرابية الست في اللغة الروسية في جداول مبسطة",
+      "fr": "Les six cas russes en tableaux synthétiques"
+    },
+    "author": "Prof. E. Sokolova (madingo Grammar Series)",
+    "section": "grammar_ref",
+    "level": "A1",
+    "topic": "grammar",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "madingo Open Grammar CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Имени́тельный, Роди́тельный и Да́тельный падежи́",
+        "russianText": "Имени́тельный паде́ж (Кто? Что?): э́то но́вая маши́на и широкий мост. Роди́тельный паде́ж (Кого́? Чего́?): у меня́ нет биле́та, два́дцать ли́тров бензи́на. Да́тельный паде́ж (Кому́? Чему́?): авто́бус е́дет по широкому шоссе́ к университе́ту.",
+        "translationNotes": {
+          "ru": "Падежи — это дорожные знаки русского предложения.",
+          "en": "Cases act like road signs showing each word’s role in a Russian sentence.",
+          "ar": "الحالات الإعرابية تعمل مثل إشارات المرور التي توضح دور كل كلمة في الجملة.",
+          "fr": "Les cas agissent comme des panneaux routiers indiquant le rôle de chaque mot."
+        }
+      },
+      {
+        "pageNumber": 2,
+        "heading": "Вини́тельный, Твори́тельный и Предло́жный падежи́",
+        "russianText": "Вини́тельный паде́ж (Куда́? Что?): я иду́ на ле́кцию и чита́ю кни́гу. Твори́тельный паде́ж (Кем? Чем?): инжене́р рису́ет чертёж карандашо́м, я пью чай с лимо́ном. Предло́жный паде́ж (Где? О чём?): мы живём в Москве́ в общежи́тии.",
+        "translationNotes": {
+          "ru": "Нажмите на любое русское слово, чтобы увидеть его полную таблицу склонения.",
+          "en": "Tap any Russian word in the reader to inspect its full declension table.",
+          "ar": "اضغط على أي كلمة روسية في القارئ لعرض جدول تصريفها الكامل.",
+          "fr": "Touchez n’importe quel mot russe pour voir son tableau de déclinaison."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-03",
+    "title": {
+      "ru": "Автомоби́ль и доро́га: иллюстри́рованный слова́рь",
+      "en": "Automobile & Road Engineering: Illustrated Reader",
+      "ar": "السيارة وهندسة الطرق: قارئ مصور",
+      "fr": "L’automobile et le génie routier : manuel illustré"
+    },
+    "author": "Dr. A. Morozov (MADI Transport Lab)",
+    "section": "textbooks",
+    "level": "A2",
+    "topic": "cars_roads",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "MADI Open Educational Resource CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Устро́йство совреме́нного автомоби́ля",
+        "russianText": "Ка́ждый автомоби́ль име́ет двига́тель, четы́ре колеса́, руль и надёжные тормоза́. Води́тель сиди́т за рулём, смо́трит на доро́гу и соблюда́ет пра́вила доро́жного движе́ния на перекрёстке у светофо́ра.",
+        "translationNotes": {
+          "ru": "Базовая лексика для будущих инженеров автомобильного транспорта.",
+          "en": "Core terminology for future automotive and transport engineers.",
+          "ar": "المصطلحات الأساسية لمهندسي السيارات والنقل المستقبليين.",
+          "fr": "Terminologie de base pour les futurs ingénieurs automobiles."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-04",
+    "title": {
+      "ru": "Л. Н. Толсто́й — Коро́ткие расска́зы (Адапти́ровано A1)",
+      "en": "Leo Tolstoy — Short Fables (Adapted for A1 Learners)",
+      "ar": "ليو تولستوي — قصص قصيرة مبسطة للمستوى A1",
+      "fr": "Léon Tolstoï — Contes courts (Adaptés niveau A1)"
+    },
+    "author": "Л. Н. Толстой (Public Domain / Adapted)",
+    "section": "reading",
+    "level": "A1",
+    "topic": "literature",
+    "explanationLang": "all",
+    "licenseType": "public_domain",
+    "licenseText": "Public Domain (Pre-1917 Classic Text with A1 stress marks)",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Два това́рища",
+        "russianText": "Шли по ле́су два това́рища. Вдруг вы́шел на доро́гу большо́й медве́дь. Оди́н ма́льчик побежа́л и влез на высо́кое де́рево, а друго́й оста́лся на доро́ге. Но всё зако́нчилось хорошо́: настоя́щие друзья́ всегда́ помога́ют друг дру́гу в тру́дную мину́ту.",
+        "translationNotes": {
+          "ru": "Классическая притча о дружбе и взаимовыручке.",
+          "en": "Classic Russian fable about friendship and mutual help.",
+          "ar": "حكاية روسية كلاسيكية عن الصداقة والمساعدة المتبادلة.",
+          "fr": "Fable russe classique sur l’amitié et l’entraide."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-05",
+    "title": {
+      "ru": "А. П. Че́хов — Юмористи́ческие миниатю́ры (A2)",
+      "en": "Anton Chekhov — Humorous Miniatures (A2 Reader)",
+      "ar": "أنطون تشيخوف — قصص قصيرة فكاهية (مستوى A2)",
+      "fr": "Anton Tchekhov — Miniatures humoristiques (A2)"
+    },
+    "author": "А. П. Чехов (Public Domain)",
+    "section": "reading",
+    "level": "A2",
+    "topic": "literature",
+    "explanationLang": "all",
+    "licenseType": "public_domain",
+    "licenseText": "Public Domain Classic Russian Literature",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "В пое́зде по доро́ге в Москву́",
+        "russianText": "По́езд бы́стро ехал в Москву́. В ваго́не сиде́ли пассажи́ры, пи́ли горя́чий чай из стака́на и разгова́ривали о пого́де, о но́вых доро́гах и о большо́м го́роде.",
+        "translationNotes": {
+          "ru": "Традиция пить чай в поезде — важная часть русской дорожной культуры.",
+          "en": "Drinking tea on a train is an iconic part of Russian travel culture.",
+          "ar": "شرب الشاي في القطار جزء أصيل من ثقافة السفر الروسية.",
+          "fr": "Boire du thé dans le train fait partie de la culture du voyage en Russie."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-06",
+    "title": {
+      "ru": "Глаго́лы движе́ния: идти́ / ходи́ть, е́хать / е́здить",
+      "en": "Russian Verbs of Motion: Foot vs. Vehicle",
+      "ar": "أفعال الحركة الروسية: مشياً على الأقدام مقابل المركبة",
+      "fr": "Les verbes de mouvement russes : à pied vs en véhicule"
+    },
+    "author": "Prof. E. Sokolova (MADI Russian Dept.)",
+    "section": "grammar_ref",
+    "level": "A2",
+    "topic": "grammar",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "MADI Open Educational Resource CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Однонапра́вленное и разнонапра́вленное движе́ние",
+        "russianText": "Когда́ вы дви́жетесь пешко́м в одно́м направле́нии прямо сейчас, говори́те: «Я иду́ в университе́т». Е́сли вы е́дете на авто́бусе, метро́ или маши́не, говори́те: «Я е́ду по шоссе́ в Москву́». Для регуля́рных пое́здок испо́льзуйте глаго́лы «ходи́ть» и «е́здить».",
+        "translationNotes": {
+          "ru": "Идти́/ходи́ть = пешком; е́хать/е́здить = на транспорте.",
+          "en": "Идти́/ходи́ть = on foot; е́хать/е́здить = by vehicle/transport.",
+          "ar": "Идти́/ходи́ть = مشياً؛ е́хать/е́здить = بوسيلة نقل.",
+          "fr": "Идти́/ходи́ть = à pied ; е́хать/е́здить = en transport."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-07",
+    "title": {
+      "ru": "Подгото́вка к ТРКИ-1 (B1): Образцы́ зада́ний",
+      "en": "TORFL-1 (TRKI) Exam Prep: Speaking & Grammar Drills",
+      "ar": "التحضير لامتحان اللغة الروسية ТРКИ-1: تدريبات القواعد والمحادثة",
+      "fr": "Préparation à l’examen TRKI-1 : exercices de grammaire et d’oral"
+    },
+    "author": "MADI Testing Center",
+    "section": "exam_prep",
+    "level": "B1",
+    "topic": "exam",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "MADI Open Exam Prep CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Тре́бования к у́стному экза́мену",
+        "russianText": "На экза́мене студе́нт до́лжен уме́ть поддержа́ть диало́г в бытово́й и уче́бной ситуа́ции, пра́вильно испо́льзовать падежи́ и прочита́ть короткий текст с ве́рным ударе́нием.",
+        "translationNotes": {
+          "ru": "Тренируйтесь в окне «Говорить» перед сдачей зачёта.",
+          "en": "Practice in the \"Speak\" window before taking your oral test.",
+          "ar": "تدرب في نافذة \"تحدث\" قبل التقدم للاختبار الشفهي.",
+          "fr": "Entraînez-vous dans l’onglet « Parler » avant l’examen oral."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-08",
+    "title": {
+      "ru": "Мосты́ и на́бережные Москвы́: текст для чте́ния",
+      "en": "Bridges and Embankments of Moscow: Cultural Reader",
+      "ar": "جسور وضفاف موسكو: نص للقراءة الثقافية",
+      "fr": "Ponts et quais de Moscou : lecture culturelle"
+    },
+    "author": "madingo Editorial Team",
+    "section": "reading",
+    "level": "A2",
+    "topic": "cars_roads",
+    "explanationLang": "all",
+    "licenseType": "open_license",
+    "licenseText": "CC-BY-SA-4.0 Cultural Reader",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Инжене́рное иску́сство моско́вских мосто́в",
+        "russianText": "В Москве́ мно́го краси́вых и про́чных мосто́в че́рез реку́. Ка́ждый мост — э́то сло́жная инжене́рная констру́кция, по кото́рой день и ночь е́дут маши́ны, авто́бусы и тролле́йбусы.",
+        "translationNotes": {
+          "ru": "Отличный текст для повторения лексики по теме «Дороги и мосты».",
+          "en": "Great reading text to review vocabulary on \"Roads and Bridges\".",
+          "ar": "نص قراءة ممتاز لمراجعة مفردات \"الطرق والجسور\".",
+          "fr": "Excellent texte pour réviser le vocabulaire des « Routes et ponts »."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-09",
+    "title": {
+      "ru": "Слова́рь математи́ческих и физи́ческих те́рминов (A2)",
+      "en": "Glossary of Math & Physics Terms for Preparatory Faculty",
+      "ar": "مسرد مصطلحات الرياضيات والفيزياء للسنة التحضيرية",
+      "fr": "Glossaire de mathématiques et de physique (Faculté préparatoire)"
+    },
+    "author": "Подготовительный факультет МАДИ",
+    "section": "textbooks",
+    "level": "A2",
+    "topic": "campus",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "MADI Open Educational Resource CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Ско́рость, вре́мя и расстоя́ние",
+        "russianText": "Чтобы найти́ ско́рость автомоби́ля, ну́жно раздели́ть расстоя́ние на вре́мя в пути́. В ме́ждународной систе́ме ско́рость измеря́ется в киломе́трах в час или в ме́трах в секу́нду.",
+        "translationNotes": {
+          "ru": "Базовые формулы физики движения на русском языке.",
+          "en": "Basic formulas of motion physics in Russian.",
+          "ar": "المعادلات الأساسية لفيزياء الحركة باللغة الروسية.",
+          "fr": "Formules de base de la physique du mouvement en russe."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-10",
+    "title": {
+      "ru": "Методи́ческое посо́бие для преподава́телей РКИ",
+      "en": "Teacher’s Handbook: Running Speaking & Typing Labs",
+      "ar": "دليل المدرس: إدارة مختبرات المحادثة والطباعة",
+      "fr": "Guide de l’enseignant : animer les ateliers d’oral et de frappe"
+    },
+    "author": "Prof. E. Sokolova",
+    "section": "teacher_materials",
+    "level": "B2",
+    "topic": "campus",
+    "explanationLang": "all",
+    "licenseType": "teacher_authored",
+    "licenseText": "MADI Teacher License CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Как испо́льзовать «Гара́ж» и «Лаборато́рию печа́ти» на уро́ке",
+        "russianText": "Рекоменду́ется начина́ть заня́тие с пятимину́тной разми́нки в «Лаборато́рии печа́ти», а зате́м назнача́ть студе́нтам ролевы́е диало́ги и ко́роткие аудиокли́пы по теме неде́ли.",
+        "translationNotes": {
+          "ru": "Пособие для кураторов учебных групп в панели преподавателя.",
+          "en": "Guide for group instructors using the Teacher Dashboard.",
+          "ar": "دليل لمدرسي المجموعات الذين يستخدمون لوحة تحكم المدرس.",
+          "fr": "Guide pour les enseignants utilisant le tableau de bord."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-11",
+    "title": {
+      "ru": "А. С. Пу́шкин — Стихи́ о зиме́ и доро́ге (Адапти́ровано)",
+      "en": "Alexander Pushkin — Winter Road Poems (With Stress Marks)",
+      "ar": "ألكسندر بوشكين — قصائد عن الشتاء والطريق (مع علامات النبر)",
+      "fr": "Alexandre Pouchkine — Poèmes sur l’hiver et la route (Accentués)"
+    },
+    "author": "А. С. Пушкин (Public Domain)",
+    "section": "reading",
+    "level": "A2",
+    "topic": "literature",
+    "explanationLang": "all",
+    "licenseType": "public_domain",
+    "licenseText": "Public Domain Classic Poetry",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Зи́мняя доро́га (Отры́вок)",
+        "russianText": "Моро́з и со́лнце; день чуде́сный! По зи́мней доро́ге бы́стро лети́т тройка, а вокру́г блести́т бе́лый снег под голубы́м не́бом.",
+        "translationNotes": {
+          "ru": "Знаменитые строки А. С. Пушкина для тренировки ритма и ударения.",
+          "en": "Famous lines by Pushkin for practicing Russian rhythm and word stress.",
+          "ar": "أبيات شهيرة لبوشكين للتدرب على الإيقاع والنبر الروسي.",
+          "fr": "Vers célèbres de Pouchkine pour travailler le rythme et l’accent tonique."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-12",
+    "title": {
+      "ru": "Ви́ды глаго́ла: несоверше́нный и соверше́нный вид",
+      "en": "Verb Aspects: Imperfective Process vs. Perfective Result",
+      "ar": "هيئات الفعل الروسي: الاستمرارية مقابل النتيجة المكتملة",
+      "fr": "Les aspects du verbe : processus imperfectif vs résultat perfectif"
+    },
+    "author": "Prof. E. Sokolova",
+    "section": "grammar_ref",
+    "level": "A2",
+    "topic": "grammar",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "madingo Open Grammar CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Чита́ть / Прочита́ть, Де́лать / Сде́лать",
+        "russianText": "Несоверше́нный вид пока́зывает проце́сс или повторе́ние: «Вчера́ ве́чером я до́лго чита́л уче́бник». Соверше́нный вид пока́зывает гото́вый результа́т: «Я уже́ прочита́л всю главу́ и сде́лал дома́шнее зада́ние».",
+        "translationNotes": {
+          "ru": "Процесс (долго, часто) = НСВ; Результат (уже, вдруг) = СВ.",
+          "en": "Process/habit = Imperfective; Completed result = Perfective.",
+          "ar": "العملية أو العادة = غير مكتمل؛ النتيجة التامة = مكتمل.",
+          "fr": "Processus/habitude = Imperfectif ; Résultat achevé = Perfectif."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-13",
+    "title": {
+      "ru": "Тест по ле́ксике A1: Ка́мпус, Метро́ и Кафе́",
+      "en": "A1 Vocabulary Checkpoint: Campus, Metro & Cafe",
+      "ar": "اختبار مفردات المستوى A1: الجامعة والمترو والمقهى",
+      "fr": "Test de vocabulaire A1 : Campus, Métro et Café"
+    },
+    "author": "MADI Testing Center",
+    "section": "exam_prep",
+    "level": "A1",
+    "topic": "exam",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "MADI Open Exam Prep CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Контро́льный спи́сок фра́з пе́рвого семесте́ра",
+        "russianText": "Проверьте себя́: мо́жете ли вы спроси́ть доро́гу к ста́нции метро́, заказа́ть обе́д в столо́вой, купи́ть ка́рту «Тро́йка» и назва́ть но́мер свое́й аудито́рии?",
+        "translationNotes": {
+          "ru": "Используйте этот список перед контрольной работой.",
+          "en": "Use this checklist before your first-semester progress test.",
+          "ar": "استخدم قائمة المراجعة هذه قبل اختبار منتصف الفصل.",
+          "fr": "Utilisez cette liste de contrôle avant votre évaluation."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-14",
+    "title": {
+      "ru": "Пра́вила доро́жного движе́ния (ПДД) для пешехо́дов и води́телей",
+      "en": "Russian Road Traffic Signs & Safety Rules Explained",
+      "ar": "قواعد المرور وإشارات الطرق الروسية للمشاة والسائقين",
+      "fr": "Code de la route russe et panneaux expliqués"
+    },
+    "author": "Dr. A. Morozov (MADI Transport Lab)",
+    "section": "textbooks",
+    "level": "A2",
+    "topic": "cars_roads",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "MADI Open Educational Resource CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Сигна́лы светофо́ра и пешехо́дный перехо́д",
+        "russianText": "Кра́сный свет светофо́ра означа́ет «Сто́йте!», жёлтый свет — «Пригото́вьтесь!», а зелёный свет разреша́ет движе́ние че́рез перекрёсток по пешехо́дному перехо́ду.",
+        "translationNotes": {
+          "ru": "Знание дорожных знаков помогает и на дороге, и в изучении грамматики.",
+          "en": "Knowing road signs helps both on the road and in mastering Russian grammar.",
+          "ar": "معرفة إشارات المرور تساعد في الطريق وفي إتقان القواعد الروسية.",
+          "fr": "Connaître les panneaux aide sur la route comme en grammaire russe."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-15",
+    "title": {
+      "ru": "Исто́рия моско́вского метрополите́на (Кни́га для чте́ния)",
+      "en": "History of the Moscow Metro: Underground Palaces",
+      "ar": "تاريخ مترو موسكو: قصور تحت الأرض",
+      "fr": "Histoire du métro de Moscou : palais souterrains"
+    },
+    "author": "madingo Editorial Team",
+    "section": "reading",
+    "level": "B1",
+    "topic": "metro",
+    "explanationLang": "all",
+    "licenseType": "open_license",
+    "licenseText": "CC-BY-4.0 Open Reader",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Ста́нция «Аэропо́рт» и архитекту́ра тридца́тых годо́в",
+        "russianText": "Ста́нция метро́ «Аэропо́рт» была́ откры́та в ты́сяча девятьсо́т три́дцать восьмо́м году́. Её просто́рный свод укра́шен дли́нными релье́фными ли́ниями, кото́рые напомина́ют парашю́тные стро́пы в небе́.",
+        "translationNotes": {
+          "ru": "Станция «Аэропорт» расположена прямо у учебного кампуса МАДИ.",
+          "en": "Aeroport station is located right outside the MADI university campus.",
+          "ar": "تقع محطة \"أيروبورت\" مباشرة أمام حرم جامعة مادي.",
+          "fr": "La station « Aeroport » est située juste devant le campus de MADI."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-16",
+    "title": {
+      "ru": "Секре́ты ру́сского ударе́ния и реду́кции гла́сных",
+      "en": "Secrets of Russian Word Stress & Vowel Reduction (о -> а)",
+      "ar": "أسرار النبر الصوتي وتخفيف الحروف الصوتية في الروسية",
+      "fr": "Secrets de l’accent tonique russe et de la réduction vocalique"
+    },
+    "author": "Prof. E. Sokolova",
+    "section": "grammar_ref",
+    "level": "A1",
+    "topic": "grammar",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "madingo Open Grammar CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Почему́ «молоко́» звучи́т как [малако́]?",
+        "russianText": "В ру́сском языке́ то́лько оди́н слог в сло́ве произно́сится под ударе́нием чётко и си́льно. Безуда́рная бу́ква «о» произно́сится кра́тко, почти́ как звук [а]: молоко́, хорошо́, Москва́, доро́га.",
+        "translationNotes": {
+          "ru": "Это главное правило для естественного произношения в окне «Говорить».",
+          "en": "This is the #1 rule for natural pronunciation in the \"Speak\" window.",
+          "ar": "هذه هي القاعدة الأولى للنطق الطبيعي في نافذة \"تحدث\".",
+          "fr": "C’est la règle n°1 pour une prononciation naturelle dans l’onglet « Parler »."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-17",
+    "title": {
+      "ru": "Экзаменацио́нные диало́ги для инжене́рных специа́льностей (A2)",
+      "en": "Oral Exam Dialogues for Engineering Students (A2)",
+      "ar": "حوارات الامتحان الشفهي لطلاب التخصصات الهندسية (A2)",
+      "fr": "Dialogues d’examen oral pour étudiants ingénieurs (A2)"
+    },
+    "author": "MADI Testing Center",
+    "section": "exam_prep",
+    "level": "A2",
+    "topic": "exam",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "MADI Open Exam Prep CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Диало́г в лаборато́рии испита́ния двига́телей",
+        "russianText": "Преподава́тель спра́шивает студе́нта о рабо́те двига́теля вну́треннего сгора́ния, о расхо́де бензи́на и о безопа́сности на скоростно́м шоссе́.",
+        "translationNotes": {
+          "ru": "Обязательный минимум для зачёта по научному стилю речи.",
+          "en": "Required minimum for the Scientific Russian credit test.",
+          "ar": "الحد الأدنى المطلوب لاجتياز اختبار اللغة الروسية العلمية.",
+          "fr": "Minimum requis pour l’évaluation de russe scientifique."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-18",
+    "title": {
+      "ru": "Ш.Абло́ны уро́ков и зада́ний для конструктора (Teacher Pack)",
+      "en": "Lesson Builder Templates & Rubric Guide for Teachers",
+      "ar": "قوالب بناء الدروس ودليل التقييم للمدرسين",
+      "fr": "Modèles de leçons et grille d’évaluation pour enseignants"
+    },
+    "author": "Prof. E. Sokolova",
+    "section": "teacher_materials",
+    "level": "B1",
+    "topic": "campus",
+    "explanationLang": "all",
+    "licenseType": "teacher_authored",
+    "licenseText": "MADI Teacher License CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Структу́ра пятнадцатимину́тного микро-уро́ка",
+        "russianText": "Идеа́льный уро́к включа́ет одну́ ка́рточку с пра́вилом, четы́ре упражне́ния на трениро́вку падеже́й и оди́н ролево́й аудиокли́п для закрепле́ния в у́стной ре́чи.",
+        "translationNotes": {
+          "ru": "Используйте визуальный конструктор уроков в панели преподавателя.",
+          "en": "Use the visual No-Code Lesson Builder inside the Teacher Dashboard.",
+          "ar": "استخدم أداة بناء الدروس المرئية داخل لوحة تحكم المدرس.",
+          "fr": "Utilisez le créateur de leçons sans code dans le tableau de bord."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-19",
+    "title": {
+      "ru": "Русские наро́дные посло́вицы о доро́ге и труде́",
+      "en": "Russian Folk Proverbs About Roads, Travel & Craft",
+      "ar": "أمثال شعبية روسية عن الطريق والسفر والعمل",
+      "fr": "Proverbes populaires russes sur la route et le travail"
+    },
+    "author": "В. И. Даль (Public Domain Collection)",
+    "section": "reading",
+    "level": "A2",
+    "topic": "literature",
+    "explanationLang": "all",
+    "licenseType": "public_domain",
+    "licenseText": "Public Domain Folklore Collection",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Посло́вицы в пу́ть",
+        "russianText": "«Ти́ше е́дешь — да́льше бу́дешь». «Са́мая тру́дная доро́га та, кото́рую не зна́ешь». «Терпе́ние и труд всё перетру́т».",
+        "translationNotes": {
+          "ru": "Крылатые выражения, которые часто встречаются в живой русской речи.",
+          "en": "Idiomatic sayings frequently heard in everyday Russian conversation.",
+          "ar": "عبارات مأثورة تُسمع كثيراً في المحادثات الروسية اليومية.",
+          "fr": "Expressions idiomatiques fréquentes dans la conversation russe."
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib-20",
+    "title": {
+      "ru": "Этике́т обще́ния в университе́те: «Ты» или «Вы»?",
+      "en": "University Etiquette: Formal \"Вы\" vs. Informal \"Ты\"",
+      "ar": "آداب التواصل الجامعي: متى تستخدم الصيغة الرسمية وغير الرسمية؟",
+      "fr": "Étiquette universitaire : le vouvoiement « Вы » vs le tutoiement « Ты »"
+    },
+    "author": "Кафедра русского языка МАДИ",
+    "section": "grammar_ref",
+    "level": "A1",
+    "topic": "campus",
+    "explanationLang": "all",
+    "licenseType": "madi_original",
+    "licenseText": "MADI Open Educational Resource CC-BY-4.0",
+    "permissionConfirmed": true,
+    "reviewStatus": "approved",
+    "reviewedBy": "admin-1",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "heading": "Пра́вила ве́жливого обраще́ния в России",
+        "russianText": "К преподава́телю, дека́ну, води́телю такси́ и прода́вцу в магази́не всегда́ обраща́йтесь на «Вы» и по и́мени-о́тчеству: «Здра́вствуйте, Еле́на Петро́вна! Скажи́те, пожа́луйста...». К друзья́м и одногру́ппникам обраща́йтесь на «ты»: «Приве́т, Ми́ша! Как дела́?».",
+        "translationNotes": {
+          "ru": "В клипах madingo всегда указан регистр: официальный или разговорный.",
+          "en": "Every clip in madingo shows a badge for \"Formal\" or \"Colloquial\" register.",
+          "ar": "يظهر في كل مقطع في madingo شارة توضح الأسلوب: رسمي أو غير رسمي.",
+          "fr": "Chaque clip de madingo indique le registre : « Formel » ou « Familier »."
+        }
+      }
+    ]
+  }
+]

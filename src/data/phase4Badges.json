@@ -1,0 +1,814 @@
+[
+  {
+    "id": "bdg_streak_1",
+    "category": "consistency",
+    "rarity": "common",
+    "svgKey": "ignition_spark",
+    "accentColor": "#FF8A1F",
+    "unlockRule": { "metric": "streakDays", "operator": ">=", "threshold": 1 },
+    "rewardCosmeticId": "car-classic-orange",
+    "title": {
+      "ru": "Первое зажигание",
+      "en": "First Ignition",
+      "ar": "الاشتعال الأول",
+      "fr": "Premier allumage"
+    },
+    "description": {
+      "ru": "Начните серию занятий: 1 день за рулём",
+      "en": "Start your learning streak: 1 day on the road",
+      "ar": "ابدأ سلسلة التعلم: يوم واحد على الطريق",
+      "fr": "Commencez votre série : 1 jour sur la route"
+    }
+  },
+  {
+    "id": "bdg_streak_3",
+    "category": "consistency",
+    "rarity": "common",
+    "svgKey": "km_post_3",
+    "accentColor": "#1B4DFF",
+    "unlockRule": { "metric": "streakDays", "operator": ">=", "threshold": 3 },
+    "rewardCosmeticId": "car-madi-blue",
+    "title": {
+      "ru": "Круиз по Ленинградке",
+      "en": "Leningradsky Cruise",
+      "ar": "رحلة لينينغرادسكي",
+      "fr": "Croisière Leningradski"
+    },
+    "description": {
+      "ru": "Занимайтесь 3 дня подряд без пропусков",
+      "en": "Practice 3 days in a row without missing a stop",
+      "ar": "تدرب لمدة 3 أيام متتالية دون انقطاع",
+      "fr": "Pratiquez 3 jours de suite sans arrêt manqué"
+    }
+  },
+  {
+    "id": "bdg_streak_7",
+    "category": "consistency",
+    "rarity": "uncommon",
+    "svgKey": "weekly_odometer",
+    "accentColor": "#059669",
+    "unlockRule": { "metric": "streakDays", "operator": ">=", "threshold": 7 },
+    "rewardCosmeticId": "outfit-winter-ushanka",
+    "title": {
+      "ru": "Недельный километраж",
+      "en": "Weekly Odometer",
+      "ar": "عداد الأسبوع الكامل",
+      "fr": "Odomètre hebdomadaire"
+    },
+    "description": {
+      "ru": "7 дней непрерывной практики русского языка",
+      "en": "Reach a 7-day continuous Russian streak",
+      "ar": "حقق سلسلة متواصلة لمدة 7 أيام",
+      "fr": "Atteignez une série continue de 7 jours"
+    }
+  },
+  {
+    "id": "bdg_streak_14",
+    "category": "consistency",
+    "rarity": "rare",
+    "svgKey": "fortnight_turbine",
+    "accentColor": "#7C3AED",
+    "unlockRule": { "metric": "streakDays", "operator": ">=", "threshold": 14 },
+    "rewardCosmeticId": "theme-golden-autumn",
+    "title": {
+      "ru": "Двухнедельный экспресс",
+      "en": "Fortnight Express",
+      "ar": "قطار الأسبوعين السريع",
+      "fr": "Express de quinzaine"
+    },
+    "description": {
+      "ru": "14 дней подряд на маршруте МАДИ",
+      "en": "14 consecutive days driving the MADI highway",
+      "ar": "14 يوماً متتالياً على طريق مادي السريع",
+      "fr": "14 jours consécutifs sur l’autoroute MADI"
+    }
+  },
+  {
+    "id": "bdg_streak_30",
+    "category": "consistency",
+    "rarity": "legendary",
+    "svgKey": "iron_piston_30",
+    "accentColor": "#EAB308",
+    "unlockRule": { "metric": "streakDays", "operator": ">=", "threshold": 30 },
+    "rewardCosmeticId": "car-golden-magistral",
+    "title": {
+      "ru": "Железный механик",
+      "en": "Iron Mechanic",
+      "ar": "الميكانيكي الحديدي",
+      "fr": "Mécanicien d’acier"
+    },
+    "description": {
+      "ru": "30 дней подряд без единой остановки двигателя",
+      "en": "30-day unbroken streak on the odometer",
+      "ar": "سلسلة متواصلة لمدة 30 يوماً على عداد المسافات",
+      "fr": "Série ininterrompue de 30 jours au compteur"
+    }
+  },
+  {
+    "id": "bdg_acc_first_100",
+    "category": "accuracy",
+    "rarity": "common",
+    "svgKey": "precision_gear",
+    "accentColor": "#059669",
+    "unlockRule": { "metric": "perfectLessonsCount", "operator": ">=", "threshold": 1 },
+    "title": {
+      "ru": "Точное переключение",
+      "en": "Precision Gearshift",
+      "ar": "تبديل تروس دقيق",
+      "fr": "Passage de vitesse précis"
+    },
+    "description": {
+      "ru": "Пройдите 1 урок со 100% точностью",
+      "en": "Complete 1 lesson with 100% accuracy",
+      "ar": "أكمل درساً واحداً بدقة 100%",
+      "fr": "Terminez 1 leçon avec 100 % de précision"
+    }
+  },
+  {
+    "id": "bdg_acc_5_perfect",
+    "category": "accuracy",
+    "rarity": "uncommon",
+    "svgKey": "clean_tachometer",
+    "accentColor": "#0284C7",
+    "unlockRule": { "metric": "perfectLessonsCount", "operator": ">=", "threshold": 5 },
+    "title": {
+      "ru": "Пять чистых кругов",
+      "en": "Five Clean Laps",
+      "ar": "خمس لفات نظيفة",
+      "fr": "Cinq tours sans faute"
+    },
+    "description": {
+      "ru": "Пройдите 5 уроков со 100% точностью",
+      "en": "Finish 5 lessons with a 100% accuracy score",
+      "ar": "أنهِ 5 دروس بنسبة دقة 100%",
+      "fr": "Terminez 5 leçons avec un score de 100 %"
+    }
+  },
+  {
+    "id": "bdg_acc_avg_90",
+    "category": "accuracy",
+    "rarity": "rare",
+    "svgKey": "laser_headlight",
+    "accentColor": "#1B4DFF",
+    "unlockRule": { "metric": "averageAccuracy", "operator": ">=", "threshold": 90 },
+    "title": {
+      "ru": "Штурман без ошибок",
+      "en": "Zero-Drift Navigator",
+      "ar": "ملاح بلا أخطاء",
+      "fr": "Navigateur sans dérive"
+    },
+    "description": {
+      "ru": "Поддерживайте среднюю точность не ниже 90%",
+      "en": "Maintain an overall lesson accuracy of 90% or higher",
+      "ar": "حافظ على متوسط دقة إجمالي 90% أو أعلى",
+      "fr": "Maintenez une précision globale d’au moins 90 %"
+    }
+  },
+  {
+    "id": "bdg_acc_15_perfect",
+    "category": "accuracy",
+    "rarity": "epic",
+    "svgKey": "diamond_caliper",
+    "accentColor": "#7C3AED",
+    "unlockRule": { "metric": "perfectLessonsCount", "operator": ">=", "threshold": 15 },
+    "title": {
+      "ru": "Мастер калибровки",
+      "en": "Calibration Master",
+      "ar": "خبير المعايرة",
+      "fr": "Maître du calibrage"
+    },
+    "description": {
+      "ru": "Пройдите 15 уроков без единой ошибки",
+      "en": "Complete 15 lessons with zero mistakes",
+      "ar": "أكمل 15 درساً بدون أي خطأ",
+      "fr": "Terminez 15 leçons sans aucune erreur"
+    }
+  },
+  {
+    "id": "bdg_acc_exam_95",
+    "category": "accuracy",
+    "rarity": "legendary",
+    "svgKey": "gold_chronometer",
+    "accentColor": "#EAB308",
+    "unlockRule": { "metric": "bestExamScore", "operator": ">=", "threshold": 95 },
+    "rewardCosmeticId": "outfit-professor-glasses",
+    "title": {
+      "ru": "Отличник госэкзамена",
+      "en": "Honors Exam Driver",
+      "ar": "متفوق امتحان المستوى",
+      "fr": "Lauréat d’examen avec mention"
+    },
+    "description": {
+      "ru": "Сдайте уровневый экзамен с результатом 95% и выше",
+      "en": "Pass a CEFR level exam with 95% or higher",
+      "ar": "اجتز امتحان المستوى بنسبة 95% أو أعلى",
+      "fr": "Réussissez un examen de niveau avec 95 % ou plus"
+    }
+  },
+  {
+    "id": "bdg_speak_1",
+    "category": "speaking",
+    "rarity": "common",
+    "svgKey": "mic_wave_1",
+    "accentColor": "#FF8A1F",
+    "unlockRule": { "metric": "speakingClipsCompleted", "operator": ">=", "threshold": 1 },
+    "title": {
+      "ru": "Проверка связи",
+      "en": "Radio Check",
+      "ar": "اختبار الميكروفون",
+      "fr": "Test radio"
+    },
+    "description": {
+      "ru": "Озвучьте свой первый аудиоклип в окне «Говорить»",
+      "en": "Record and score your first speaking clip",
+      "ar": "سجّل وقيّم أول مقطع صوتي لك",
+      "fr": "Enregistrez et évaluez votre premier clip oral"
+    }
+  },
+  {
+    "id": "bdg_speak_3star",
+    "category": "speaking",
+    "rarity": "uncommon",
+    "svgKey": "three_star_mic",
+    "accentColor": "#059669",
+    "unlockRule": { "metric": "threeStarSpeakingClips", "operator": ">=", "threshold": 1 },
+    "rewardCosmeticId": "car-crimson-metro",
+    "title": {
+      "ru": "Чистый эфир (3 звезды)",
+      "en": "Crystal Broadcast (3 Stars)",
+      "ar": "بث نقي (3 نجوم)",
+      "fr": "Antenne limpide (3 étoiles)"
+    },
+    "description": {
+      "ru": "Получите 3 звезды за произношение в режиме повторения",
+      "en": "Earn 3 stars on any Repeat-After-Me clip",
+      "ar": "احصل على 3 نجوم في أي مقطع تحدث",
+      "fr": "Obtenez 3 étoiles sur un clip Répétez après moi"
+    }
+  },
+  {
+    "id": "bdg_speak_10",
+    "category": "speaking",
+    "rarity": "rare",
+    "svgKey": "studio_condenser",
+    "accentColor": "#1B4DFF",
+    "unlockRule": { "metric": "speakingClipsCompleted", "operator": ">=", "threshold": 10 },
+    "title": {
+      "ru": "Голос кампуса",
+      "en": "Voice of the Campus",
+      "ar": "صوت الحرم الجامعي",
+      "fr": "Voix du campus"
+    },
+    "description": {
+      "ru": "Отработайте 10 различных разговорных сцен",
+      "en": "Complete 10 speaking clips across campus and city topics",
+      "ar": "أكمل 10 مقاطع تحدث في موضوعات الجامعة والمدينة",
+      "fr": "Complétez 10 clips oraux sur le campus et la ville"
+    }
+  },
+  {
+    "id": "bdg_speak_roleplay",
+    "category": "speaking",
+    "rarity": "epic",
+    "svgKey": "dialogue_helmets",
+    "accentColor": "#7C3AED",
+    "unlockRule": { "metric": "roleplaysCompleted", "operator": ">=", "threshold": 3 },
+    "title": {
+      "ru": "Мастер диалога",
+      "en": "Role-Play Navigator",
+      "ar": "محاور ماهر",
+      "fr": "Maître du jeu de rôle"
+    },
+    "description": {
+      "ru": "Успешно завершите 3 диалоговых сценария",
+      "en": "Complete 3 branching conversation role-play scenarios",
+      "ar": "أكمل 3 سيناريوهات محادثة تفاعلية",
+      "fr": "Terminez 3 scénarios de conversation"
+    }
+  },
+  {
+    "id": "bdg_speak_stress_90",
+    "category": "speaking",
+    "rarity": "legendary",
+    "svgKey": "golden_waveform",
+    "accentColor": "#EAB308",
+    "unlockRule": { "metric": "bestSpeakingScore", "operator": ">=", "threshold": 92 },
+    "title": {
+      "ru": "Виртуоз ударения",
+      "en": "Stress Accent Virtuoso",
+      "ar": "فنان النبر الصوتي",
+      "fr": "Virtuose de l’accent tonique"
+    },
+    "description": {
+      "ru": "Наберите 92+ балла за произношение и ритмику речи",
+      "en": "Achieve a 92+ speaking score with natural stress and fluency",
+      "ar": "حقق نتيجة 92+ في التحدث مع نبر وطلاقة طبيعية",
+      "fr": "Obtenez un score oral de 92+ avec accent tonique naturel"
+    }
+  },
+  {
+    "id": "bdg_type_first",
+    "category": "typing_speed",
+    "rarity": "common",
+    "svgKey": "keycap_ya",
+    "accentColor": "#FF8A1F",
+    "unlockRule": { "metric": "typingTextsCompleted", "operator": ">=", "threshold": 1 },
+    "title": {
+      "ru": "Первая строка ЙЦУКЕН",
+      "en": "First Cyrillic Line",
+      "ar": "السطر الأول بالكيريلية",
+      "fr": "Première ligne cyrillique"
+    },
+    "description": {
+      "ru": "Завершите первое упражнение в Лаборатории печати",
+      "en": "Complete your first paragraph in the Cyrillic Typing Lab",
+      "ar": "أكمل فقرتك الأولى في مختبر الطباعة الكيريلية",
+      "fr": "Terminez votre premier paragraphe au Labo de frappe"
+    }
+  },
+  {
+    "id": "bdg_type_120cpm",
+    "category": "typing_speed",
+    "rarity": "uncommon",
+    "svgKey": "speedometer_120",
+    "accentColor": "#0284C7",
+    "unlockRule": { "metric": "bestTypingCpm", "operator": ">=", "threshold": 120 },
+    "title": {
+      "ru": "Крейсерская скорость (120 зн/мин)",
+      "en": "Cruising Speed (120 CPM)",
+      "ar": "سرعة الانطلاق (120 حرف/دقيقة)",
+      "fr": "Vitesse de croisière (120 CPM)"
+    },
+    "description": {
+      "ru": "Печатайте по-русски со скоростью 120 знаков в минуту",
+      "en": "Reach 120 characters per minute in the Typing Lab",
+      "ar": "بلغ سرعة 120 حرفاً في الدقيقة في مختبر الطباعة",
+      "fr": "Atteignez 120 caractères par minute au Labo de frappe"
+    }
+  },
+  {
+    "id": "bdg_type_180cpm",
+    "category": "typing_speed",
+    "rarity": "rare",
+    "svgKey": "turbo_keyboard",
+    "accentColor": "#1B4DFF",
+    "unlockRule": { "metric": "bestTypingCpm", "operator": ">=", "threshold": 180 },
+    "rewardCosmeticId": "theme-snow-winter",
+    "title": {
+      "ru": "Турбо-клавиатура (180 зн/мин)",
+      "en": "Turbo Typist (180 CPM)",
+      "ar": "طباعة توربو (180 حرف/دقيقة)",
+      "fr": "Clavier Turbo (180 CPM)"
+    },
+    "description": {
+      "ru": "Разгонитесь до 180 знаков в минуту на русской раскладке",
+      "en": "Hit 180 CPM on the Russian keyboard",
+      "ar": "حقق 180 حرفاً في الدقيقة على لوحة المفاتيح الروسية",
+      "fr": "Atteignez 180 CPM sur le clavier russe"
+    }
+  },
+  {
+    "id": "bdg_type_dictation_5",
+    "category": "typing_speed",
+    "rarity": "epic",
+    "svgKey": "headphones_key",
+    "accentColor": "#7C3AED",
+    "unlockRule": { "metric": "typingTextsCompleted", "operator": ">=", "threshold": 10 },
+    "title": {
+      "ru": "Радиотелеграфист МАДИ",
+      "en": "Blind Dictation Pro",
+      "ar": "محترف الإملاء السمعي",
+      "fr": "Pro de la dictée à l’aveugle"
+    },
+    "description": {
+      "ru": "Наберите 10 текстов в Лаборатории печати",
+      "en": "Complete 10 Russian paragraphs in the Typing Lab",
+      "ar": "أكمل 10 فقرات روسية في مختبر الطباعة",
+      "fr": "Complétez 10 paragraphes russes au Labo de frappe"
+    }
+  },
+  {
+    "id": "bdg_type_40_all",
+    "category": "typing_speed",
+    "rarity": "legendary",
+    "svgKey": "golden_spacebar",
+    "accentColor": "#EAB308",
+    "unlockRule": { "metric": "typingTextsCompleted", "operator": ">=", "threshold": 40 },
+    "title": {
+      "ru": "Гроссмейстер ЙЦУКЕН (40 текстов)",
+      "en": "Cyrillic Grandmaster (40 Texts)",
+      "ar": "أستاذ الطباعة الكيريلية (40 نصاً)",
+      "fr": "Grand maître cyrillique (40 textes)"
+    },
+    "description": {
+      "ru": "Пройдите все 40 текстов Лаборатории печати",
+      "en": "Master all 40 paragraphs in the Cyrillic Typing Lab",
+      "ar": "أتقن جميع الفقرات الـ 40 في مختبر الطباعة",
+      "fr": "Maîtrisez les 40 textes du Labo de frappe"
+    }
+  },
+  {
+    "id": "bdg_dict_10",
+    "category": "dictionary_explorer",
+    "rarity": "common",
+    "svgKey": "compass_book",
+    "accentColor": "#FF8A1F",
+    "unlockRule": { "metric": "wordsLearnedCount", "operator": ">=", "threshold": 10 },
+    "title": {
+      "ru": "Первые 10 терминов",
+      "en": "First 10 Terms",
+      "ar": "أول 10 مصطلحات",
+      "fr": "10 premiers termes"
+    },
+    "description": {
+      "ru": "Изучите или сохраните 10 слов в словаре МАДИ",
+      "en": "Learn or bookmark 10 words in the MADI Dictionary",
+      "ar": "تعلّم أو احفظ 10 كلمات في قاموس مادي",
+      "fr": "Apprenez ou enregistrez 10 mots dans le dictionnaire"
+    }
+  },
+  {
+    "id": "bdg_dict_50",
+    "category": "dictionary_explorer",
+    "rarity": "uncommon",
+    "svgKey": "madi_glossary",
+    "accentColor": "#059669",
+    "unlockRule": { "metric": "wordsLearnedCount", "operator": ">=", "threshold": 50 },
+    "title": {
+      "ru": "Лексикон инженера (50 слов)",
+      "en": "Engineer's Lexicon (50 Words)",
+      "ar": "معجم المهندس (50 كلمة)",
+      "fr": "Lexique de l’ingénieur (50 mots)"
+    },
+    "description": {
+      "ru": "Освойте 50 русских слов и университетских выражений",
+      "en": "Master 50 Russian words and campus expressions",
+      "ar": "أتقن 50 كلمة وعبارة جامعية روسية",
+      "fr": "Maîtrisez 50 mots russes et expressions du campus"
+    }
+  },
+  {
+    "id": "bdg_dict_declension",
+    "category": "dictionary_explorer",
+    "rarity": "rare",
+    "svgKey": "six_case_grid",
+    "accentColor": "#1B4DFF",
+    "unlockRule": { "metric": "wordsLearnedCount", "operator": ">=", "threshold": 100 },
+    "title": {
+      "ru": "Исследователь морфологии",
+      "en": "Morphology Explorer",
+      "ar": "مستكشف التصريف اللغوي",
+      "fr": "Explorateur morphologique"
+    },
+    "description": {
+      "ru": "Достигните отметки в 100 изученных слов со склонениями",
+      "en": "Reach 100 learned words with full case declensions",
+      "ar": "صل إلى 100 كلمة متعلمة مع جداول الإعراب",
+      "fr": "Atteignez 100 mots appris avec leurs déclinaisons"
+    }
+  },
+  {
+    "id": "bdg_dict_250",
+    "category": "dictionary_explorer",
+    "rarity": "epic",
+    "svgKey": "encyclopedia_wheel",
+    "accentColor": "#7C3AED",
+    "unlockRule": { "metric": "wordsLearnedCount", "operator": ">=", "threshold": 250 },
+    "title": {
+      "ru": "Хранитель словаря (250 слов)",
+      "en": "Lexicon Keeper (250 Words)",
+      "ar": "حارس المعجم (250 كلمة)",
+      "fr": "Gardien du lexique (250 mots)"
+    },
+    "description": {
+      "ru": "Соберите активный запас из 250 русских слов",
+      "en": "Build an active vocabulary of 250 Russian words",
+      "ar": "ابنِ حصيلة لغوية نشطة من 250 كلمة روسية",
+      "fr": "Constituez un vocabulaire actif de 250 mots russes"
+    }
+  },
+  {
+    "id": "bdg_dict_500",
+    "category": "dictionary_explorer",
+    "rarity": "legendary",
+    "svgKey": "golden_atlas",
+    "accentColor": "#EAB308",
+    "unlockRule": { "metric": "wordsLearnedCount", "operator": ">=", "threshold": 500 },
+    "title": {
+      "ru": "Академик МАДИ (500+ слов)",
+      "en": "MADI Academician (500+ Words)",
+      "ar": "أكاديمي مادي (500+ كلمة)",
+      "fr": "Académicien MADI (500+ mots)"
+    },
+    "description": {
+      "ru": "Освойте более 500 слов из словаря платформы",
+      "en": "Master 500+ words in the MADI Russian Dictionary",
+      "ar": "أتقن أكثر من 500 كلمة في قاموس مادي",
+      "fr": "Maîtrisez plus de 500 mots du dictionnaire MADI"
+    }
+  },
+  {
+    "id": "bdg_garage_1",
+    "category": "garage_hero",
+    "rarity": "common",
+    "svgKey": "wrench_spark",
+    "accentColor": "#FF8A1F",
+    "unlockRule": { "metric": "garageReviewsCompleted", "operator": ">=", "threshold": 1 },
+    "title": {
+      "ru": "Первый техосмотр",
+      "en": "First Pit-Stop Service",
+      "ar": "الصيانة الأولى في المرآب",
+      "fr": "Premier entretien au garage"
+    },
+    "description": {
+      "ru": "Проведите первую тренировку ошибок в Гараже Миши",
+      "en": "Complete your first review session in Misha's Garage",
+      "ar": "أكمل جلسة المراجعة الأولى في مرآب ميشا",
+      "fr": "Effectuez votre première révision au Garage de Misha"
+    }
+  },
+  {
+    "id": "bdg_garage_10",
+    "category": "garage_hero",
+    "rarity": "uncommon",
+    "svgKey": "hydraulic_lift",
+    "accentColor": "#059669",
+    "unlockRule": { "metric": "garageReviewsCompleted", "operator": ">=", "threshold": 10 },
+    "rewardCosmeticId": "car-emerald-shuttle",
+    "title": {
+      "ru": "Десять отремонтированных узлов",
+      "en": "Ten Tuned Engines",
+      "ar": "عشرة محركات مضبوطة",
+      "fr": "Dix moteurs réglés"
+    },
+    "description": {
+      "ru": "Повторите 10 карточек по системе Лейтнера",
+      "en": "Service 10 Leitner review items in the Garage",
+      "ar": "راجع 10 بطاقات بنظام لايتنر في المرآب",
+      "fr": "Révisez 10 cartes Leitner dans le Garage"
+    }
+  },
+  {
+    "id": "bdg_garage_box3",
+    "category": "garage_hero",
+    "rarity": "rare",
+    "svgKey": "bay_3_badge",
+    "accentColor": "#1B4DFF",
+    "unlockRule": { "metric": "highestLeitnerBox", "operator": ">=", "threshold": 3 },
+    "title": {
+      "ru": "Мастер третьего бокса",
+      "en": "Bay 3 Technician",
+      "ar": "فني الرصيف الثالث",
+      "fr": "Technicien du Box 3"
+    },
+    "description": {
+      "ru": "Продвиньте карточку до Бокса 3 (интервал 7 дней)",
+      "en": "Advance a review item to Leitner Bay 3 (7-day interval)",
+      "ar": "رقِّ بطاقة مراجعة إلى الرصيف 3 (فاصل 7 أيام)",
+      "fr": "Faites passer un élément au Box 3 (intervalle de 7 jours)"
+    }
+  },
+  {
+    "id": "bdg_garage_showroom_1",
+    "category": "garage_hero",
+    "rarity": "epic",
+    "svgKey": "showroom_star",
+    "accentColor": "#7C3AED",
+    "unlockRule": { "metric": "showroomCount", "operator": ">=", "threshold": 1 },
+    "rewardCosmeticId": "theme-white-nights",
+    "title": {
+      "ru": "Первый выпуск в Шоурум",
+      "en": "Showroom Debut",
+      "ar": "أول تخرج إلى صالة العرض",
+      "fr": "Entrée au Showroom"
+    },
+    "description": {
+      "ru": "Дважды подтвердите слово в Боксе 5 и отправьте его в Шоурум",
+      "en": "Pass Bay 5 twice to graduate your first item to the Showroom",
+      "ar": "اجتز الرصيف 5 مرتين لتخريج أول عنصر إلى صالة العرض",
+      "fr": "Validez deux fois le Box 5 pour envoyer un mot au Showroom"
+    }
+  },
+  {
+    "id": "bdg_garage_showroom_25",
+    "category": "garage_hero",
+    "rarity": "legendary",
+    "svgKey": "golden_wrench_crown",
+    "accentColor": "#EAB308",
+    "unlockRule": { "metric": "showroomCount", "operator": ">=", "threshold": 25 },
+    "title": {
+      "ru": "Главный инженер Гаража",
+      "en": "Chief Garage Engineer",
+      "ar": "كبير مهندسي المرآب",
+      "fr": "Ingénieur en chef du Garage"
+    },
+    "description": {
+      "ru": "Выпустите 25 полностью освоенных карточек в Шоурум",
+      "en": "Graduate 25 permanently mastered items into the Showroom",
+      "ar": "خرّج 25 عنصراً متقناً بالكامل إلى صالة العرض",
+      "fr": "Faites entrer 25 éléments maîtrisés au Showroom"
+    }
+  },
+  {
+    "id": "bdg_sign_nom_prep",
+    "category": "grammar_signs",
+    "rarity": "common",
+    "svgKey": "sign_p1_p6",
+    "accentColor": "#1B4DFF",
+    "unlockRule": { "metric": "casesMasteredCount", "operator": ">=", "threshold": 2 },
+    "title": {
+      "ru": "Знаки «Кто/Что» и «Где»",
+      "en": "Who & Where Signposts",
+      "ar": "إشارات المبتدأ والمكان",
+      "fr": "Panneaux Qui et Où"
+    },
+    "description": {
+      "ru": "Освойте Именительный и Предложный падежи",
+      "en": "Master the Nominative and Prepositional road signs",
+      "ar": "أتقن حالتي الرفع والجر المكانية",
+      "fr": "Maîtrisez les panneaux du Nominatif et du Prépositionnel"
+    }
+  },
+  {
+    "id": "bdg_sign_acc",
+    "category": "grammar_signs",
+    "rarity": "uncommon",
+    "svgKey": "sign_p4_arrow",
+    "accentColor": "#FF8A1F",
+    "unlockRule": { "metric": "casesMasteredCount", "operator": ">=", "threshold": 3 },
+    "title": {
+      "ru": "Вектор движения (Винительный)",
+      "en": "Accusative Vector",
+      "ar": "اتجاه الحركة (المفعول به)",
+      "fr": "Vecteur Accusatif"
+    },
+    "description": {
+      "ru": "Освойте Винительный падеж направления (куда?)",
+      "en": "Master the Accusative case of direction and direct objects",
+      "ar": "أتقن حالة النصب والاتجاه (إلى أين؟)",
+      "fr": "Maîtrisez l’Accusatif de direction (où ?)"
+    }
+  },
+  {
+    "id": "bdg_sign_gen_dat",
+    "category": "grammar_signs",
+    "rarity": "rare",
+    "svgKey": "sign_p2_p3",
+    "accentColor": "#059669",
+    "unlockRule": { "metric": "casesMasteredCount", "operator": ">=", "threshold": 5 },
+    "title": {
+      "ru": "Развязка Родительного и Дательного",
+      "en": "Genitive & Dative Interchange",
+      "ar": "تقاطع الإضافة والمفعول لأجله",
+      "fr": "Échangeur Génitif & Datif"
+    },
+    "description": {
+      "ru": "Уверенно используйте Родительный и Дательный падежи",
+      "en": "Unlock 5 Russian grammatical case road signs",
+      "ar": "افتح 5 إشارات مرور لحالات الإعراب الروسية",
+      "fr": "Débloquez 5 panneaux de cas grammaticaux russes"
+    }
+  },
+  {
+    "id": "bdg_sign_ins_all6",
+    "category": "grammar_signs",
+    "rarity": "epic",
+    "svgKey": "sign_all_6_hex",
+    "accentColor": "#7C3AED",
+    "unlockRule": { "metric": "casesMasteredCount", "operator": ">=", "threshold": 6 },
+    "rewardCosmeticId": "outfit-cosmonaut-visor",
+    "title": {
+      "ru": "Навигатор шести падежей",
+      "en": "Six-Case Road Master",
+      "ar": "قائد الحالات الست",
+      "fr": "Maître des Six Cas"
+    },
+    "description": {
+      "ru": "Освойте все 6 падежных дорожных знаков русского языка",
+      "en": "Master all 6 Russian grammatical case road signs",
+      "ar": "أتقن جميع إشارات الحالات الإعرابية الست",
+      "fr": "Maîtrisez les 6 panneaux de cas russes"
+    }
+  },
+  {
+    "id": "bdg_sign_unit_complete",
+    "category": "grammar_signs",
+    "rarity": "legendary",
+    "svgKey": "golden_roundabout",
+    "accentColor": "#EAB308",
+    "unlockRule": { "metric": "completedLessonsCount", "operator": ">=", "threshold": 25 },
+    "title": {
+      "ru": "Инспектор правил движения",
+      "en": "Grammar Highway Inspector",
+      "ar": "مفتش قواعد الطريق اللغوي",
+      "fr": "Inspecteur du code grammatical"
+    },
+    "description": {
+      "ru": "Пройдите 25 уроков на карте маршрута МАДИ",
+      "en": "Complete 25 stops across the MADI Road Map",
+      "ar": "أكمل 25 محطة على خريطة طريق مادي",
+      "fr": "Complétez 25 étapes sur la carte routière MADI"
+    }
+  },
+  {
+    "id": "bdg_help_friend_1",
+    "category": "helpers",
+    "rarity": "common",
+    "svgKey": "handshake_signal",
+    "accentColor": "#FF8A1F",
+    "unlockRule": { "metric": "friendsCount", "operator": ">=", "threshold": 1 },
+    "title": {
+      "ru": "Попутчик по курсу",
+      "en": "Co-Driver Added",
+      "ar": "رفيق الطريق",
+      "fr": "Co-pilote ajouté"
+    },
+    "description": {
+      "ru": "Добавьте первого друга по коду для совместного обучения",
+      "en": "Add your first study friend by invite code",
+      "ar": "أضف أول صديق دراسة عبر الرمز",
+      "fr": "Ajoutez votre premier ami d’étude par code"
+    }
+  },
+  {
+    "id": "bdg_help_nudge",
+    "category": "helpers",
+    "rarity": "uncommon",
+    "svgKey": "horn_friendly",
+    "accentColor": "#0284C7",
+    "unlockRule": { "metric": "nudgesSentCount", "operator": ">=", "threshold": 1 },
+    "title": {
+      "ru": "Дружеский сигнал фарами",
+      "en": "Friendly Headlight Flash",
+      "ar": "إشارة تذكير ودية",
+      "fr": "Appel de phares amical"
+    },
+    "description": {
+      "ru": "Отправьте дружеское напоминание другу, чтобы поддержать серию",
+      "en": "Send a friendly nudge to help a friend keep their streak",
+      "ar": "أرسل تذكيراً ودياً لصديق للحفاظ على سلسلته",
+      "fr": "Envoyez un encouragement amical pour aider un ami"
+    }
+  },
+  {
+    "id": "bdg_help_league_promo",
+    "category": "helpers",
+    "rarity": "rare",
+    "svgKey": "league_chevron_up",
+    "accentColor": "#059669",
+    "unlockRule": { "metric": "weeklyFuel", "operator": ">=", "threshold": 150 },
+    "rewardCosmeticId": "outfit-rally-helmet",
+    "title": {
+      "ru": "Зона повышения лиги",
+      "en": "League Promotion Zone",
+      "ar": "منطقة الترقية في الدوري",
+      "fr": "Zone de promotion de ligue"
+    },
+    "description": {
+      "ru": "Наберите 150+ единиц топлива за неделю в турнире лиг",
+      "en": "Earn 150+ weekly Fuel to enter the League promotion zone",
+      "ar": "اجمع 150+ وقود أسبوعي لدخول منطقة الترقية",
+      "fr": "Gagnez 150+ de carburant hebdomadaire pour la promotion"
+    }
+  },
+  {
+    "id": "bdg_help_faculty",
+    "category": "helpers",
+    "rarity": "epic",
+    "svgKey": "faculty_banner",
+    "accentColor": "#7C3AED",
+    "unlockRule": { "metric": "questsCompletedCount", "operator": ">=", "threshold": 3 },
+    "title": {
+      "ru": "Гордость факультета",
+      "en": "Faculty Banner Bearer",
+      "ar": "فخر الكلية",
+      "fr": "Porte-drapeau de la faculté"
+    },
+    "description": {
+      "ru": "Выполните 3 ежедневных или недельных квеста для своей группы",
+      "en": "Complete 3 daily or weekly quests contributing to your faculty",
+      "ar": "أكمل 3 مهام يومية أو أسبوعية لدعم كليتك",
+      "fr": "Complétez 3 quêtes contribuant au score de votre faculté"
+    }
+  },
+  {
+    "id": "bdg_help_certificate",
+    "category": "helpers",
+    "rarity": "legendary",
+    "svgKey": "madi_seal_diploma",
+    "accentColor": "#EAB308",
+    "unlockRule": { "metric": "certificatesEarnedCount", "operator": ">=", "threshold": 1 },
+    "title": {
+      "ru": "Сертифицированный выпускник",
+      "en": "Certified MADI Driver",
+      "ar": "حاصل على شهادة مادي",
+      "fr": "Diplômé certifié MADI"
+    },
+    "description": {
+      "ru": "Успешно сдайте уровневый экзамен и получите именной сертификат",
+      "en": "Pass a CEFR level exam and issue your verified PDF certificate",
+      "ar": "اجتز امتحان المستوى واحصل على شهادتك الموثقة",
+      "fr": "Réussissez un examen de niveau et obtenez votre certificat"
+    }
+  }
+]

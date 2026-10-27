@@ -1,0 +1,140 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --brand-blue: #0B3D91;
+  --brand-navy: #0A1F44;
+  --accent-orange: #FF8A1F;
+  --road: #2B2F3A;
+  --lane: #F4F1DE;
+  --success: #2FBF71;
+  --error: #E5484D;
+  --bg-light: #F7F9FC;
+  --bg-dark: #0D1526;
+
+  --surface-canvas: var(--bg-light);
+  --surface-card: #FFFFFF;
+  --surface-elevated: #EEF3FA;
+  --text-primary: #0A1F44;
+  --text-secondary: #475569;
+  --border-subtle: #DBE4F0;
+}
+
+.dark {
+  --surface-canvas: var(--bg-dark);
+  --surface-card: #13203B;
+  --surface-elevated: #1B2C4E;
+  --text-primary: #F7F9FC;
+  --text-secondary: #94A3B8;
+  --border-subtle: #243760;
+}
+
+@theme {
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-navy: var(--brand-navy);
+  --color-accent-orange: var(--accent-orange);
+  --color-road: var(--road);
+  --color-lane: var(--lane);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-bg-light: var(--bg-light);
+  --color-bg-dark: var(--bg-dark);
+
+  --font-display: 'Baloo 2', 'Nunito', 'Noto Sans Arabic', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Nunito', 'Noto Sans Arabic', sans-serif;
+}
+
+html {
+  font-family: var(--font-sans);
+  background-color: var(--surface-canvas);
+  color: var(--text-primary);
+  scroll-behavior: smooth;
+  scroll-padding-bottom: 5.5rem;
+}
+
+html[dir="rtl"] {
+  font-family: 'Noto Sans Arabic', 'Nunito', sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes carBounce {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes shakeTile {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-car-idle {
+  animation: carBounce 2.2s ease-in-out infinite;
+}
+
+.animate-shake {
+  animation: shakeTile 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes drawStroke {
+  0% {
+    stroke-dashoffset: 320;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-stroke-draw {
+  stroke-dasharray: 320;
+  animation: drawStroke 1.1s ease-out forwards;
+}
+
+@keyframes wave { 0%,100% { transform:rotate(-2.5deg) translateY(0); } 50% { transform:rotate(3deg) translateY(-2.5%); } }
+@keyframes breathe { 0%,100% { transform:scale(1,1); } 50% { transform:scale(1.012,1.018); } }
+@keyframes hop { 0%,60%,100% { transform:translateY(0) scale(1,1); } 20% { transform:translateY(-7%) scale(.97,1.04); } 40% { transform:translateY(0) scale(1.03,.97); } }
+@keyframes sway { 0%,100% { transform:rotate(-1.2deg) scale(1,1); } 50% { transform:rotate(1.2deg) scale(1.01,1.015); } }
+@keyframes lean { 0%,100% { transform:rotate(1.4deg); } 50% { transform:rotate(-1.6deg) translateY(-1%); } }
+@keyframes drive { 0%,100% { transform:translate(-30%,0); } 50% { transform:translate(30%,-6%); } }
+@keyframes jump { 0% { transform:none; } 30% { transform:translateY(-12%) scale(.96,1.07); } 60% { transform:translateY(0) scale(1.06,.93); } 100% { transform:none; } }
+
+.animate-wave { animation: wave 2.2s ease-in-out infinite; }
+.animate-breathe { animation: breathe 4.2s ease-in-out infinite; }
+.animate-hop { animation: hop 2.6s ease-in-out infinite; }
+.animate-sway { animation: sway 3.4s ease-in-out infinite; }
+.animate-lean { animation: lean 3.8s ease-in-out infinite; }
+.animate-drive { animation: drive 5s ease-in-out infinite; }
+.fig.jump img { animation: jump .55s cubic-bezier(.3,.8,.3,1); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

@@ -1,0 +1,332 @@
+[
+  {
+    "caseCode": "nom",
+    "signShape": "circle",
+    "signColor": "#0B3D91",
+    "signCode": "P-1",
+    "questionsRu": "Кто? Что?",
+    "questionsTranslated": {
+      "ru": "Кто? (одуш.) / Что? (неодуш.)",
+      "en": "Who? (animate) / What? (inanimate)",
+      "ar": "مَن؟ (للعاقل) / ما هذا؟ (لغير العاقل)",
+      "fr": "Qui ? (animé) / Quoi ? (inanimé)"
+    },
+    "title": {
+      "ru": "Именительный падеж — Главная дорога",
+      "en": "Nominative Case — The Starting Lane",
+      "ar": "حالة الرفع (Именительный) — المسار الأساسي",
+      "fr": "Cas Nominatif — La voie principale"
+    },
+    "explanation": {
+      "ru": "Словарная форма слова. Обозначает субъект действия (кто ведёт машину?) и используется в конструкциях «Это автобус», «Вот мост» (глагол «быть» в настоящем времени опускается).",
+      "en": "The dictionary starting form. Marks the subject of the sentence (\"The student drives\") and identity statements (\"Э́то мо́ст\" — Russian omits \"is/are\" in the present tense!).",
+      "ar": "الصيغة الأساسية في القاموس. تدل على الفاعل وتُستخدم في جمل التعريف مثل «Э́то мо́ст» (اللغة الروسية تحذف فعل الكينونة \"يكون\" في المضارع).",
+      "fr": "La forme de base du dictionnaire. Indique le sujet de la phrase et les présentations (« Э́то мо́ст » — le verbe « être » est omis au présent en russe)."
+    },
+    "prepositions": [
+      "— (без предлога)"
+    ],
+    "examples": [
+      {
+        "russianStressed": "Э́то но́вый авто́бус.",
+        "highlightedEnding": "авто́бус",
+        "audioSlug": "sign-nom-1",
+        "translations": {
+          "ru": "Это новый автобус.",
+          "en": "This is a new bus.",
+          "ar": "هذه حافلة جديدة.",
+          "fr": "C’est un nouveau bus."
+        }
+      },
+      {
+        "russianStressed": "Студе́нт чита́ет чертёж.",
+        "highlightedEnding": "Студе́нт",
+        "audioSlug": "sign-nom-2",
+        "translations": {
+          "ru": "Студент читает чертёж.",
+          "en": "The student reads the blueprint.",
+          "ar": "الطالب يقرأ المخطط الهندسي.",
+          "fr": "L’étudiant lit le plan."
+        }
+      }
+    ],
+    "lessonId": "sg-l3"
+  },
+  {
+    "caseCode": "gen",
+    "signShape": "triangle",
+    "signColor": "#E5484D",
+    "signCode": "P-2",
+    "questionsRu": "Кого́? Чего́?",
+    "questionsTranslated": {
+      "ru": "Кого? / Чего? / Откуда?",
+      "en": "Of whom? / Of what? / From where?",
+      "ar": "لِمَن؟ / من ماذا؟ / من أين؟",
+      "fr": "De qui ? / De quoi ? / D’où ?"
+    },
+    "title": {
+      "ru": "Родительный падеж — Знак принадлежности и «Нет»",
+      "en": "Genitive Case — Ownership, Numbers & \"No\"",
+      "ar": "حالة الإضافة (Родительный) — الملكية والنفي والأرقام",
+      "fr": "Cas Génitif — Possession, négation et quantités"
+    },
+    "explanation": {
+      "ru": "Показывает принадлежность («двигатель машины»), отсутствие с «нет» («нет пробок») и количество после 2, 3, 4 («два колеса») и 5+ («пять километров»).",
+      "en": "Shows possession (\"car’s engine\" = дви́гатель маши́ны), absence with \"нет\" (\"нет бензи́на\"), origin with \"из/у\", and counting after numbers.",
+      "ar": "يُستخدم للتعبير عن الملكية («محرك السيارة»)، والنفي مع «нет»، والمصدر مع «из»، وبعد الأعداد.",
+      "fr": "Exprime la possession (« le moteur de la voiture »), l’absence avec « нет », l’origine (« из ») et les nombres."
+    },
+    "prepositions": [
+      "у",
+      "из",
+      "от",
+      "без",
+      "о́коло",
+      "по́сле"
+    ],
+    "examples": [
+      {
+        "russianStressed": "Дви́гатель э́той маши́ны.",
+        "highlightedEnding": "маши́ны",
+        "audioSlug": "sign-gen-1",
+        "translations": {
+          "ru": "Двигатель этой машины.",
+          "en": "The engine of this car.",
+          "ar": "محرك هذه السيارة.",
+          "fr": "Le moteur de cette voiture."
+        }
+      },
+      {
+        "russianStressed": "Сего́дня на шоссе́ нет про́бок.",
+        "highlightedEnding": "про́бок",
+        "audioSlug": "sign-gen-2",
+        "translations": {
+          "ru": "Сегодня на шоссе нет пробок.",
+          "en": "Today there are no traffic jams on the highway.",
+          "ar": "لا يوجد ازدحام مروري على الطريق السريع اليوم.",
+          "fr": "Aujourd’hui il n’y a pas d’embouteillages sur l’autoroute."
+        }
+      }
+    ]
+  },
+  {
+    "caseCode": "dat",
+    "signShape": "diamond",
+    "signColor": "#2FBF71",
+    "signCode": "P-3",
+    "questionsRu": "Кому́? Чему́?",
+    "questionsTranslated": {
+      "ru": "Кому? / Чему? / К чему?",
+      "en": "To whom? / To what? / Along what?",
+      "ar": "إلى مَن؟ / نحو ماذا؟ / على طول أي طريق؟",
+      "fr": "À qui ? / Vers quoi ? / Le long de quoi ?"
+    },
+    "title": {
+      "ru": "Дательный падеж — Направление «К» и движение «По»",
+      "en": "Dative Case — Recipient & Driving Along (\"По\")",
+      "ar": "حالة المفعول غير المباشر (Дательный) — الاتجاه والسير على الطريق",
+      "fr": "Cas Datif — Destinataire et mouvement sur (« по »)"
+    },
+    "explanation": {
+      "ru": "Указывает адресата («помогать другу») и движение вдоль поверхности с предлогом «по» («ехать по проспекту», «идти по улице»).",
+      "en": "Marks the recipient (\"give to the teacher\") and driving along a road with preposition \"по\" (\"е́хать по проспе́кту\" = driving along the avenue).",
+      "ar": "يدل على المستفيد («مساعدة الصديق») وعلى السير بمحاذاة الطريق مع حرف الجر «по» («السير في الجادة»).",
+      "fr": "Indique le destinataire (« aider un ami ») et le déplacement le long d’une voie avec « по » (« rouler sur l’avenue »)."
+    },
+    "prepositions": [
+      "к",
+      "по"
+    ],
+    "examples": [
+      {
+        "russianStressed": "Авто́бус е́дет по проспе́кту.",
+        "highlightedEnding": "проспе́кту",
+        "audioSlug": "sign-dat-1",
+        "translations": {
+          "ru": "Автобус едет по проспекту.",
+          "en": "The bus drives along the avenue.",
+          "ar": "تسير الحافلة على طول الجادة.",
+          "fr": "Le bus roule sur l’avenue."
+        }
+      },
+      {
+        "russianStressed": "Я иду́ к преподава́телю.",
+        "highlightedEnding": "преподава́телю",
+        "audioSlug": "sign-dat-2",
+        "translations": {
+          "ru": "Я иду к преподавателю.",
+          "en": "I am walking toward the lecturer.",
+          "ar": "أنا ذاهب إلى الأستاذ الجامعي.",
+          "fr": "Je vais chez le professeur."
+        }
+      }
+    ]
+  },
+  {
+    "caseCode": "acc",
+    "signShape": "octagon",
+    "signColor": "#FF8A1F",
+    "signCode": "P-4",
+    "questionsRu": "Кого́? Что? Куда́?",
+    "questionsTranslated": {
+      "ru": "Кого? / Что? / Куда?",
+      "en": "Whom? / What? (Direct Object) / Where to?",
+      "ar": "مَن؟ / ماذا؟ (المفعول به) / إلى أين؟",
+      "fr": "Qui ? / Quoi ? (COD) / Où (direction) ?"
+    },
+    "title": {
+      "ru": "Винительный падеж — Прямой объект и вектор «Куда?»",
+      "en": "Accusative Case — Direct Object & Destination (\"Куда́?\")",
+      "ar": "حالة النصب (Винительный) — المفعول به المباشر والوجهة («إلى أين؟»)",
+      "fr": "Cas Accusatif — Objet direct et destination (« Куда́ ? »)"
+    },
+    "explanation": {
+      "ru": "Обозначает предмет действия («читать книгу», «проверять тормоз») и пункт назначения с предлогами «в / на» при ответе на вопрос «Куда?» («ехать в Москву», «идти на лекцию»). Женский род меняет -а/-я на -у/-ю!",
+      "en": "Marks the direct object of an action (\"inspect the engine\") AND destination with \"в / на\" answering \"Куда́?\" (\"going to lecture\" = на ле́кцию). Feminine -а/-я changes to -у/-ю!",
+      "ar": "يدل على المفعول به المباشر («قراءة كتاب») وعلى وجهة الحركة مع «в / на» للإجابة عن «Куда́؟» («الذهاب إلى المحاضرة»). تنتهي الأسماء المؤنثة بـ -у/-ю!",
+      "fr": "Indique l’objet direct (« lire un livre ») et la destination avec « в / на » (« aller au cours » = на ле́кцию). Le féminin -а/-я devient -у/-ю !"
+    },
+    "prepositions": [
+      "в (куда́?)",
+      "на (куда́?)",
+      "че́рез"
+    ],
+    "examples": [
+      {
+        "russianStressed": "Мы стро́им но́вую доро́гу.",
+        "highlightedEnding": "доро́гу",
+        "audioSlug": "sign-acc-1",
+        "translations": {
+          "ru": "Мы строим новую дорогу.",
+          "en": "We are building a new road.",
+          "ar": "نحن نبني طريقاً جديداً.",
+          "fr": "Nous construisons une nouvelle route."
+        }
+      },
+      {
+        "russianStressed": "Студе́нт идёт на ле́кцию в университе́т.",
+        "highlightedEnding": "ле́кцию",
+        "audioSlug": "sign-acc-2",
+        "translations": {
+          "ru": "Студент идёт на лекцию в университет.",
+          "en": "The student is walking to a lecture at the university.",
+          "ar": "يذهب الطالب إلى المحاضرة في الجامعة.",
+          "fr": "L’étudiant va au cours à l’université."
+        }
+      }
+    ],
+    "lessonId": "sg-l4"
+  },
+  {
+    "caseCode": "ins",
+    "signShape": "hexagon",
+    "signColor": "#6366F1",
+    "signCode": "P-5",
+    "questionsRu": "Кем? Чем?",
+    "questionsTranslated": {
+      "ru": "Кем? / Чем? / С кем?",
+      "en": "By whom? / With what tool? / Together with whom?",
+      "ar": "بواسطة مَن؟ / بأي أداة؟ / مع مَن؟",
+      "fr": "Par qui ? / Avec quel outil ? / Avec qui ?"
+    },
+    "title": {
+      "ru": "Творительный падеж — Инструмент и компания «С»",
+      "en": "Instrumental Case — Tools, Professions & \"With\"",
+      "ar": "حالة الأداة والمعية (Творительный) — الأدوات والمهن وحرف «مع»",
+      "fr": "Cas Instrumental — Outils, professions et « avec »"
+    },
+    "explanation": {
+      "ru": "Показывает инструмент работы без предлога («крутить гайку ключом»), совместность с предлогом «с» («с другом») и будущую профессию («работать инженером»).",
+      "en": "Shows the tool used (\"tighten with a wrench\" = ключо́м), companionship with \"с\" (\"with a friend\" = с дру́гом), and professions (\"become an engineer\" = инжене́ром).",
+      "ar": "يُستخدم للدلالة على الأداة المستخدمة («بمفتاح الربط» = ключо́м)، أو الصحبة مع «с» («مع صديق»)، أو المهنة («يعمل مهندساً»).",
+      "fr": "Indique l’outil utilisé (« avec une clé » = ключо́м), l’accompagnement avec « с » (« avec un ami ») et la profession (« devenir ingénieur »)."
+    },
+    "prepositions": [
+      "с",
+      "ря́дом с",
+      "пе́ред",
+      "под",
+      "над",
+      "за"
+    ],
+    "examples": [
+      {
+        "russianStressed": "Ми́ша рабо́тает га́ечным ключо́м.",
+        "highlightedEnding": "ключо́м",
+        "audioSlug": "sign-ins-1",
+        "translations": {
+          "ru": "Миша работает гаечным ключом.",
+          "en": "Misha works with a wrench.",
+          "ar": "يعمل ميشا بمفتاح الربط.",
+          "fr": "Micha travaille avec une clé à molette."
+        }
+      },
+      {
+        "russianStressed": "Я иду́ в столо́вую с дру́гом.",
+        "highlightedEnding": "дру́гом",
+        "audioSlug": "sign-ins-2",
+        "translations": {
+          "ru": "Я иду в столовую с другом.",
+          "en": "I am going to the cafeteria with a friend.",
+          "ar": "أذهب إلى الكافتيريا مع صديق.",
+          "fr": "Je vais à la cantine avec un ami."
+        }
+      }
+    ]
+  },
+  {
+    "caseCode": "prep",
+    "signShape": "square",
+    "signColor": "#0284C7",
+    "signCode": "P-6",
+    "questionsRu": "О ком? О чём? Где?",
+    "questionsTranslated": {
+      "ru": "О ком? / О чём? / Где? / На чём?",
+      "en": "About whom/what? / Where (location)? / By what transport?",
+      "ar": "عن مَن/ماذا؟ / أين (الموقع)؟ / بأي وسيلة نقل؟",
+      "fr": "De qui/quoi ? / Où (lieu) ? / En quel transport ?"
+    },
+    "title": {
+      "ru": "Предложный падеж — Локация «В / На» и транспорт",
+      "en": "Prepositional Case — Location (\"В / На\") & Transport",
+      "ar": "حالة الجر والمكان (Предложный) — الموقع («في / على») ووسائل النقل",
+      "fr": "Cas Prépositionnel — Lieu (« В / На ») et moyens de transport"
+    },
+    "explanation": {
+      "ru": "Отвечает на вопрос «Где?» с предлогами «в» (внутри: в гараже, в Москве, в аудитории) и «на» (на поверхности или мероприятии: на дороге, на лекции, на мосту), а также «на чём ехать?» (на метро, на автобусе). Большинство слов получают окончание -е (или -и / -у).",
+      "en": "Answers \"Где?\" (Where?) with \"в\" (inside: в гараже́, в Москве́) or \"на\" (on a surface/event: на доро́ге, на ле́кции, на мосту́) and transport (\"е́хать на авто́бусе\"). Most nouns end in -е (or -ий/-ия/-ие -> -ии).",
+      "ar": "يجيب عن السؤال «أين؟» (Где؟) مع «в» (داخل مكان: в гараже́) و«на» (على سطح أو في فعالية: на доро́ге، на ле́кции) وكذلك وسيلة النقل («بالحافلة» = на авто́бусе). تنتهي معظم الأسماء بـ -е.",
+      "fr": "Répond à « Где ? » (Où ?) avec « в » (dans : в гараже́) et « на » (sur/à : на доро́ге, на ле́кции) ainsi que le moyen de transport (« en bus » = на авто́бусе). La plupart des noms prennent -е."
+    },
+    "prepositions": [
+      "в (где?)",
+      "на (где?)",
+      "о / об"
+    ],
+    "examples": [
+      {
+        "russianStressed": "Маши́на стои́т в гараже́ на у́лице.",
+        "highlightedEnding": "гараже́",
+        "audioSlug": "sign-prep-1",
+        "translations": {
+          "ru": "Машина стоит в гараже на улице.",
+          "en": "The car is parked in the garage on the street.",
+          "ar": "السيارة متوقفة في المرآب في الشارع.",
+          "fr": "La voiture est dans le garage dans la rue."
+        }
+      },
+      {
+        "russianStressed": "Мы е́дем в МАДИ́ на авто́бусе и на метро́.",
+        "highlightedEnding": "авто́бусе",
+        "audioSlug": "sign-prep-2",
+        "translations": {
+          "ru": "Мы едем в МАДИ на автобусе и на метро.",
+          "en": "We go to MADI by bus and by metro.",
+          "ar": "نذهب إلى جامعة مادي بالحافلة وبالمترو.",
+          "fr": "Nous allons à MADI en bus et en métro."
+        }
+      }
+    ],
+    "lessonId": "sg-l5"
+  }
+]

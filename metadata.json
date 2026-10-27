@@ -1,0 +1,6 @@
+{
+  "name": "madingo — Learn Russian on the MADI Road",
+  "description": "Free mobile-first Russian-learning PWA for students of MADI (Moscow Automobile and Road Construction State Technical University). Master the Cyrillic alphabet and everyday Russian phrases.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

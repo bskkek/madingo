@@ -1,0 +1,728 @@
+[
+  {
+    "id": "scen-cafe",
+    "title": {
+      "ru": "В студе́нческом кафе́ МАДИ́",
+      "en": "At the MADI Campus Cafe",
+      "ar": "في مقهى الحرم الجامعي مادي",
+      "fr": "Au café du campus MADI"
+    },
+    "subtitle": {
+      "ru": "Закажи́те напи́ток, выпечку и оплати́те ка́ртой",
+      "en": "Order a drink and pastry, then pay by card",
+      "ar": "اطلب مشروباً ومعجنات ثم ادفع بالبطاقة",
+      "fr": "Commandez une boisson et une viennoiserie, puis payez par carte"
+    },
+    "level": "A1",
+    "topic": "food",
+    "sceneTheme": "cafe",
+    "npcRole": {
+      "ru": "Бари́ста А́нна",
+      "en": "Barista Anna",
+      "ar": "الباريستا آنا",
+      "fr": "Barista Anna"
+    },
+    "studentRole": {
+      "ru": "Студе́нт на переры́ве",
+      "en": "Student on break",
+      "ar": "طالب في الاستراحة",
+      "fr": "Étudiant en pause"
+    },
+    "usefulPhrases": [
+      {
+        "ru": "Да́йте, пожа́луйста, ча́шку ко́фе.",
+        "en": "Please give me a cup of coffee.",
+        "ar": "أعطني من فضلك فنجان قهوة.",
+        "fr": "Donnez-moi, s’il vous plaît, une tasse de café."
+      },
+      {
+        "ru": "Я бу́ду плати́ть ка́ртой.",
+        "en": "I will pay by card.",
+        "ar": "سأدفع بالبطاقة.",
+        "fr": "Je vais payer par carte."
+      }
+    ],
+    "nodes": [
+      {
+        "id": "n1",
+        "npcSpeaker": "Бари́ста А́нна",
+        "npcLine": "Здра́вствуйте! Что вы бу́дете зака́зывать сего́дня?",
+        "npcTranslations": {
+          "ru": "Здра́вствуйте! Что вы бу́дете зака́зывать сего́дня?",
+          "en": "Hello! What would you like to order today?",
+          "ar": "مرحباً! ماذا تحب أن تطلب اليوم؟",
+          "fr": "Bonjour ! Que souhaitez-vous commander aujourd’hui ?"
+        },
+        "hints": {
+          "level1": {
+            "ru": "Используйте винительный падеж: «ча́шку ко́фе и бу́лочку».",
+            "en": "Use the Accusative case: \"ча́шку ко́фе и бу́лочку\".",
+            "ar": "استخدم حالة المفعول به: \"ча́шку ко́фе и бу́лочку\".",
+            "fr": "Utilisez l’accusatif : « ча́шку ко́фе и бу́лочку »."
+          },
+          "level2": {
+            "ru": "Начните с: «Здра́вствуйте! Да́йте, пожа́луйста...»",
+            "en": "Start with: \"Здра́вствуйте! Да́йте, пожа́луйста...\"",
+            "ar": "ابدأ بـ: \"Здра́вствуйте! Да́йте, пожа́луйста...\"",
+            "fr": "Commencez par : « Здра́вствуйте! Да́йте, пожа́луйста... »"
+          },
+          "level3": "Здра́вствуйте! Да́йте, пожа́луйста, ча́шку ко́фе и бу́лочку."
+        },
+        "options": [
+          {
+            "id": "opt-1a",
+            "russianText": "Здра́вствуйте! Да́йте, пожа́луйста, ча́шку ко́фе и бу́лочку.",
+            "translations": {
+              "ru": "Здра́вствуйте! Да́йте, пожа́луйста, ча́шку ко́фе и бу́лочку.",
+              "en": "Hello! Please give me a cup of coffee and a bun.",
+              "ar": "مرحباً! أعطني من فضلك فنجان قهوة وكعكة.",
+              "fr": "Bonjour ! Donnez-moi s’il vous plaît une tasse de café et une brioche."
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Отлично! Правильный винительный падеж («ча́шку», «бу́лочку»).",
+              "en": "Excellent! Correct Accusative case endings (\"ча́шку\", \"бу́лочку\").",
+              "ar": "ممتاز! نهايات المفعول به صحيحة.",
+              "fr": "Excellent ! Bonnes terminaisons à l’accusatif."
+            },
+            "nextNodeId": "n2"
+          },
+          {
+            "id": "opt-1b",
+            "russianText": "Мне оди́н зелёный чай с лимо́ном, пожа́луйста.",
+            "translations": {
+              "ru": "Мне оди́н зелёный чай с лимо́ном, пожа́луйста.",
+              "en": "One green tea with lemon for me, please.",
+              "ar": "واحد شاي أخضر بالليمون لي، من فضلك.",
+              "fr": "Un thé vert au citron pour moi, s’il vous plaît."
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Прекрасно! Творительный падеж «с лимо́ном» использован верно.",
+              "en": "Great! Instrumental case \"с лимо́ном\" used accurately.",
+              "ar": "رائع! حالة الأداة \"с лимо́ном\" صحيحة.",
+              "fr": "Parfait ! Le cas instrumental « с лимо́ном » est exact."
+            },
+            "nextNodeId": "n2"
+          }
+        ]
+      },
+      {
+        "id": "n2",
+        "npcSpeaker": "Бари́ста А́нна",
+        "npcLine": "Хорошо́! Бу́дете пить здесь или возьмёте с собо́й? Как бу́дете плати́ть?",
+        "npcTranslations": {
+          "ru": "Хорошо́! Бу́дете пить здесь или возьмёте с собо́й? Как бу́дете плати́ть?",
+          "en": "Alright! For here or to go? How will you pay?",
+          "ar": "حسناً! هنا أم سفري؟ كيف ستدفع؟",
+          "fr": "Très bien ! Sur place ou à emporter ? Comment allez-vous payer ?"
+        },
+        "hints": {
+          "level1": {
+            "ru": "Используйте творительный падеж способа оплаты: «плати́ть ка́ртой».",
+            "en": "Use the Instrumental case for payment method: \"плати́ть ка́ртой\".",
+            "ar": "استخدم حالة الأداة لطريقة الدفع: \"плати́ть ка́ртой\".",
+            "fr": "Utilisez l’instrumental pour le moyen de paiement : « плати́ть ка́ртой »."
+          },
+          "level2": {
+            "ru": "Скажите: «Я бу́ду пить здесь и плати́ть...»",
+            "en": "Say: \"Я бу́ду пить здесь и плати́ть...\"",
+            "ar": "قل: \"Я бу́ду пить здесь и плати́ть...\"",
+            "fr": "Dites : « Я бу́ду пить здесь и плати́ть... »"
+          },
+          "level3": "Я бу́ду пить здесь и плати́ть ка́ртой, спаси́бо."
+        },
+        "options": [
+          {
+            "id": "opt-2a",
+            "russianText": "Я бу́ду пить здесь и плати́ть ка́ртой, спаси́бо.",
+            "translations": {
+              "ru": "Я бу́ду пить здесь и плати́ть ка́ртой, спаси́бо.",
+              "en": "I will drink it here and pay by card, thank you.",
+              "ar": "سأشرب هنا وأدفع بالبطاقة، شكراً.",
+              "fr": "Je vais boire ici et payer par carte, merci."
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Безупречно! Ваш заказ готов.",
+              "en": "Spot on! Your order is ready.",
+              "ar": "مثالي! طلبك جاهز.",
+              "fr": "Impeccable ! Votre commande est prête."
+            },
+            "nextNodeId": "END"
+          },
+          {
+            "id": "opt-2b",
+            "russianText": "Возьму́ с собо́й, оплачу́ телефо́ном.",
+            "translations": {
+              "ru": "Возьму́ с собо́й, оплачу́ телефо́ном.",
+              "en": "I will take it to go and pay by phone.",
+              "ar": "سآخذه معي وأدفع بالهاتف.",
+              "fr": "Je prends à emporter, je paie par téléphone."
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Отличный живой русский язык!",
+              "en": "Natural everyday Russian!",
+              "ar": "لغة روسية يومية طبيعية ممتازة!",
+              "fr": "Excellent russe naturel !"
+            },
+            "nextNodeId": "END"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scen-metro-dir",
+    "title": {
+      "ru": "Как пройти́ к метро́ Аэропо́рт?",
+      "en": "Asking Directions to Aeroport Metro",
+      "ar": "السؤال عن الطريق إلى مترو أيروبورت",
+      "fr": "Demander son chemin vers le métro Aeroport"
+    },
+    "subtitle": {
+      "ru": "Узна́йте доро́гу от кампуса МАДИ́ до ста́нции метро́",
+      "en": "Find your way from the MADI campus to the metro entrance",
+      "ar": "اعرف الطريق من حرم مادي إلى مدخل المترو",
+      "fr": "Trouvez le chemin du campus MADI jusqu’au métro"
+    },
+    "level": "A1",
+    "topic": "metro",
+    "sceneTheme": "metro",
+    "npcRole": {
+      "ru": "Прохо́жий у проспе́кта",
+      "en": "Passerby on the avenue",
+      "ar": "أحد المارة في الشارع",
+      "fr": "Passant sur l’avenue"
+    },
+    "studentRole": {
+      "ru": "Первоку́рсник МАДИ́",
+      "en": "MADI Freshman",
+      "ar": "طالب سنة أولى في مادي",
+      "fr": "Étudiant de 1re année à MADI"
+    },
+    "usefulPhrases": [
+      {
+        "ru": "Скажи́те, пожа́луйста, где ста́нция метро́ Аэропо́рт?",
+        "en": "Tell me, please, where is the Aeroport metro station?",
+        "ar": "قل لي من فضلك، أين محطة مترو أيروبورت؟",
+        "fr": "Dites-moi, s’il vous plaît, où est la station de métro Aeroport ?"
+      },
+      {
+        "ru": "Спаси́бо большо́е за по́мощь!",
+        "en": "Thank you very much for your help!",
+        "ar": "شكراً جزيلاً على المساعدة!",
+        "fr": "Merci beaucoup pour votre aide !"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "n1",
+        "npcSpeaker": "Прохо́жий",
+        "npcLine": "Да, слу́шаю вас! Вы что́-то и́щете?",
+        "npcTranslations": {
+          "ru": "Да, слу́шаю вас! Вы что́-то и́щете?",
+          "en": "Yes, I’m listening! Are you looking for something?",
+          "ar": "نعم، أستمع إليك! هل تبحث عن شيء؟",
+          "fr": "Oui, je vous écoute ! Vous cherchez quelque chose ?"
+        },
+        "hints": {
+          "level1": {
+            "ru": "Спросите вежливо: «Скажи́те, пожа́луйста, где...»",
+            "en": "Ask politely: \"Скажи́те, пожа́луйста, где...\"",
+            "ar": "اسأل بأدب: \"Скажи́те, пожа́луйста, где...\"",
+            "fr": "Demandez poliment : « Скажи́те, пожа́луйста, где... »"
+          },
+          "level2": {
+            "ru": "«Скажи́те, пожа́луйста, где ста́нция метро́...»",
+            "en": "\"Скажи́те, пожа́луйста, где ста́нция метро́...\"",
+            "ar": "\"Скажи́те, пожа́луйста, где ста́нция метро́...\"",
+            "fr": "« Скажи́те, пожа́луйста, где ста́нция метро́... »"
+          },
+          "level3": "Скажи́те, пожа́луйста, где ста́нция метро́ Аэропо́рт?"
+        },
+        "options": [
+          {
+            "id": "opt-m1",
+            "russianText": "Скажи́те, пожа́луйста, где ста́нция метро́ Аэропо́рт?",
+            "translations": {
+              "ru": "Скажи́те, пожа́луйста, где ста́нция метро́ Аэропо́рт?",
+              "en": "Tell me, please, where is the Aeroport metro station?",
+              "ar": "قل لي من فضلك، أين محطة مترو أيروبورت؟",
+              "fr": "Dites-moi, s’il vous plaît, où est la station de métro Aeroport ?"
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Очень вежливо и грамотно!",
+              "en": "Very polite and grammatically accurate!",
+              "ar": "مهذب جداً وصحيح نحوياً!",
+              "fr": "Très poli et grammaticalement exact !"
+            },
+            "nextNodeId": "n2"
+          }
+        ]
+      },
+      {
+        "id": "n2",
+        "npcSpeaker": "Прохо́жий",
+        "npcLine": "Иди́те пря́мо по Ленингра́дскому проспе́кту две мину́ты, вход бу́дет спра́ва.",
+        "npcTranslations": {
+          "ru": "Иди́те пря́мо по Ленингра́дскому проспе́кту две мину́ты, вход бу́дет спра́ва.",
+          "en": "Walk straight along Leningradsky Prospekt for two minutes; the entrance will be on the right.",
+          "ar": "سر مباشرة في شارع لينينغرادسكي لمدة دقيقتين، سيكون المدخل على اليمين.",
+          "fr": "Allez tout droit sur la perspective Leningradski pendant deux minutes, l’entrée sera à droite."
+        },
+        "hints": {
+          "level1": {
+            "ru": "Поблагодарите собеседника (предлог «за» + винительный падеж «по́мощь»).",
+            "en": "Thank the person (preposition \"за\" + Accusative \"по́мощь\").",
+            "ar": "اشكر المتحدث (حرف الجر \"за\" + المفعول به \"по́мощь\").",
+            "fr": "Remerciez la personne (préposition « за » + accusatif « по́мощь »)."
+          },
+          "level2": {
+            "ru": "«Спаси́бо большо́е за по́мощь!»",
+            "en": "\"Спаси́бо большо́е за по́мощь!\"",
+            "ar": "\"Спаси́бо большо́е за по́мощь!\"",
+            "fr": "« Спаси́бо большо́е за по́мощь! »"
+          },
+          "level3": "Спаси́бо большо́е за по́мощь! До свида́ния!"
+        },
+        "options": [
+          {
+            "id": "opt-m2",
+            "russianText": "Спаси́бо большо́е за по́мощь! До свида́ния!",
+            "translations": {
+              "ru": "Спаси́бо большо́е за по́мощь! До свида́ния!",
+              "en": "Thank you very much for your help! Goodbye!",
+              "ar": "شكراً جزيلاً على المساعدة! إلى اللقاء!",
+              "fr": "Merci beaucoup pour votre aide ! Au revoir !"
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Прекрасно! Вы нашли вход в метро.",
+              "en": "Wonderful! You found the metro entrance.",
+              "ar": "رائع! لقد وجدت مدخل المترو.",
+              "fr": "Parfait ! Vous avez trouvé l’entrée du métro."
+            },
+            "nextNodeId": "END"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scen-taxi",
+    "title": {
+      "ru": "Поездка с води́телем такси́",
+      "en": "Talking to a Taxi Driver",
+      "ar": "التحدث مع سائق التاكسي",
+      "fr": "Parler au chauffeur de taxi"
+    },
+    "subtitle": {
+      "ru": "Назови́те а́дрес и попроси́те останови́ть у гла́вного вхо́да",
+      "en": "Confirm the address and ask to stop at the main gate",
+      "ar": "أكد العنوان واطلب التوقف عند البوابة الرئيسية",
+      "fr": "Confirmez l’adresse et demandez de s’arrêter à l’entrée principale"
+    },
+    "level": "A2",
+    "topic": "taxi",
+    "sceneTheme": "taxi",
+    "npcRole": {
+      "ru": "Води́тель Сергéй",
+      "en": "Driver Sergey",
+      "ar": "السائق سيرغي",
+      "fr": "Chauffeur Sergueï"
+    },
+    "studentRole": {
+      "ru": "Пассажи́р",
+      "en": "Passenger",
+      "ar": "راكب",
+      "fr": "Passager"
+    },
+    "usefulPhrases": [
+      {
+        "ru": "Мы е́дем на Ленингра́дский проспе́кт, дом шестьдеся́т четы́ре.",
+        "en": "We are going to Leningradsky Prospekt, building 64.",
+        "ar": "نحن ذاهبون إلى شارع لينينغرادسكي، مبنى 64.",
+        "fr": "Nous allons perspective Leningradski, numéro 64."
+      },
+      {
+        "ru": "Останови́те, пожа́луйста, у светофо́ра.",
+        "en": "Please stop near the traffic light.",
+        "ar": "توقف من فضلك عند إشارة المرور.",
+        "fr": "Arrêtez-vous, s’il vous plaît, près du feu tricolore."
+      }
+    ],
+    "nodes": [
+      {
+        "id": "n1",
+        "npcSpeaker": "Води́тель Сергéй",
+        "npcLine": "До́брый день! Подтверди́те, пожа́луйста, куда́ мы сего́дня е́дем?",
+        "npcTranslations": {
+          "ru": "До́брый день! Подтверди́те, пожа́луйста, куда́ мы сего́дня е́дем?",
+          "en": "Good afternoon! Please confirm where we are driving today?",
+          "ar": "طاب يومك! يرجى تأكيد وجهتنا اليوم؟",
+          "fr": "Bonjour ! Confirmez s’il vous plaît notre destination aujourd’hui ?"
+        },
+        "hints": {
+          "level1": {
+            "ru": "Куда? (Винительный падеж): «на Ленингра́дский проспе́кт, в МАДИ́».",
+            "en": "Where to? (Accusative): \"на Ленингра́дский проспе́кт, в МАДИ́\".",
+            "ar": "إلى أين؟ (المفعول به): \"на Ленингра́дский проспе́кт, в МАДИ́\".",
+            "fr": "Où ? (Accusatif) : « на Ленингра́дский проспе́кт, в МАДИ́ »."
+          },
+          "level2": {
+            "ru": "«До́брый день! Мы е́дем на Ленингра́дский проспе́кт...»",
+            "en": "\"До́брый день! Мы е́дем на Ленингра́дский проспе́кт...\"",
+            "ar": "\"До́брый день! Мы е́дем на Ленингра́дский проспе́кт...\"",
+            "fr": "« До́брый день! Мы е́дем на Ленингра́дский проспе́кт... »"
+          },
+          "level3": "До́брый день! Мы е́дем на Ленингра́дский проспе́кт, в университе́т МАДИ́."
+        },
+        "options": [
+          {
+            "id": "opt-t1",
+            "russianText": "До́брый день! Мы е́дем на Ленингра́дский проспе́кт, в университе́т МАДИ́.",
+            "translations": {
+              "ru": "До́брый день! Мы е́дем на Ленингра́дский проспе́кт, в университе́т МАДИ́.",
+              "en": "Good afternoon! We are driving to Leningradsky Prospekt, to MADI University.",
+              "ar": "طاب يومك! نحن ذاهبون إلى شارع لينينغرادسكي، إلى جامعة مادي.",
+              "fr": "Bonjour ! Nous allons perspective Leningradski, à l’université MADI."
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Точно! Водитель понял маршрут.",
+              "en": "Exact! The driver understood the route.",
+              "ar": "بالضبط! فهم السائق المسار.",
+              "fr": "Exact ! Le chauffeur a compris l’itinéraire."
+            },
+            "nextNodeId": "n2"
+          }
+        ]
+      },
+      {
+        "id": "n2",
+        "npcSpeaker": "Води́тель Сергéй",
+        "npcLine": "Мы уже́ подъезжа́ем к перекрёстку. Где лу́чше останови́ть маши́ну?",
+        "npcTranslations": {
+          "ru": "Мы уже́ подъезжа́ем к перекрёстку. Где лу́чше останови́ть маши́ну?",
+          "en": "We are approaching the intersection. Where is the best place to stop the car?",
+          "ar": "نحن نقترب من التقاطع. أين أفضل مكان لإيقاف السيارة؟",
+          "fr": "Nous approchons du carrefour. Où vaut-il mieux arrêter la voiture ?"
+        },
+        "hints": {
+          "level1": {
+            "ru": "Предлог «у» требует родительного падежа: «у гла́вного вхо́да».",
+            "en": "Preposition \"у\" requires Genitive: \"у гла́вного вхо́да\".",
+            "ar": "حرف الجر \"у\" يتطلب المضاف إليه: \"у гла́вного вхо́да\".",
+            "fr": "La préposition « у » exige le génitif : « у гла́вного вхо́да »."
+          },
+          "level2": {
+            "ru": "«Останови́те, пожа́луйста, у гла́вного...»",
+            "en": "\"Останови́те, пожа́луйста, у гла́вного...\"",
+            "ar": "\"Останови́те, пожа́луйста, у гла́вного...\"",
+            "fr": "« Останови́те, пожа́луйста, у гла́вного... »"
+          },
+          "level3": "Останови́те, пожа́луйста, у гла́вного вхо́да по́сле светофо́ра."
+        },
+        "options": [
+          {
+            "id": "opt-t2",
+            "russianText": "Останови́те, пожа́луйста, у гла́вного вхо́да по́сле светофо́ра.",
+            "translations": {
+              "ru": "Останови́те, пожа́луйста, у гла́вного вхо́да по́сле светофо́ра.",
+              "en": "Please stop at the main entrance after the traffic light.",
+              "ar": "توقف من فضلك عند المدخل الرئيسي بعد إشارة المرور.",
+              "fr": "Arrêtez-vous, s’il vous plaît, à l’entrée principale après le feu."
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Отлично! Вы приехали вовремя.",
+              "en": "Great job! You arrived right on time.",
+              "ar": "عمل رائع! وصلت في الوقت المناسب.",
+              "fr": "Bravo ! Vous êtes arrivé à l’heure."
+            },
+            "nextNodeId": "END"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scen-gas",
+    "title": {
+      "ru": "На автозапра́вочной ста́нции (АЗС)",
+      "en": "At a Gas Station",
+      "ar": "في محطة الوقود",
+      "fr": "À la station-service"
+    },
+    "subtitle": {
+      "ru": "Запра́вьте автомоби́ль бензи́ном и прове́рьте колёса",
+      "en": "Refuel the car with gasoline and check tire pressure",
+      "ar": "زوّد السيارة بالبنزين وافحص ضغط الإطارات",
+      "fr": "Faites le plein d’essence et vérifiez les pneus"
+    },
+    "level": "A2",
+    "topic": "cars_roads",
+    "sceneTheme": "garage",
+    "npcRole": {
+      "ru": "Касси́р АЗС",
+      "en": "Gas Station Cashier",
+      "ar": "أمين صندوق محطة الوقود",
+      "fr": "Caissier de la station-service"
+    },
+    "studentRole": {
+      "ru": "Автолюби́тель-инжене́р",
+      "en": "Student Driver",
+      "ar": "سائق طالب مهندس",
+      "fr": "Conducteur étudiant"
+    },
+    "usefulPhrases": [
+      {
+        "ru": "Два́дцать ли́тров бензи́на на втору́ю коло́нку.",
+        "en": "Twenty liters of gasoline on pump two.",
+        "ar": "عشرون لتراً من البنزين على المضخة الثانية.",
+        "fr": "Vingt litres d’essence à la pompe numéro deux."
+      },
+      {
+        "ru": "Где мо́жно подкача́ть колёса?",
+        "en": "Where can I inflate the tires?",
+        "ar": "أين يمكنني نفخ الإطارات؟",
+        "fr": "Où puis-je gonfler les pneus ?"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "n1",
+        "npcSpeaker": "Касси́р АЗС",
+        "npcLine": "Здра́вствуйте! Кака́я у вас коло́нка и како́й бензи́н?",
+        "npcTranslations": {
+          "ru": "Здра́вствуйте! Кака́я у вас коло́нка и како́й бензи́н?",
+          "en": "Hello! Which pump are you at and what kind of gasoline?",
+          "ar": "مرحباً! أي مضخة لديك وأي نوع بنزين؟",
+          "fr": "Bonjour ! Quelle pompe et quel type d’essence ?"
+        },
+        "hints": {
+          "level1": {
+            "ru": "Числительное + родительный падеж мн. ч.: «два́дцать ли́тров бензи́на».",
+            "en": "Number + Genitive plural: \"два́дцать ли́тров бензи́на\".",
+            "ar": "عدد + مضاف إليه جمع: \"два́дцать ли́тров бензи́на\".",
+            "fr": "Nombre + génitif pluriel : « два́дцать ли́тров бензи́на »."
+          },
+          "level2": {
+            "ru": "«Два́дцать ли́тров бензи́на на втору́ю...»",
+            "en": "\"Два́дцать ли́тров бензи́на на втору́ю...\"",
+            "ar": "\"Два́дцать ли́тров бензи́на на втору́ю...\"",
+            "fr": "« Два́дцать ли́тров бензи́на на втору́ю... »"
+          },
+          "level3": "Два́дцать ли́тров бензи́на на втору́ю коло́нку, пожа́луйста."
+        },
+        "options": [
+          {
+            "id": "opt-g1",
+            "russianText": "Два́дцать ли́тров бензи́на на втору́ю коло́нку, пожа́луйста.",
+            "translations": {
+              "ru": "Два́дцать ли́тров бензи́на на втору́ю коло́нку, пожа́луйста.",
+              "en": "Twenty liters of gasoline on the second pump, please.",
+              "ar": "عشرون لتراً من البنزين على المضخة الثانية، من فضلك.",
+              "fr": "Vingt litres d’essence à la deuxième pompe, s’il vous plaît."
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Отлично! Правильный родительный падеж «ли́тров бензи́на».",
+              "en": "Great! Correct Genitive case \"ли́тров бензи́на\".",
+              "ar": "رائع! حالة المضاف إليه صحيحة.",
+              "fr": "Parfait ! Bon usage du génitif « ли́тров бензи́на »."
+            },
+            "nextNodeId": "END"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scen-dorm",
+    "title": {
+      "ru": "На ва́хте студе́нческого общежи́тия",
+      "en": "At the Dormitory Reception",
+      "ar": "في استقبال السكن الجامعي",
+      "fr": "À la réception de la résidence étudiante"
+    },
+    "subtitle": {
+      "ru": "Получи́те ключ от ко́мнаты и узна́йте пра́вила",
+      "en": "Check in, get your room key, and ask about the floor",
+      "ar": "استلم مفتاح الغرفة وتعرف على الطابق",
+      "fr": "Récupérez la clé de votre chambre et renseignez-vous sur l’étage"
+    },
+    "level": "A1",
+    "topic": "campus",
+    "sceneTheme": "dorm",
+    "npcRole": {
+      "ru": "Коменда́нт О́льга Ива́новна",
+      "en": "Dorm Supervisor Olga Ivanovna",
+      "ar": "مشرفة السكن أولغا إيفانوفنا",
+      "fr": "Responsable Olga Ivanovna"
+    },
+    "studentRole": {
+      "ru": "Но́вый жиле́ц общежи́тия",
+      "en": "New Dorm Resident",
+      "ar": "ساكن جديد في السكن الجامعي",
+      "fr": "Nouveau résident"
+    },
+    "usefulPhrases": [
+      {
+        "ru": "Вот мой студе́нческий биле́т и па́спорт.",
+        "en": "Here is my student ID and passport.",
+        "ar": "ها هي بطاقة الطالب وجواز السفر.",
+        "fr": "Voici ma carte d’étudiant et mon passeport."
+      },
+      {
+        "ru": "Моя́ ко́мната на пя́том этаже́.",
+        "en": "My room is on the fifth floor.",
+        "ar": "غرفتي في الطابق الخامس.",
+        "fr": "Ma chambre est au cinquième étage."
+      }
+    ],
+    "nodes": [
+      {
+        "id": "n1",
+        "npcSpeaker": "О́льга Ива́новна",
+        "npcLine": "Здра́вствуйте! Покажи́те, пожа́луйста, ваш студе́нческий про́пуск и скажи́те но́мер ко́мнаты.",
+        "npcTranslations": {
+          "ru": "Здра́вствуйте! Покажи́те, пожа́луйста, ваш студе́нческий про́пуск и скажи́те но́мер ко́мнаты.",
+          "en": "Hello! Please show your student pass and tell me your room number.",
+          "ar": "مرحباً! أرني من فضلك بطاقة الطالب واذكر رقم الغرفة.",
+          "fr": "Bonjour ! Montrez votre carte d’étudiant et indiquez le numéro de chambre."
+        },
+        "hints": {
+          "level1": {
+            "ru": "Предложный падеж места: «на пя́том этаже́».",
+            "en": "Prepositional case of location: \"на пя́том этаже́\".",
+            "ar": "حالة الجر للمكان: \"на пя́том этаже́\".",
+            "fr": "Cas prépositionnel de lieu : « на пя́том этаже́ »."
+          },
+          "level2": {
+            "ru": "«Вот мой про́пуск, моя́ ко́мната на пя́том...»",
+            "en": "\"Вот мой про́пуск, моя́ ко́мната на пя́том...\"",
+            "ar": "\"Вот мой про́пуск, моя́ ко́мната на пя́том...\"",
+            "fr": "« Вот мой про́пуск, моя́ ко́мната на пя́том... »"
+          },
+          "level3": "Вот мой студе́нческий про́пуск, моя́ ко́мната на пя́том этаже́."
+        },
+        "options": [
+          {
+            "id": "opt-d1",
+            "russianText": "Вот мой студе́нческий про́пуск, моя́ ко́мната на пя́том этаже́.",
+            "translations": {
+              "ru": "Вот мой студе́нческий про́пуск, моя́ ко́мната на пя́том этаже́.",
+              "en": "Here is my student pass; my room is on the fifth floor.",
+              "ar": "ها هي بطاقة الطالب، غرفتي في الطابق الخامس.",
+              "fr": "Voici mon laissez-passer étudiant, ma chambre est au cinquième étage."
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Добро пожаловать в общежитие МАДИ! Вот ваш ключ.",
+              "en": "Welcome to the MADI dormitory! Here is your key.",
+              "ar": "مرحباً بك في سكن جامعة مادي! ها هو مفتاحك.",
+              "fr": "Bienvenue à la résidence MADI ! Voici votre clé."
+            },
+            "nextNodeId": "END"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scen-metro-ticket",
+    "title": {
+      "ru": "Поку́пка биле́та и ка́рты «Тро́йка»",
+      "en": "Buying a Metro Ticket & Troika Card",
+      "ar": "شراء تذكرة مترو وبطاقة ترويكا",
+      "fr": "Acheter un ticket de métro et une carte Troïka"
+    },
+    "subtitle": {
+      "ru": "Попо́лните бала́нс ка́рты «Тро́йка» в ка́ссе метро́",
+      "en": "Buy or top up a Troika transit card at the metro counter",
+      "ar": "اشترِ أو اشحن بطاقة ترويكا في شباك المترو",
+      "fr": "Achetez ou rechargez une carte Troïka au guichet du métro"
+    },
+    "level": "A1",
+    "topic": "metro",
+    "sceneTheme": "metro",
+    "npcRole": {
+      "ru": "Касси́р метрополите́на",
+      "en": "Metro Ticket Clerk",
+      "ar": "موظف شباك تذاكر المترو",
+      "fr": "Guichetier du métro"
+    },
+    "studentRole": {
+      "ru": "Пассажи́р метро́",
+      "en": "Metro Passenger",
+      "ar": "راكب مترو",
+      "fr": "Passager du métro"
+    },
+    "usefulPhrases": [
+      {
+        "ru": "Мне нужна́ ка́рта «Тро́йка», пожа́луйста.",
+        "en": "I need a Troika card, please.",
+        "ar": "أحتاج إلى بطاقة ترويكا، من فضلك.",
+        "fr": "J’ai besoin d’une carte Troïka, s’il vous plaît."
+      },
+      {
+        "ru": "Положи́те на ка́рту пятьсо́т рубле́й.",
+        "en": "Put five hundred rubles on the card.",
+        "ar": "ضع خمسمئة روبل في البطاقة.",
+        "fr": "Mettez cinq cents roubles sur la carte."
+      }
+    ],
+    "nodes": [
+      {
+        "id": "n1",
+        "npcSpeaker": "Касси́р метрополите́на",
+        "npcLine": "Здра́вствуйте! Вам на одну́ пое́здку или ка́рту «Тро́йка»?",
+        "npcTranslations": {
+          "ru": "Здра́вствуйте! Вам на одну́ пое́здку или ка́рту «Тро́йка»?",
+          "en": "Hello! Would you like a single ride or a Troika card?",
+          "ar": "مرحباً! هل تريد رحلة واحدة أم بطاقة ترويكا؟",
+          "fr": "Bonjour ! Un trajet simple ou une carte Troïka ?"
+        },
+        "hints": {
+          "level1": {
+            "ru": "Дательный падеж: «Мне нужна́ ка́рта Тро́йка».",
+            "en": "Dative case construction: \"Мне нужна́ ка́рта Тро́йка\".",
+            "ar": "تركيب حالة المقصود: \"Мне нужна́ ка́рта Тро́йка\".",
+            "fr": "Construction au datif : « Мне нужна́ ка́рта Тро́йка »."
+          },
+          "level2": {
+            "ru": "«Мне нужна́ ка́рта «Тро́йка», я бу́ду плати́ть...»",
+            "en": "\"Мне нужна́ ка́рта «Тро́йка», я бу́ду плати́ть...\"",
+            "ar": "\"Мне нужна́ ка́рта «Тро́йка», я бу́ду плати́ть...\"",
+            "fr": "« Мне нужна́ ка́рта «Тро́йка», я бу́ду плати́ть... »"
+          },
+          "level3": "Мне нужна́ ка́рта «Тро́йка», я бу́ду плати́ть ка́ртой."
+        },
+        "options": [
+          {
+            "id": "opt-mt1",
+            "russianText": "Мне нужна́ ка́рта «Тро́йка», я бу́ду плати́ть ка́ртой.",
+            "translations": {
+              "ru": "Мне нужна́ ка́рта «Тро́йка», я бу́ду плати́ть ка́ртой.",
+              "en": "I need a Troika card; I will pay by bank card.",
+              "ar": "أحتاج إلى بطاقة ترويكا، سأدفع بالبطاقة البنكية.",
+              "fr": "J’ai besoin d’une carte Troïka, je vais payer par carte."
+            },
+            "isOptimal": true,
+            "feedback": {
+              "ru": "Отлично! Приложите карту к терминалу.",
+              "en": "Great! Tap your bank card on the terminal.",
+              "ar": "ممتاز! قرب بطاقتك من جهاز الدفع.",
+              "fr": "Parfait ! Présentez votre carte sur le terminal."
+            },
+            "nextNodeId": "END"
+          }
+        ]
+      }
+    ]
+  }
+]

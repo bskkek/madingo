@@ -1,0 +1,93 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasRole(roleName) {
+      return isSignedIn() && getUserData().role == roleName;
+    }
+
+    function isTeacherOrHigher() {
+      return isSignedIn() && (
+        getUserData().role == 'teacher' ||
+        getUserData().role == 'content_reviewer' ||
+        getUserData().role == 'admin'
+      );
+    }
+
+    function isReviewerOrAdmin() {
+      return isSignedIn() && (
+        getUserData().role == 'content_reviewer' ||
+        getUserData().role == 'admin'
+      );
+    }
+
+    function isValidLicense(lic) {
+      return lic in [
+        'public_domain',
+        'cc_by',
+        'cc_by_sa',
+        'own_work_with_permission',
+        'all_rights_reserved_with_permission'
+      ];
+    }
+
+    // 1. User profiles & private progress records
+    // Students can only read/write their own record and CANNOT escalate their own role.
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isTeacherOrHigher());
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'student';
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && request.resource.data.role == resource.data.role) ||
+        hasRole('admin')
+      );
+      allow delete: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
+
+      match /{subcollection}/{docId} {
+        allow read, write: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
+      }
+    }
+
+    // 2. Teacher groups: only teachers/admins can create/update; students can only read groups they belong to.
+    match /groups/{groupId} {
+      allow read: if isSignedIn() && (
+        isTeacherOrHigher() ||
+        request.auth.uid in resource.data.memberIds
+      );
+      allow create, update, delete: if isTeacherOrHigher();
+    }
+
+    // 3. Curated Content (Library items, Speaking clips, Custom Lessons)
+    // Students can only read approved content; only content_reviewer or admin can set reviewStatus == 'approved'.
+    match /content/{itemId} {
+      allow read: if resource.data.reviewStatus == 'approved' || isTeacherOrHigher();
+      allow create: if isTeacherOrHigher() && request.resource.data.reviewStatus in ['draft', 'in_review'];
+      allow update: if (
+        isTeacherOrHigher() && request.resource.data.reviewStatus in ['draft', 'in_review']
+      ) || (
+        isReviewerOrAdmin() &&
+        request.resource.data.reviewStatus == 'approved' &&
+        isValidLicense(request.resource.data.license) &&
+        request.resource.data.sourceUrl is string &&
+        request.resource.data.sourceUrl.size() > 8
+      );
+      allow delete: if hasRole('admin');
+    }
+
+    // 4. Certificates: public verification read by ID; issuance/revocation restricted to server/admin.
+    match /certificates/{certId} {
+      allow get: if true;
+      allow list: if isSignedIn();
+      allow create, update, delete: if hasRole('admin');
+    }
+  }
+}

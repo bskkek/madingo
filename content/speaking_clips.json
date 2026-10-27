@@ -1,0 +1,2570 @@
+[
+  {
+    "id": "clip-01",
+    "title": {
+      "ru": "У гла́вного вхо́да в МАДИ́",
+      "en": "At the Main Entrance of MADI",
+      "ar": "عند المدخل الرئيسي لجامعة مادي",
+      "fr": "À l’entrée principale de MADI"
+    },
+    "level": "A1",
+    "topic": "campus",
+    "grammarPoint": "Prepositional Case (в/на)",
+    "durationSec": 4.5,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Вежливое приветствие преподавателя или сотрудника кампуса («Здра́вствуйте»).",
+      "en": "Polite formal greeting for professors or university staff (\"Здра́вствуйте\").",
+      "ar": "تحية رسمية مهذبة للأساتذة أو موظفي الجامعة.",
+      "fr": "Salutation formelle polie pour les professeurs ou le personnel."
+    },
+    "russianSubtitle": "Здра́вствуйте! Я но́вый студе́нт и учу́сь в МАДИ́.",
+    "translations": {
+      "ru": "Здра́вствуйте! Я но́вый студе́нт и учу́сь в МАДИ́.",
+      "en": "Hello! I am a new student and I study at MADI.",
+      "ar": "مرحباً! أنا طالب جديد وأدرس في جامعة مادي.",
+      "fr": "Bonjour ! Je suis un nouvel étudiant et j’étudie à MADI."
+    },
+    "targetWeakCases": [
+      "Prepositional"
+    ],
+    "targetWeakWords": [
+      "студе́нт",
+      "учи́ться"
+    ],
+    "sceneTheme": "campus",
+    "characterSpeaker": "Amina",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Prof. E. Sokolova (MADI Russian Dept.)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-10T09:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Здра́вствуйте!",
+        "startSec": 0,
+        "endSec": 0.56
+      },
+      {
+        "word": "Я",
+        "startSec": 0.56,
+        "endSec": 1.13
+      },
+      {
+        "word": "но́вый",
+        "startSec": 1.13,
+        "endSec": 1.69
+      },
+      {
+        "word": "студе́нт",
+        "startSec": 1.69,
+        "endSec": 2.25
+      },
+      {
+        "word": "и",
+        "startSec": 2.25,
+        "endSec": 2.81
+      },
+      {
+        "word": "учу́сь",
+        "startSec": 2.81,
+        "endSec": 3.38
+      },
+      {
+        "word": "в",
+        "startSec": 3.38,
+        "endSec": 3.94
+      },
+      {
+        "word": "МАДИ́.",
+        "startSec": 3.94,
+        "endSec": 4.5
+      }
+    ]
+  },
+  {
+    "id": "clip-02",
+    "title": {
+      "ru": "Доро́га к ста́нции метро́ Аэропо́рт",
+      "en": "Way to Aeroport Metro Station",
+      "ar": "الطريق إلى محطة مترو أيروبورت",
+      "fr": "Chemin vers la station de métro Aeroport"
+    },
+    "level": "A1",
+    "topic": "metro",
+    "grammarPoint": "Nominative & Question Words",
+    "durationSec": 4.2,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Используйте «Скажи́те, пожа́луйста» при обращении к незнакомым людям на улице.",
+      "en": "Use \"Скажи́те, пожа́луйста\" when asking strangers for directions on the street.",
+      "ar": "استخدم \"Скажи́те, пожа́луйста\" عند سؤال الغرباء عن الاتجاهات.",
+      "fr": "Utilisez « Скажи́те, пожа́луйста » pour demander votre chemin aux passants."
+    },
+    "russianSubtitle": "Скажи́те, пожа́луйста, где ста́нция метро́ Аэропо́рт?",
+    "translations": {
+      "ru": "Скажи́те, пожа́луйста, где ста́нция метро́ Аэропо́рт?",
+      "en": "Tell me, please, where is the Aeroport metro station?",
+      "ar": "قل لي من فضلك، أين محطة مترو أيروبورت؟",
+      "fr": "Dites-moi, s’il vous plaît, où est la station de métro Aeroport ?"
+    },
+    "targetWeakCases": [
+      "Nominative"
+    ],
+    "targetWeakWords": [
+      "метро́",
+      "ста́нция"
+    ],
+    "sceneTheme": "metro",
+    "characterSpeaker": "Karim",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Prof. E. Sokolova (MADI Russian Dept.)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-10T09:15:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Скажи́те,",
+        "startSec": 0,
+        "endSec": 0.7
+      },
+      {
+        "word": "пожа́луйста,",
+        "startSec": 0.7,
+        "endSec": 1.4
+      },
+      {
+        "word": "где",
+        "startSec": 1.4,
+        "endSec": 2.1
+      },
+      {
+        "word": "ста́нция",
+        "startSec": 2.1,
+        "endSec": 2.8
+      },
+      {
+        "word": "метро́",
+        "startSec": 2.8,
+        "endSec": 3.5
+      },
+      {
+        "word": "Аэропо́рт?",
+        "startSec": 3.5,
+        "endSec": 4.2
+      }
+    ]
+  },
+  {
+    "id": "clip-03",
+    "title": {
+      "ru": "Зака́з ко́фе в студе́нческом буфе́те",
+      "en": "Ordering Coffee at the Student Buffet",
+      "ar": "طلب القهوة في بوفيه الطلاب",
+      "fr": "Commander un café à la cafétéria étudiante"
+    },
+    "level": "A1",
+    "topic": "food",
+    "grammarPoint": "Accusative Case (Direct Object)",
+    "durationSec": 4.8,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Стандартная вежливая форма заказа в кафе или столовой.",
+      "en": "Standard polite phrasing when ordering at a cafe or canteen.",
+      "ar": "صيغة مهذبة قياسية عند الطلب في المقهى أو الكافتيريا.",
+      "fr": "Formule polie standard pour commander au café ou à la cantine."
+    },
+    "russianSubtitle": "Да́йте, пожа́луйста, ча́шку горя́чего ко́фе и бу́лочку.",
+    "translations": {
+      "ru": "Да́йте, пожа́луйста, ча́шку горя́чего ко́фе и бу́лочку.",
+      "en": "Please give me a cup of hot coffee and a bun.",
+      "ar": "أعطني من فضلك فنجان قهوة ساخنة وكعكة.",
+      "fr": "Donnez-moi, s’il vous plaît, une tasse de café chaud et une brioche."
+    },
+    "targetWeakCases": [
+      "Accusative",
+      "Genitive"
+    ],
+    "targetWeakWords": [
+      "ко́фе",
+      "ча́шка"
+    ],
+    "sceneTheme": "cafe",
+    "characterSpeaker": "Barista",
+    "sourceType": "ai_original",
+    "license": "madingo Original Scene CC-BY-4.0",
+    "author": "madingo Studio Team",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-10T10:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Да́йте,",
+        "startSec": 0,
+        "endSec": 0.69
+      },
+      {
+        "word": "пожа́луйста,",
+        "startSec": 0.69,
+        "endSec": 1.37
+      },
+      {
+        "word": "ча́шку",
+        "startSec": 1.37,
+        "endSec": 2.06
+      },
+      {
+        "word": "горя́чего",
+        "startSec": 2.06,
+        "endSec": 2.74
+      },
+      {
+        "word": "ко́фе",
+        "startSec": 2.74,
+        "endSec": 3.43
+      },
+      {
+        "word": "и",
+        "startSec": 3.43,
+        "endSec": 4.11
+      },
+      {
+        "word": "бу́лочку.",
+        "startSec": 4.11,
+        "endSec": 4.8
+      }
+    ]
+  },
+  {
+    "id": "clip-04",
+    "title": {
+      "ru": "Приве́тствие одногру́ппника",
+      "en": "Greeting a Classmate",
+      "ar": "تحية زميل الدراسة",
+      "fr": "Saluer un camarade de classe"
+    },
+    "level": "A1",
+    "topic": "street_speech",
+    "grammarPoint": "Colloquial Greetings",
+    "durationSec": 3.8,
+    "register": "colloquial",
+    "registerNote": {
+      "ru": "Разговорный стиль («Приве́т! Как дела́?») подходит только для друзей и ровесников.",
+      "en": "Informal register (\"Приве́т! Как дела́?\") — use only with friends and peers.",
+      "ar": "أسلوب غير رسمي (\"Приве́т!\") — يُستخدم فقط مع الأصدقاء والزملاء.",
+      "fr": "Registre familier (« Приве́т ! ») — à utiliser uniquement avec des amis."
+    },
+    "russianSubtitle": "Приве́т! Как дела́? Ты идёшь на ле́кцию сего́дня?",
+    "translations": {
+      "ru": "Приве́т! Как дела́? Ты идёшь на ле́кцию сего́дня?",
+      "en": "Hi! How is it going? Are you going to the lecture today?",
+      "ar": "أهلاً! كيف الحال؟ هل أنت ذاهب إلى المحاضرة اليوم؟",
+      "fr": "Salut ! Comment ça va ? Tu vas au cours aujourd’hui ?"
+    },
+    "targetWeakCases": [
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "ле́кция",
+      "сего́дня"
+    ],
+    "sceneTheme": "campus",
+    "characterSpeaker": "Misha",
+    "sourceType": "ai_original",
+    "license": "madingo Original Scene CC-BY-4.0",
+    "author": "madingo Studio Team",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-10T10:20:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Приве́т!",
+        "startSec": 0,
+        "endSec": 0.48
+      },
+      {
+        "word": "Как",
+        "startSec": 0.48,
+        "endSec": 0.95
+      },
+      {
+        "word": "дела́?",
+        "startSec": 0.95,
+        "endSec": 1.42
+      },
+      {
+        "word": "Ты",
+        "startSec": 1.42,
+        "endSec": 1.9
+      },
+      {
+        "word": "идёшь",
+        "startSec": 1.9,
+        "endSec": 2.38
+      },
+      {
+        "word": "на",
+        "startSec": 2.38,
+        "endSec": 2.85
+      },
+      {
+        "word": "ле́кцию",
+        "startSec": 2.85,
+        "endSec": 3.33
+      },
+      {
+        "word": "сего́дня?",
+        "startSec": 3.33,
+        "endSec": 3.8
+      }
+    ]
+  },
+  {
+    "id": "clip-05",
+    "title": {
+      "ru": "Поездка на такси́ по Ленингра́дскому проспе́кту",
+      "en": "Taxi Ride on Leningradsky Prospekt",
+      "ar": "رحلة تاكسي في شارع لينينغرادسكي",
+      "fr": "Trajet en taxi sur la perspective Leningradski"
+    },
+    "level": "A1",
+    "topic": "taxi",
+    "grammarPoint": "Dative / Prepositional Direction",
+    "durationSec": 5.2,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Обращение к водителю такси всегда на «Вы».",
+      "en": "Always address taxi drivers formally with \"Вы\" / polite imperatives.",
+      "ar": "خاطب سائق التاكسي دائماً بصيغة الاحترام الرسمية.",
+      "fr": "Adressez-vous toujours au chauffeur de taxi avec le « Вы » de politesse."
+    },
+    "russianSubtitle": "Останови́те, пожа́луйста, у гла́вного ко́рпуса университе́та.",
+    "translations": {
+      "ru": "Останови́те, пожа́луйста, у гла́вного ко́рпуса университе́та.",
+      "en": "Please stop by the main building of the university.",
+      "ar": "توقف من فضلك عند المبنى الرئيسي للجامعة.",
+      "fr": "Arrêtez-vous, s’il vous plaît, près du bâtiment principal de l’université."
+    },
+    "targetWeakCases": [
+      "Genitive"
+    ],
+    "targetWeakWords": [
+      "университе́т",
+      "останови́ть"
+    ],
+    "sceneTheme": "taxi",
+    "characterSpeaker": "Karim",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Dr. A. Morozov (MADI Transport Lab)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-11T08:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Останови́те,",
+        "startSec": 0,
+        "endSec": 0.87
+      },
+      {
+        "word": "пожа́луйста,",
+        "startSec": 0.87,
+        "endSec": 1.73
+      },
+      {
+        "word": "у",
+        "startSec": 1.73,
+        "endSec": 2.6
+      },
+      {
+        "word": "гла́вного",
+        "startSec": 2.6,
+        "endSec": 3.47
+      },
+      {
+        "word": "ко́рпуса",
+        "startSec": 3.47,
+        "endSec": 4.33
+      },
+      {
+        "word": "университе́та.",
+        "startSec": 4.33,
+        "endSec": 5.2
+      }
+    ]
+  },
+  {
+    "id": "clip-06",
+    "title": {
+      "ru": "Проверка двига́теля в лаборато́рии",
+      "en": "Checking the Engine in the Lab",
+      "ar": "فحص المحرك في المختبر",
+      "fr": "Vérification du moteur au laboratoire"
+    },
+    "level": "A2",
+    "topic": "cars_roads",
+    "grammarPoint": "Prepositional & Instrumental Cases",
+    "durationSec": 5.5,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Инженерная терминология МАДИ: точная и нейтрально-деловая речь.",
+      "en": "MADI engineering terminology: clear technical and professional register.",
+      "ar": "مصطلحات هندسية في مادي: لغة تقنية ومهنية واضحة.",
+      "fr": "Terminologie d’ingénierie MADI : registre technique et professionnel."
+    },
+    "russianSubtitle": "Э́тот двига́тель рабо́тает на бензи́не о́чень ти́хо и надёжно.",
+    "translations": {
+      "ru": "Э́тот двига́тель рабо́тает на бензи́не о́чень ти́хо и надёжно.",
+      "en": "This engine runs on gasoline very quietly and reliably.",
+      "ar": "هذا المحرك يعمل بالبنزين بهدوء وموثوقية عالية.",
+      "fr": "Ce moteur fonctionne à l’essence de manière très silencieuse et fiable."
+    },
+    "targetWeakCases": [
+      "Prepositional"
+    ],
+    "targetWeakWords": [
+      "двига́тель",
+      "бензи́н"
+    ],
+    "sceneTheme": "garage",
+    "characterSpeaker": "Prof. Sokolova",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Dr. A. Morozov (MADI Transport Lab)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-11T08:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Э́тот",
+        "startSec": 0,
+        "endSec": 0.61
+      },
+      {
+        "word": "двига́тель",
+        "startSec": 0.61,
+        "endSec": 1.22
+      },
+      {
+        "word": "рабо́тает",
+        "startSec": 1.22,
+        "endSec": 1.83
+      },
+      {
+        "word": "на",
+        "startSec": 1.83,
+        "endSec": 2.44
+      },
+      {
+        "word": "бензи́не",
+        "startSec": 2.44,
+        "endSec": 3.06
+      },
+      {
+        "word": "о́чень",
+        "startSec": 3.06,
+        "endSec": 3.67
+      },
+      {
+        "word": "ти́хо",
+        "startSec": 3.67,
+        "endSec": 4.28
+      },
+      {
+        "word": "и",
+        "startSec": 4.28,
+        "endSec": 4.89
+      },
+      {
+        "word": "надёжно.",
+        "startSec": 4.89,
+        "endSec": 5.5
+      }
+    ]
+  },
+  {
+    "id": "clip-07",
+    "title": {
+      "ru": "Поку́пка ка́рты «Тро́йка» в ка́ссе",
+      "en": "Buying a Troika Card at the Ticket Office",
+      "ar": "شراء بطاقة ترويكا من شباك التذاكر",
+      "fr": "Acheter une carte Troïka au guichet"
+    },
+    "level": "A1",
+    "topic": "metro",
+    "grammarPoint": "Accusative & Instrumental",
+    "durationSec": 4.8,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Полезная фраза для оплаты банковской картой в кассах метро.",
+      "en": "Essential phrase for paying by bank card at metro ticket counters.",
+      "ar": "عبارة أساسية للدفع بالبطاقة البنكية في شبابيك المترو.",
+      "fr": "Phrase essentielle pour payer par carte bancaire au guichet du métro."
+    },
+    "russianSubtitle": "Мне нужна́ ка́рта «Тро́йка», я бу́ду плати́ть ка́ртой.",
+    "translations": {
+      "ru": "Мне нужна́ ка́рта «Тро́йка», я бу́ду плати́ть ка́ртой.",
+      "en": "I need a Troika card; I will pay by card.",
+      "ar": "أحتاج إلى بطاقة ترويكا، سأدفع بالبطاقة.",
+      "fr": "J’ai besoin d’une carte Troïka, je vais payer par carte."
+    },
+    "targetWeakCases": [
+      "Instrumental",
+      "Dative"
+    ],
+    "targetWeakWords": [
+      "ка́рта",
+      "плати́ть"
+    ],
+    "sceneTheme": "metro",
+    "characterSpeaker": "Amina",
+    "sourceType": "open_license",
+    "license": "CC-BY-4.0 Russian Open Audio Corpus",
+    "author": "Open Russian Audio Project",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-11T09:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Мне",
+        "startSec": 0,
+        "endSec": 0.6
+      },
+      {
+        "word": "нужна́",
+        "startSec": 0.6,
+        "endSec": 1.2
+      },
+      {
+        "word": "ка́рта",
+        "startSec": 1.2,
+        "endSec": 1.8
+      },
+      {
+        "word": "«Тро́йка»,",
+        "startSec": 1.8,
+        "endSec": 2.4
+      },
+      {
+        "word": "я",
+        "startSec": 2.4,
+        "endSec": 3
+      },
+      {
+        "word": "бу́ду",
+        "startSec": 3,
+        "endSec": 3.6
+      },
+      {
+        "word": "плати́ть",
+        "startSec": 3.6,
+        "endSec": 4.2
+      },
+      {
+        "word": "ка́ртой.",
+        "startSec": 4.2,
+        "endSec": 4.8
+      }
+    ]
+  },
+  {
+    "id": "clip-08",
+    "title": {
+      "ru": "На перекрёстке у светофо́ра",
+      "en": "At the Intersection by the Traffic Light",
+      "ar": "عند التقاطع بجانب إشارة المرور",
+      "fr": "Au carrefour près du feu de circulation"
+    },
+    "level": "A2",
+    "topic": "cars_roads",
+    "grammarPoint": "Genitive after Prepositions (у, по́сле)",
+    "durationSec": 5,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Ориентирование в городе и правила дорожного движения.",
+      "en": "City navigation and road traffic terminology.",
+      "ar": "التنقل في المدينة ومصطلحات المرور.",
+      "fr": "Orientation en ville et terminologie de la circulation routière."
+    },
+    "russianSubtitle": "Поверни́те напра́во на перекрёстке по́сле светофо́ра.",
+    "translations": {
+      "ru": "Поверни́те напра́во на перекрёстке по́сле светофо́ра.",
+      "en": "Turn right at the intersection after the traffic light.",
+      "ar": "انعطف يميناً عند التقاطع بعد إشارة المرور.",
+      "fr": "Tournez à droite au carrefour après le feu tricolore."
+    },
+    "targetWeakCases": [
+      "Prepositional",
+      "Genitive"
+    ],
+    "targetWeakWords": [
+      "перекрёсток",
+      "светофо́р"
+    ],
+    "sceneTheme": "taxi",
+    "characterSpeaker": "Misha",
+    "sourceType": "ai_original",
+    "license": "madingo Original Scene CC-BY-4.0",
+    "author": "madingo Studio Team",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-11T10:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Поверни́те",
+        "startSec": 0,
+        "endSec": 0.83
+      },
+      {
+        "word": "напра́во",
+        "startSec": 0.83,
+        "endSec": 1.67
+      },
+      {
+        "word": "на",
+        "startSec": 1.67,
+        "endSec": 2.5
+      },
+      {
+        "word": "перекрёстке",
+        "startSec": 2.5,
+        "endSec": 3.33
+      },
+      {
+        "word": "по́сле",
+        "startSec": 3.33,
+        "endSec": 4.17
+      },
+      {
+        "word": "светофо́ра.",
+        "startSec": 4.17,
+        "endSec": 5
+      }
+    ]
+  },
+  {
+    "id": "clip-09",
+    "title": {
+      "ru": "В продукто́вом магази́не",
+      "en": "At the Grocery Store",
+      "ar": "في متجر البقالة",
+      "fr": "À l’épicerie"
+    },
+    "level": "A1",
+    "topic": "shopping",
+    "grammarPoint": "Asking Price (Ско́лько сто́ит)",
+    "durationSec": 4.3,
+    "register": "formal",
+    "registerNote": {
+      "ru": "«Ско́лько сто́ит» используется с единственным числом, «Ско́лько сто́ят» — со множественным.",
+      "en": "Use \"Ско́лько сто́ит\" for singular items and \"Ско́лько сто́ят\" for plural.",
+      "ar": "استخدم \"Ско́лько сто́ит\" للمفرد و \"Ско́лько сто́ят\" للجمع.",
+      "fr": "Utilisez « Ско́лько сто́ит » au singulier et « Ско́лько сто́ят » au pluriel."
+    },
+    "russianSubtitle": "Скажи́те, ско́лько сто́ит э́тот све́жий хлеб и молоко́?",
+    "translations": {
+      "ru": "Скажи́те, ско́лько сто́ит э́тот све́жий хлеб и молоко́?",
+      "en": "Tell me, how much does this fresh bread and milk cost?",
+      "ar": "قل لي، كم سعر هذا الخبز الطازج والحليب؟",
+      "fr": "Dites-moi, combien coûtent ce pain frais et ce lait ?"
+    },
+    "targetWeakCases": [
+      "Nominative"
+    ],
+    "targetWeakWords": [
+      "хлеб",
+      "молоко́"
+    ],
+    "sceneTheme": "shop",
+    "characterSpeaker": "Amina",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Prof. E. Sokolova (MADI Russian Dept.)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-11T11:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Скажи́те,",
+        "startSec": 0,
+        "endSec": 0.54
+      },
+      {
+        "word": "ско́лько",
+        "startSec": 0.54,
+        "endSec": 1.08
+      },
+      {
+        "word": "сто́ит",
+        "startSec": 1.08,
+        "endSec": 1.61
+      },
+      {
+        "word": "э́тот",
+        "startSec": 1.61,
+        "endSec": 2.15
+      },
+      {
+        "word": "све́жий",
+        "startSec": 2.15,
+        "endSec": 2.69
+      },
+      {
+        "word": "хлеб",
+        "startSec": 2.69,
+        "endSec": 3.22
+      },
+      {
+        "word": "и",
+        "startSec": 3.22,
+        "endSec": 3.76
+      },
+      {
+        "word": "молоко́?",
+        "startSec": 3.76,
+        "endSec": 4.3
+      }
+    ]
+  },
+  {
+    "id": "clip-10",
+    "title": {
+      "ru": "В общежи́тии на ва́хте",
+      "en": "At the Dormitory Reception Desk",
+      "ar": "في مكتب استقبال السكن الجامعي",
+      "fr": "À la réception de la résidence universitaire"
+    },
+    "level": "A1",
+    "topic": "campus",
+    "grammarPoint": "Genitive of Possession & Prepositional",
+    "durationSec": 4.9,
+    "register": "formal",
+    "registerNote": {
+      "ru": "На вахте общежития принято обращаться вежливо и показывать студенческий пропуск.",
+      "en": "At the dormitory desk, speak politely and show your student pass.",
+      "ar": "في استقبال السكن الجامعي، تحدث بأدب وأبرز بطاقة الطالب.",
+      "fr": "À l’accueil de la résidence, parlez poliment et présentez votre carte."
+    },
+    "russianSubtitle": "Вот мой студе́нческий про́пуск, я живу́ на пя́том этаже́.",
+    "translations": {
+      "ru": "Вот мой студе́нческий про́пуск, я живу́ на пя́том этаже́.",
+      "en": "Here is my student pass; I live on the fifth floor.",
+      "ar": "ها هي بطاقة الطالب الخاصة بي، أنا أسكن في الطابق الخامس.",
+      "fr": "Voici mon laissez-passer étudiant, j’habite au cinquième étage."
+    },
+    "targetWeakCases": [
+      "Prepositional"
+    ],
+    "targetWeakWords": [
+      "общежи́тие",
+      "эта́ж"
+    ],
+    "sceneTheme": "dorm",
+    "characterSpeaker": "Karim",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Prof. E. Sokolova (MADI Russian Dept.)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-11T11:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Вот",
+        "startSec": 0,
+        "endSec": 0.54
+      },
+      {
+        "word": "мой",
+        "startSec": 0.54,
+        "endSec": 1.09
+      },
+      {
+        "word": "студе́нческий",
+        "startSec": 1.09,
+        "endSec": 1.63
+      },
+      {
+        "word": "про́пуск,",
+        "startSec": 1.63,
+        "endSec": 2.18
+      },
+      {
+        "word": "я",
+        "startSec": 2.18,
+        "endSec": 2.72
+      },
+      {
+        "word": "живу́",
+        "startSec": 2.72,
+        "endSec": 3.27
+      },
+      {
+        "word": "на",
+        "startSec": 3.27,
+        "endSec": 3.81
+      },
+      {
+        "word": "пя́том",
+        "startSec": 3.81,
+        "endSec": 4.36
+      },
+      {
+        "word": "этаже́.",
+        "startSec": 4.36,
+        "endSec": 4.9
+      }
+    ]
+  },
+  {
+    "id": "clip-11",
+    "title": {
+      "ru": "Строи́тельство но́вого моста́",
+      "en": "Building a New Bridge",
+      "ar": "بناء جسر جديد",
+      "fr": "Construction d’un nouveau pont"
+    },
+    "level": "A2",
+    "topic": "cars_roads",
+    "grammarPoint": "Accusative & Instrumental Plural",
+    "durationSec": 5.8,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Учебная фраза для студентов дорожно-строительного факультета МАДИ.",
+      "en": "Academic phrase for MADI Road & Bridge Construction faculty students.",
+      "ar": "عبارة أكاديمية لطلاب كلية بناء الطرق والجسور في مادي.",
+      "fr": "Phrase académique pour les étudiants de la faculté des ponts et chaussées."
+    },
+    "russianSubtitle": "Инжене́ры стро́ят широ́кий мост че́рез большу́ю реку́.",
+    "translations": {
+      "ru": "Инжене́ры стро́ят широ́кий мост че́рез большу́ю реку́.",
+      "en": "Engineers are building a wide bridge across the big river.",
+      "ar": "يبني المهندسون جسراً عريضاً عبر النهر الكبير.",
+      "fr": "Les ingénieurs construisent un large pont sur le grand fleuve."
+    },
+    "targetWeakCases": [
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "инжене́р",
+      "мост",
+      "доро́га"
+    ],
+    "sceneTheme": "bridge",
+    "characterSpeaker": "Prof. Sokolova",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Dr. A. Morozov (MADI Transport Lab)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-12T08:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Инжене́ры",
+        "startSec": 0,
+        "endSec": 0.83
+      },
+      {
+        "word": "стро́ят",
+        "startSec": 0.83,
+        "endSec": 1.66
+      },
+      {
+        "word": "широ́кий",
+        "startSec": 1.66,
+        "endSec": 2.49
+      },
+      {
+        "word": "мост",
+        "startSec": 2.49,
+        "endSec": 3.31
+      },
+      {
+        "word": "че́рез",
+        "startSec": 3.31,
+        "endSec": 4.14
+      },
+      {
+        "word": "большу́ю",
+        "startSec": 4.14,
+        "endSec": 4.97
+      },
+      {
+        "word": "реку́.",
+        "startSec": 4.97,
+        "endSec": 5.8
+      }
+    ]
+  },
+  {
+    "id": "clip-12",
+    "title": {
+      "ru": "Запра́вка автомоби́ля на тра́ссе",
+      "en": "Refueling a Car on the Highway",
+      "ar": "تزويد السيارة بالوقود على الطريق السريع",
+      "fr": "Faire le plein sur l’autoroute"
+    },
+    "level": "A2",
+    "topic": "cars_roads",
+    "grammarPoint": "Genitive of Quantity (ли́тров бензи́на)",
+    "durationSec": 5.1,
+    "register": "formal",
+    "registerNote": {
+      "ru": "После числительных 5–20 существительное ставится в родительный падеж множественного числа.",
+      "en": "After numbers 5–20, nouns take the Genitive plural (\"два́дцать ли́тров бензи́на\").",
+      "ar": "بعد الأعداد من 5 إلى 20 يأتي الاسم في حالة المضاف إليه للجمع.",
+      "fr": "Après les nombres 5 à 20, le nom se met au génitif pluriel."
+    },
+    "russianSubtitle": "Два́дцать ли́тров бензи́на на втору́ю коло́нку, пожа́луйста.",
+    "translations": {
+      "ru": "Два́дцать ли́тров бензи́на на втору́ю коло́нку, пожа́луйста.",
+      "en": "Twenty liters of gasoline on pump number two, please.",
+      "ar": "عشرون لتراً من البنزين على المضخة الثانية، من فضلك.",
+      "fr": "Vingt litres d’essence à la pompe numéro deux, s’il vous plaît."
+    },
+    "targetWeakCases": [
+      "Genitive",
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "бензи́н",
+      "колесо́"
+    ],
+    "sceneTheme": "garage",
+    "characterSpeaker": "Misha",
+    "sourceType": "ai_original",
+    "license": "madingo Original Scene CC-BY-4.0",
+    "author": "madingo Studio Team",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-12T08:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Два́дцать",
+        "startSec": 0,
+        "endSec": 0.73
+      },
+      {
+        "word": "ли́тров",
+        "startSec": 0.73,
+        "endSec": 1.46
+      },
+      {
+        "word": "бензи́на",
+        "startSec": 1.46,
+        "endSec": 2.19
+      },
+      {
+        "word": "на",
+        "startSec": 2.19,
+        "endSec": 2.91
+      },
+      {
+        "word": "втору́ю",
+        "startSec": 2.91,
+        "endSec": 3.64
+      },
+      {
+        "word": "коло́нку,",
+        "startSec": 3.64,
+        "endSec": 4.37
+      },
+      {
+        "word": "пожа́луйста.",
+        "startSec": 4.37,
+        "endSec": 5.1
+      }
+    ]
+  },
+  {
+    "id": "clip-13",
+    "title": {
+      "ru": "Бы́стрый переку́с ме́жду па́рами",
+      "en": "Quick Snack Between Classes",
+      "ar": "وجبة خفيفة سريعة بين المحاضرات",
+      "fr": "Pause rapide entre deux cours"
+    },
+    "level": "A1",
+    "topic": "street_speech",
+    "grammarPoint": "Colloquial Invitation (Пойдём)",
+    "durationSec": 4.1,
+    "register": "colloquial",
+    "registerNote": {
+      "ru": "Слово «па́ра» в студенческом сленге означает одно занятие (90 минут).",
+      "en": "In Russian student slang, \"па́ра\" means a 90-minute university class block.",
+      "ar": "في لغة الطلاب الروسية، كلمة \"па́ра\" تعني حصة جامعية مدتها 90 دقيقة.",
+      "fr": "Dans l’argot étudiant russe, « па́ра » désigne un cours de 90 minutes."
+    },
+    "russianSubtitle": "У нас переры́в! Пойдём в столо́вую, я о́чень хочу́ есть.",
+    "translations": {
+      "ru": "У нас переры́в! Пойдём в столо́вую, я о́чень хочу́ есть.",
+      "en": "We have a break! Let’s go to the canteen, I am very hungry.",
+      "ar": "لدينا استراحة! لنذهب إلى الكافتيريا، أنا جائع جداً.",
+      "fr": "On a une pause ! Allons à la cantine, j’ai très faim."
+    },
+    "targetWeakCases": [
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "столо́вая",
+      "обе́д"
+    ],
+    "sceneTheme": "cafe",
+    "characterSpeaker": "Amina",
+    "sourceType": "ai_original",
+    "license": "madingo Original Scene CC-BY-4.0",
+    "author": "madingo Studio Team",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-12T09:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "У",
+        "startSec": 0,
+        "endSec": 0.41
+      },
+      {
+        "word": "нас",
+        "startSec": 0.41,
+        "endSec": 0.82
+      },
+      {
+        "word": "переры́в!",
+        "startSec": 0.82,
+        "endSec": 1.23
+      },
+      {
+        "word": "Пойдём",
+        "startSec": 1.23,
+        "endSec": 1.64
+      },
+      {
+        "word": "в",
+        "startSec": 1.64,
+        "endSec": 2.05
+      },
+      {
+        "word": "столо́вую,",
+        "startSec": 2.05,
+        "endSec": 2.46
+      },
+      {
+        "word": "я",
+        "startSec": 2.46,
+        "endSec": 2.87
+      },
+      {
+        "word": "о́чень",
+        "startSec": 2.87,
+        "endSec": 3.28
+      },
+      {
+        "word": "хочу́",
+        "startSec": 3.28,
+        "endSec": 3.69
+      },
+      {
+        "word": "есть.",
+        "startSec": 3.69,
+        "endSec": 4.1
+      }
+    ]
+  },
+  {
+    "id": "clip-14",
+    "title": {
+      "ru": "Переса́дка в моско́вском метро́",
+      "en": "Transferring in the Moscow Metro",
+      "ar": "التبديل في مترو موسكو",
+      "fr": "Correspondance dans le métro de Moscou"
+    },
+    "level": "A2",
+    "topic": "metro",
+    "grammarPoint": "Motion Verbs (перейти́ на)",
+    "durationSec": 5,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Полезный вопрос, чтобы найти переход на Кольцевую линию метро.",
+      "en": "Useful question to find the transfer to the Circle Line in the metro.",
+      "ar": "سؤال مفيد للعثور على الانتقال إلى الخط الدائري في المترو.",
+      "fr": "Question utile pour trouver la correspondance vers la ligne circulaire."
+    },
+    "russianSubtitle": "Подскажи́те, как перейти́ на Кольцеву́ю ли́нию метро́?",
+    "translations": {
+      "ru": "Подскажи́те, как перейти́ на Кольцеву́ю ли́нию метро́?",
+      "en": "Could you tell me how to transfer to the Circle Line of the metro?",
+      "ar": "هلّا أخبرتني كيف أنتقل إلى الخط الدائري في المترو؟",
+      "fr": "Pourriez-vous m’indiquer comment passer sur la ligne circulaire ?"
+    },
+    "targetWeakCases": [
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "метро́",
+      "идти́"
+    ],
+    "sceneTheme": "metro",
+    "characterSpeaker": "Karim",
+    "sourceType": "open_license",
+    "license": "CC-BY-4.0 Russian Open Audio Corpus",
+    "author": "Open Russian Audio Project",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-12T09:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Подскажи́те,",
+        "startSec": 0,
+        "endSec": 0.71
+      },
+      {
+        "word": "как",
+        "startSec": 0.71,
+        "endSec": 1.43
+      },
+      {
+        "word": "перейти́",
+        "startSec": 1.43,
+        "endSec": 2.14
+      },
+      {
+        "word": "на",
+        "startSec": 2.14,
+        "endSec": 2.86
+      },
+      {
+        "word": "Кольцеву́ю",
+        "startSec": 2.86,
+        "endSec": 3.57
+      },
+      {
+        "word": "ли́нию",
+        "startSec": 3.57,
+        "endSec": 4.29
+      },
+      {
+        "word": "метро́?",
+        "startSec": 4.29,
+        "endSec": 5
+      }
+    ]
+  },
+  {
+    "id": "clip-15",
+    "title": {
+      "ru": "Расписа́ние экза́менов на кафе́дре",
+      "en": "Exam Schedule at the Department",
+      "ar": "جدول الامتحانات في القسم",
+      "fr": "Calendrier des examens au département"
+    },
+    "level": "A2",
+    "topic": "campus",
+    "grammarPoint": "Instrumental & Prepositional",
+    "durationSec": 4.9,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Официальный вопрос на кафедре или в деканате.",
+      "en": "Formal academic question at a university department or dean’s office.",
+      "ar": "سؤال أكاديمي رسمي في القسم أو عمادة الكلية.",
+      "fr": "Question académique formelle au département ou au décanat."
+    },
+    "russianSubtitle": "Извини́те, когда́ начина́ется экза́мен по ру́сскому языку́?",
+    "translations": {
+      "ru": "Извини́те, когда́ начина́ется экза́мен по ру́сскому языку́?",
+      "en": "Excuse me, when does the Russian language exam start?",
+      "ar": "عفواً، متى يبدأ امتحان اللغة الروسية؟",
+      "fr": "Excusez-moi, quand commence l’examen de langue russe ?"
+    },
+    "targetWeakCases": [
+      "Dative"
+    ],
+    "targetWeakWords": [
+      "экза́мен",
+      "учи́тель"
+    ],
+    "sceneTheme": "campus",
+    "characterSpeaker": "Amina",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Prof. E. Sokolova (MADI Russian Dept.)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-12T10:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Извини́те,",
+        "startSec": 0,
+        "endSec": 0.7
+      },
+      {
+        "word": "когда́",
+        "startSec": 0.7,
+        "endSec": 1.4
+      },
+      {
+        "word": "начина́ется",
+        "startSec": 1.4,
+        "endSec": 2.1
+      },
+      {
+        "word": "экза́мен",
+        "startSec": 2.1,
+        "endSec": 2.8
+      },
+      {
+        "word": "по",
+        "startSec": 2.8,
+        "endSec": 3.5
+      },
+      {
+        "word": "ру́сскому",
+        "startSec": 3.5,
+        "endSec": 4.2
+      },
+      {
+        "word": "языку́?",
+        "startSec": 4.2,
+        "endSec": 4.9
+      }
+    ]
+  },
+  {
+    "id": "clip-16",
+    "title": {
+      "ru": "Зи́мние ши́ны и тормоза́",
+      "en": "Winter Tires and Brakes",
+      "ar": "إطارات الشتاء والفرامل",
+      "fr": "Pneus d’hiver et freins"
+    },
+    "level": "A2",
+    "topic": "cars_roads",
+    "grammarPoint": "Instrumental Time (зимо́й) & Accusative",
+    "durationSec": 5.4,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Важное правило безопасности на зимних дорогах России.",
+      "en": "Essential winter road safety vocabulary in Russia.",
+      "ar": "مفردات أساسية للسلامة المرورية الشتوية في روسيا.",
+      "fr": "Vocabulaire essentiel de la sécurité routière en hiver en Russie."
+    },
+    "russianSubtitle": "Зимо́й на ско́льзкой доро́ге ну́жно прове́рить тормоза́ и колёса.",
+    "translations": {
+      "ru": "Зимо́й на ско́льзкой доро́ге ну́жно прове́рить тормоза́ и колёса.",
+      "en": "In winter on a slippery road, you must check the brakes and wheels.",
+      "ar": "في الشتاء على الطريق الزلق يجب فحص الفرامل والعجلات.",
+      "fr": "En hiver sur une route glissante, il faut vérifier les freins et les roues."
+    },
+    "targetWeakCases": [
+      "Prepositional",
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "то́рмоз",
+      "колесо́",
+      "доро́га"
+    ],
+    "sceneTheme": "garage",
+    "characterSpeaker": "Misha",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Dr. A. Morozov (MADI Transport Lab)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-12T11:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Зимо́й",
+        "startSec": 0,
+        "endSec": 0.6
+      },
+      {
+        "word": "на",
+        "startSec": 0.6,
+        "endSec": 1.2
+      },
+      {
+        "word": "ско́льзкой",
+        "startSec": 1.2,
+        "endSec": 1.8
+      },
+      {
+        "word": "доро́ге",
+        "startSec": 1.8,
+        "endSec": 2.4
+      },
+      {
+        "word": "ну́жно",
+        "startSec": 2.4,
+        "endSec": 3
+      },
+      {
+        "word": "прове́рить",
+        "startSec": 3,
+        "endSec": 3.6
+      },
+      {
+        "word": "тормоза́",
+        "startSec": 3.6,
+        "endSec": 4.2
+      },
+      {
+        "word": "и",
+        "startSec": 4.2,
+        "endSec": 4.8
+      },
+      {
+        "word": "колёса.",
+        "startSec": 4.8,
+        "endSec": 5.4
+      }
+    ]
+  },
+  {
+    "id": "clip-17",
+    "title": {
+      "ru": "Поку́пка тёплой ку́ртки",
+      "en": "Buying a Warm Winter Jacket",
+      "ar": "شراء سترة شتوية دافئة",
+      "fr": "Acheter une veste chaude d’hiver"
+    },
+    "level": "A2",
+    "topic": "shopping",
+    "grammarPoint": "Dative of Need (Мне нужна́)",
+    "durationSec": 4.7,
+    "register": "formal",
+    "registerNote": {
+      "ru": "В магазине одежды: как попросить нужный размер.",
+      "en": "At a clothing store: how to ask for your size politely.",
+      "ar": "في متجر الملابس: كيف تطلب مقاسك بأدب.",
+      "fr": "Dans un magasin de vêtements : comment demander sa taille."
+    },
+    "russianSubtitle": "Мо́жно приме́рить э́ту тёплую ку́ртку сре́днего разме́ра?",
+    "translations": {
+      "ru": "Мо́жно приме́рить э́ту тёплую ку́ртку сре́днего разме́ра?",
+      "en": "May I try on this warm medium-sized jacket?",
+      "ar": "هل يمكنني قياس هذه السترة الدافئة ذات المقاس المتوسط؟",
+      "fr": "Puis-je essayer cette veste chaude de taille moyenne ?"
+    },
+    "targetWeakCases": [
+      "Accusative",
+      "Genitive"
+    ],
+    "targetWeakWords": [
+      "магази́н"
+    ],
+    "sceneTheme": "shop",
+    "characterSpeaker": "Karim",
+    "sourceType": "ai_original",
+    "license": "madingo Original Scene CC-BY-4.0",
+    "author": "madingo Studio Team",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-12T11:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Мо́жно",
+        "startSec": 0,
+        "endSec": 0.67
+      },
+      {
+        "word": "приме́рить",
+        "startSec": 0.67,
+        "endSec": 1.34
+      },
+      {
+        "word": "э́ту",
+        "startSec": 1.34,
+        "endSec": 2.01
+      },
+      {
+        "word": "тёплую",
+        "startSec": 2.01,
+        "endSec": 2.69
+      },
+      {
+        "word": "ку́ртку",
+        "startSec": 2.69,
+        "endSec": 3.36
+      },
+      {
+        "word": "сре́днего",
+        "startSec": 3.36,
+        "endSec": 4.03
+      },
+      {
+        "word": "разме́ра?",
+        "startSec": 4.03,
+        "endSec": 4.7
+      }
+    ]
+  },
+  {
+    "id": "clip-18",
+    "title": {
+      "ru": "Обе́д в студе́нческой столо́вой",
+      "en": "Lunch in the Student Canteen",
+      "ar": "الغداء في كافتيريا الطلاب",
+      "fr": "Déjeuner à la cantine universitaire"
+    },
+    "level": "A1",
+    "topic": "food",
+    "grammarPoint": "Instrumental (с чем)",
+    "durationSec": 4.6,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Предлог «с» требует творительного падежа («с лимо́ном», «с мя́сом»).",
+      "en": "The preposition \"с\" (with) requires the Instrumental case (\"с лимо́ном\").",
+      "ar": "حرف الجر \"с\" (مع) يتطلب حالة الأداة (\"с лимо́ном\").",
+      "fr": "La préposition « с » (avec) exige le cas instrumental (« с лимо́ном »)."
+    },
+    "russianSubtitle": "Я возьму́ горя́чий борщ, рис с ку́рицей и чай с лимо́ном.",
+    "translations": {
+      "ru": "Я возьму́ горя́чий борщ, рис с ку́рицей и чай с лимо́ном.",
+      "en": "I will take hot borscht, rice with chicken, and tea with lemon.",
+      "ar": "سآخذ حساء بورش ساخناً، وأرزاً بالدجاج، وشاياً بالليمون.",
+      "fr": "Je vais prendre du bortsch chaud, du riz au poulet et du thé au citron."
+    },
+    "targetWeakCases": [
+      "Instrumental",
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "чай",
+      "обе́д"
+    ],
+    "sceneTheme": "cafe",
+    "characterSpeaker": "Amina",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Prof. E. Sokolova (MADI Russian Dept.)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-13T08:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Я",
+        "startSec": 0,
+        "endSec": 0.42
+      },
+      {
+        "word": "возьму́",
+        "startSec": 0.42,
+        "endSec": 0.84
+      },
+      {
+        "word": "горя́чий",
+        "startSec": 0.84,
+        "endSec": 1.25
+      },
+      {
+        "word": "борщ,",
+        "startSec": 1.25,
+        "endSec": 1.67
+      },
+      {
+        "word": "рис",
+        "startSec": 1.67,
+        "endSec": 2.09
+      },
+      {
+        "word": "с",
+        "startSec": 2.09,
+        "endSec": 2.51
+      },
+      {
+        "word": "ку́рицей",
+        "startSec": 2.51,
+        "endSec": 2.93
+      },
+      {
+        "word": "и",
+        "startSec": 2.93,
+        "endSec": 3.35
+      },
+      {
+        "word": "чай",
+        "startSec": 3.35,
+        "endSec": 3.76
+      },
+      {
+        "word": "с",
+        "startSec": 3.76,
+        "endSec": 4.18
+      },
+      {
+        "word": "лимо́ном.",
+        "startSec": 4.18,
+        "endSec": 4.6
+      }
+    ]
+  },
+  {
+    "id": "clip-19",
+    "title": {
+      "ru": "Где чита́льный зал библиоте́ки?",
+      "en": "Where is the Library Reading Room?",
+      "ar": "أين قاعة القراءة في المكتبة؟",
+      "fr": "Où est la salle de lecture de la bibliothèque ?"
+    },
+    "level": "A1",
+    "topic": "campus",
+    "grammarPoint": "Prepositional Location",
+    "durationSec": 4.5,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Ориентация внутри учебного корпуса МАДИ.",
+      "en": "Finding your way inside the MADI academic building.",
+      "ar": "إيجاد الطريق داخل المبنى الأكاديمي لجامعة مادي.",
+      "fr": "S’orienter à l’intérieur du bâtiment académique de MADI."
+    },
+    "russianSubtitle": "Чита́льный зал библиоте́ки нахо́дится на тре́тьем этаже́ спра́ва.",
+    "translations": {
+      "ru": "Чита́льный зал библиоте́ки нахо́дится на тре́тьем этаже́ спра́ва.",
+      "en": "The library reading room is located on the third floor on the right.",
+      "ar": "تقع قاعة القراءة بالمكتبة في الطابق الثالث على اليمين.",
+      "fr": "La salle de lecture de la bibliothèque se trouve au troisième étage à droite."
+    },
+    "targetWeakCases": [
+      "Prepositional",
+      "Genitive"
+    ],
+    "targetWeakWords": [
+      "библиоте́ка",
+      "кни́га"
+    ],
+    "sceneTheme": "campus",
+    "characterSpeaker": "Prof. Sokolova",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Prof. E. Sokolova (MADI Russian Dept.)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-13T08:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Чита́льный",
+        "startSec": 0,
+        "endSec": 0.56
+      },
+      {
+        "word": "зал",
+        "startSec": 0.56,
+        "endSec": 1.13
+      },
+      {
+        "word": "библиоте́ки",
+        "startSec": 1.13,
+        "endSec": 1.69
+      },
+      {
+        "word": "нахо́дится",
+        "startSec": 1.69,
+        "endSec": 2.25
+      },
+      {
+        "word": "на",
+        "startSec": 2.25,
+        "endSec": 2.81
+      },
+      {
+        "word": "тре́тьем",
+        "startSec": 2.81,
+        "endSec": 3.38
+      },
+      {
+        "word": "этаже́",
+        "startSec": 3.38,
+        "endSec": 3.94
+      },
+      {
+        "word": "спра́ва.",
+        "startSec": 3.94,
+        "endSec": 4.5
+      }
+    ]
+  },
+  {
+    "id": "clip-20",
+    "title": {
+      "ru": "Вы́зов такси́ в дождли́вую пого́ду",
+      "en": "Calling a Taxi in Rainy Weather",
+      "ar": "طلب تاكسي في الطقس الممطر",
+      "fr": "Appeler un taxi par temps de pluie"
+    },
+    "level": "A2",
+    "topic": "taxi",
+    "grammarPoint": "Genitive From-To (от ... до ...)",
+    "durationSec": 5.3,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Конструкция «от ... до ...» всегда требует родительного падежа.",
+      "en": "The construction \"от ... до ...\" (from ... to ...) always requires Genitive.",
+      "ar": "التركيب \"от ... до ...\" (من ... إلى ...) يتطلب دائماً حالة المضاف إليه.",
+      "fr": "La construction « от ... до ... » (de ... à ...) exige toujours le génitif."
+    },
+    "russianSubtitle": "Ско́лько вре́мени мы бу́дем е́хать от общежи́тия до вокза́ла?",
+    "translations": {
+      "ru": "Ско́лько вре́мени мы бу́дем е́хать от общежи́тия до вокза́ла?",
+      "en": "How long will it take us to drive from the dormitory to the train station?",
+      "ar": "كم من الوقت سنستغرق بالسيارة من السكن الجامعي إلى محطة القطار؟",
+      "fr": "Combien de temps mettrons-nous en voiture de la résidence à la gare ?"
+    },
+    "targetWeakCases": [
+      "Genitive"
+    ],
+    "targetWeakWords": [
+      "е́хать",
+      "общежи́тие"
+    ],
+    "sceneTheme": "taxi",
+    "characterSpeaker": "Dispatcher",
+    "sourceType": "ai_original",
+    "license": "madingo Original Scene CC-BY-4.0",
+    "author": "madingo Studio Team",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-13T09:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Ско́лько",
+        "startSec": 0,
+        "endSec": 0.59
+      },
+      {
+        "word": "вре́мени",
+        "startSec": 0.59,
+        "endSec": 1.18
+      },
+      {
+        "word": "мы",
+        "startSec": 1.18,
+        "endSec": 1.77
+      },
+      {
+        "word": "бу́дем",
+        "startSec": 1.77,
+        "endSec": 2.36
+      },
+      {
+        "word": "е́хать",
+        "startSec": 2.36,
+        "endSec": 2.94
+      },
+      {
+        "word": "от",
+        "startSec": 2.94,
+        "endSec": 3.53
+      },
+      {
+        "word": "общежи́тия",
+        "startSec": 3.53,
+        "endSec": 4.12
+      },
+      {
+        "word": "до",
+        "startSec": 4.12,
+        "endSec": 4.71
+      },
+      {
+        "word": "вокза́ла?",
+        "startSec": 4.71,
+        "endSec": 5.3
+      }
+    ]
+  },
+  {
+    "id": "clip-21",
+    "title": {
+      "ru": "Дру́жеская встре́ча у метро́",
+      "en": "Friendly Meetup by the Metro",
+      "ar": "لقاء ودي عند المترو",
+      "fr": "Rendez-vous amical près du métro"
+    },
+    "level": "A1",
+    "topic": "street_speech",
+    "grammarPoint": "Colloquial Time & Location",
+    "durationSec": 4,
+    "register": "colloquial",
+    "registerNote": {
+      "ru": "Живая разговорная речь студентов при встрече после учёбы.",
+      "en": "Natural everyday student speech when meeting up after classes.",
+      "ar": "كلام يومي طبيعي للطلاب عند اللقاء بعد الدراسة.",
+      "fr": "Langage étudiant courant lors d’une rencontre après les cours."
+    },
+    "russianSubtitle": "Я уже́ выхожу́ из ваго́на, жди меня́ у вы́хода!",
+    "translations": {
+      "ru": "Я уже́ выхожу́ из ваго́на, жди меня́ у вы́хода!",
+      "en": "I am already stepping out of the train car, wait for me by the exit!",
+      "ar": "أنا أخرج الآن من عربة القطار، انتظرني عند المخرج!",
+      "fr": "Je sors déjà du wagon, attends-moi près de la sortie !"
+    },
+    "targetWeakCases": [
+      "Genitive",
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "метро́",
+      "вы́ход"
+    ],
+    "sceneTheme": "metro",
+    "characterSpeaker": "Karim",
+    "sourceType": "ai_original",
+    "license": "madingo Original Scene CC-BY-4.0",
+    "author": "madingo Studio Team",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-13T09:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Я",
+        "startSec": 0,
+        "endSec": 0.44
+      },
+      {
+        "word": "уже́",
+        "startSec": 0.44,
+        "endSec": 0.89
+      },
+      {
+        "word": "выхожу́",
+        "startSec": 0.89,
+        "endSec": 1.33
+      },
+      {
+        "word": "из",
+        "startSec": 1.33,
+        "endSec": 1.78
+      },
+      {
+        "word": "ваго́на,",
+        "startSec": 1.78,
+        "endSec": 2.22
+      },
+      {
+        "word": "жди",
+        "startSec": 2.22,
+        "endSec": 2.67
+      },
+      {
+        "word": "меня́",
+        "startSec": 2.67,
+        "endSec": 3.11
+      },
+      {
+        "word": "у",
+        "startSec": 3.11,
+        "endSec": 3.56
+      },
+      {
+        "word": "вы́хода!",
+        "startSec": 3.56,
+        "endSec": 4
+      }
+    ]
+  },
+  {
+    "id": "clip-22",
+    "title": {
+      "ru": "Скоростна́я автомагистра́ль и шоссе́",
+      "en": "High-Speed Highway and Roadway",
+      "ar": "الطريق السريع والأوتوستراد",
+      "fr": "Autoroute à grande vitesse et chaussée"
+    },
+    "level": "A2",
+    "topic": "cars_roads",
+    "grammarPoint": "Dative with по (по но́вому шоссе́)",
+    "durationSec": 5.5,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Слово «шоссе́» не изменяется по падежам, но прилагательное перед ним склоняется!",
+      "en": "Note: \"шоссе́\" is indeclinable, while the adjective before it changes case!",
+      "ar": "ملاحظة: كلمة \"шоссе́\" لا تتغير حسب الحالة الإعرابية، لكن الصفة قبلها تتغير!",
+      "fr": "Note : « шоссе́ » est indéclinable, mais l’adjectif qui le précède se décline !"
+    },
+    "russianSubtitle": "Авто́бусы и грузовики́ бы́стро е́дут по но́вому широ́кому шоссе́.",
+    "translations": {
+      "ru": "Авто́бусы и грузовики́ бы́стро е́дут по но́вому широ́кому шоссе́.",
+      "en": "Buses and trucks drive quickly along the new wide highway.",
+      "ar": "تسير الحافلات والشاحنات بسرعة على الطريق السريع الجديد الواسع.",
+      "fr": "Les bus et les camions roulent vite sur la nouvelle large autoroute."
+    },
+    "targetWeakCases": [
+      "Dative"
+    ],
+    "targetWeakWords": [
+      "шоссе́",
+      "авто́бус",
+      "грузови́к"
+    ],
+    "sceneTheme": "bridge",
+    "characterSpeaker": "Prof. Sokolova",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Dr. A. Morozov (MADI Transport Lab)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-13T10:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Авто́бусы",
+        "startSec": 0,
+        "endSec": 0.61
+      },
+      {
+        "word": "и",
+        "startSec": 0.61,
+        "endSec": 1.22
+      },
+      {
+        "word": "грузовики́",
+        "startSec": 1.22,
+        "endSec": 1.83
+      },
+      {
+        "word": "бы́стро",
+        "startSec": 1.83,
+        "endSec": 2.44
+      },
+      {
+        "word": "е́дут",
+        "startSec": 2.44,
+        "endSec": 3.06
+      },
+      {
+        "word": "по",
+        "startSec": 3.06,
+        "endSec": 3.67
+      },
+      {
+        "word": "но́вому",
+        "startSec": 3.67,
+        "endSec": 4.28
+      },
+      {
+        "word": "широ́кому",
+        "startSec": 4.28,
+        "endSec": 4.89
+      },
+      {
+        "word": "шоссе́.",
+        "startSec": 4.89,
+        "endSec": 5.5
+      }
+    ]
+  },
+  {
+    "id": "clip-23",
+    "title": {
+      "ru": "В кни́жном магази́не у кампуса",
+      "en": "At the Campus Bookstore",
+      "ar": "في مكتبة بيع الكتب قرب الحرم الجامعي",
+      "fr": "À la librairie du campus"
+    },
+    "level": "A1",
+    "topic": "shopping",
+    "grammarPoint": "Accusative Singular (тетра́дь, ру́чку)",
+    "durationSec": 4.5,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Покупка канцтоваров для лекций и чертежей.",
+      "en": "Buying stationery for lectures and engineering drawings.",
+      "ar": "شراء القرطاسية للمحاضرات والرسومات الهندسية.",
+      "fr": "Acheter des fournitures pour les cours et les dessins techniques."
+    },
+    "russianSubtitle": "Мне нужна́ больша́я тетра́дь для чертеже́й и си́няя ру́чка.",
+    "translations": {
+      "ru": "Мне нужна́ больша́я тетра́дь для чертеже́й и си́няя ру́чка.",
+      "en": "I need a large notebook for blueprints and a blue pen.",
+      "ar": "أحتاج إلى دفتر كبير للرسومات الهندسية وقلم أزرق.",
+      "fr": "J’ai besoin d’un grand cahier pour les plans et d’un stylo bleu."
+    },
+    "targetWeakCases": [
+      "Nominative",
+      "Genitive"
+    ],
+    "targetWeakWords": [
+      "тетра́дь",
+      "ру́чка"
+    ],
+    "sceneTheme": "shop",
+    "characterSpeaker": "Amina",
+    "sourceType": "open_license",
+    "license": "CC-BY-4.0 Russian Open Audio Corpus",
+    "author": "Open Russian Audio Project",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-13T10:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Мне",
+        "startSec": 0,
+        "endSec": 0.5
+      },
+      {
+        "word": "нужна́",
+        "startSec": 0.5,
+        "endSec": 1
+      },
+      {
+        "word": "больша́я",
+        "startSec": 1,
+        "endSec": 1.5
+      },
+      {
+        "word": "тетра́дь",
+        "startSec": 1.5,
+        "endSec": 2
+      },
+      {
+        "word": "для",
+        "startSec": 2,
+        "endSec": 2.5
+      },
+      {
+        "word": "чертеже́й",
+        "startSec": 2.5,
+        "endSec": 3
+      },
+      {
+        "word": "и",
+        "startSec": 3,
+        "endSec": 3.5
+      },
+      {
+        "word": "си́няя",
+        "startSec": 3.5,
+        "endSec": 4
+      },
+      {
+        "word": "ру́чка.",
+        "startSec": 4,
+        "endSec": 4.5
+      }
+    ]
+  },
+  {
+    "id": "clip-24",
+    "title": {
+      "ru": "Разгово́р о пого́де в Москве́",
+      "en": "Talking About the Weather in Moscow",
+      "ar": "الحديث عن الطقس في موسكو",
+      "fr": "Parler de la météo à Moscou"
+    },
+    "level": "A1",
+    "topic": "street_speech",
+    "grammarPoint": "Impersonal Constructions (сего́дня хо́лодно)",
+    "durationSec": 4.2,
+    "register": "colloquial",
+    "registerNote": {
+      "ru": "Непринуждённый разговор с соседом по общежитию утром.",
+      "en": "Casual morning chat with a dormitory roommate.",
+      "ar": "محادثة صباحية عفوية مع زميل السكن الجامعي.",
+      "fr": "Discussion matinale décontractée avec un colocataire."
+    },
+    "russianSubtitle": "На у́лице сего́дня си́льный снег, не забу́дь наде́ть ша́пку!",
+    "translations": {
+      "ru": "На у́лице сего́дня си́льный снег, не забу́дь наде́ть ша́пку!",
+      "en": "It is snowing heavily outside today, don’t forget to put on a hat!",
+      "ar": "هناك ثلوج كثيفة في الخارج اليوم، لا تنسَ ارتداء القبعة!",
+      "fr": "Il neige fort dehors aujourd’hui, n’oublie pas de mettre ton bonnet !"
+    },
+    "targetWeakCases": [
+      "Prepositional",
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "у́лица",
+      "сего́дня"
+    ],
+    "sceneTheme": "dorm",
+    "characterSpeaker": "Misha",
+    "sourceType": "ai_original",
+    "license": "madingo Original Scene CC-BY-4.0",
+    "author": "madingo Studio Team",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-13T11:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "На",
+        "startSec": 0,
+        "endSec": 0.47
+      },
+      {
+        "word": "у́лице",
+        "startSec": 0.47,
+        "endSec": 0.93
+      },
+      {
+        "word": "сего́дня",
+        "startSec": 0.93,
+        "endSec": 1.4
+      },
+      {
+        "word": "си́льный",
+        "startSec": 1.4,
+        "endSec": 1.87
+      },
+      {
+        "word": "снег,",
+        "startSec": 1.87,
+        "endSec": 2.33
+      },
+      {
+        "word": "не",
+        "startSec": 2.33,
+        "endSec": 2.8
+      },
+      {
+        "word": "забу́дь",
+        "startSec": 2.8,
+        "endSec": 3.27
+      },
+      {
+        "word": "наде́ть",
+        "startSec": 3.27,
+        "endSec": 3.73
+      },
+      {
+        "word": "ша́пку!",
+        "startSec": 3.73,
+        "endSec": 4.2
+      }
+    ]
+  },
+  {
+    "id": "clip-25",
+    "title": {
+      "ru": "Опла́та зака́за на ка́ссе",
+      "en": "Paying for an Order at the Register",
+      "ar": "دفع الحساب عند الصندوق",
+      "fr": "Payer sa commande à la caisse"
+    },
+    "level": "A1",
+    "topic": "food",
+    "grammarPoint": "Genitive Negation (нет нали́чных)",
+    "durationSec": 4.4,
+    "register": "formal",
+    "registerNote": {
+      "ru": "После слова «нет» всегда используется родительный падеж.",
+      "en": "After \"нет\" (there is no / I don’t have), always use the Genitive case.",
+      "ar": "بعد كلمة \"нет\" تُستخدم دائماً حالة المضاف إليه.",
+      "fr": "Après « нет », on utilise toujours le cas génitif."
+    },
+    "russianSubtitle": "У меня́ нет нали́чных де́нег, мо́жно оплати́ть телефо́ном?",
+    "translations": {
+      "ru": "У меня́ нет нали́чных де́нег, мо́жно оплати́ть телефо́ном?",
+      "en": "I don’t have cash; can I pay with my phone?",
+      "ar": "ليس لدي نقود ورقية، هل يمكنني الدفع بالهاتف؟",
+      "fr": "Je n’ai pas d’espèces, puis-je payer avec mon téléphone ?"
+    },
+    "targetWeakCases": [
+      "Genitive",
+      "Instrumental"
+    ],
+    "targetWeakWords": [
+      "телефо́н",
+      "ка́рта"
+    ],
+    "sceneTheme": "cafe",
+    "characterSpeaker": "Karim",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Prof. E. Sokolova (MADI Russian Dept.)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-14T08:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "У",
+        "startSec": 0,
+        "endSec": 0.55
+      },
+      {
+        "word": "меня́",
+        "startSec": 0.55,
+        "endSec": 1.1
+      },
+      {
+        "word": "нет",
+        "startSec": 1.1,
+        "endSec": 1.65
+      },
+      {
+        "word": "нали́чных",
+        "startSec": 1.65,
+        "endSec": 2.2
+      },
+      {
+        "word": "де́нег,",
+        "startSec": 2.2,
+        "endSec": 2.75
+      },
+      {
+        "word": "мо́жно",
+        "startSec": 2.75,
+        "endSec": 3.3
+      },
+      {
+        "word": "оплати́ть",
+        "startSec": 3.3,
+        "endSec": 3.85
+      },
+      {
+        "word": "телефо́ном?",
+        "startSec": 3.85,
+        "endSec": 4.4
+      }
+    ]
+  },
+  {
+    "id": "clip-26",
+    "title": {
+      "ru": "За рулём уче́бного автомоби́ля",
+      "en": "Behind the Wheel of a Training Car",
+      "ar": "خلف مقود سيارة التدريب",
+      "fr": "Au volant de la voiture d’entraînement"
+    },
+    "level": "A2",
+    "topic": "cars_roads",
+    "grammarPoint": "Instrumental after за (за рулём)",
+    "durationSec": 5.2,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Идиома «за рулём» (творительный падеж от слова «руль»).",
+      "en": "Idiom \"за рулём\" (behind the wheel — Instrumental of \"руль\").",
+      "ar": "التعبير \"за рулём\" (خلف المقود — حالة الأداة من كلمة \"руль\").",
+      "fr": "Expression « за рулём » (au volant — instrumental de « руль »)."
+    },
+    "russianSubtitle": "Когда́ води́тель сиди́т за рулём, он внима́тельно смо́трит на доро́гу.",
+    "translations": {
+      "ru": "Когда́ води́тель сиди́т за рулём, он внима́тельно смо́трит на доро́гу.",
+      "en": "When the driver sits behind the wheel, he watches the road carefully.",
+      "ar": "عندما يجلس السائق خلف المقود، ينظر إلى الطريق بانتباه.",
+      "fr": "Quand le conducteur est au volant, il regarde attentivement la route."
+    },
+    "targetWeakCases": [
+      "Instrumental",
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "руль",
+      "доро́га"
+    ],
+    "sceneTheme": "garage",
+    "characterSpeaker": "Misha",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Dr. A. Morozov (MADI Transport Lab)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-14T08:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Когда́",
+        "startSec": 0,
+        "endSec": 0.52
+      },
+      {
+        "word": "води́тель",
+        "startSec": 0.52,
+        "endSec": 1.04
+      },
+      {
+        "word": "сиди́т",
+        "startSec": 1.04,
+        "endSec": 1.56
+      },
+      {
+        "word": "за",
+        "startSec": 1.56,
+        "endSec": 2.08
+      },
+      {
+        "word": "рулём,",
+        "startSec": 2.08,
+        "endSec": 2.6
+      },
+      {
+        "word": "он",
+        "startSec": 2.6,
+        "endSec": 3.12
+      },
+      {
+        "word": "внима́тельно",
+        "startSec": 3.12,
+        "endSec": 3.64
+      },
+      {
+        "word": "смо́трит",
+        "startSec": 3.64,
+        "endSec": 4.16
+      },
+      {
+        "word": "на",
+        "startSec": 4.16,
+        "endSec": 4.68
+      },
+      {
+        "word": "доро́гу.",
+        "startSec": 4.68,
+        "endSec": 5.2
+      }
+    ]
+  },
+  {
+    "id": "clip-27",
+    "title": {
+      "ru": "По́иск ну́жной аудито́рии",
+      "en": "Finding the Right Classroom",
+      "ar": "البحث عن القاعة الدراسية المطلوبة",
+      "fr": "Trouver la bonne salle de cours"
+    },
+    "level": "A1",
+    "topic": "campus",
+    "grammarPoint": "Prepositional Floor & Room Numbers",
+    "durationSec": 4.6,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Вежливый вопрос в коридоре университета перед началом занятия.",
+      "en": "Polite question in the university hallway before class begins.",
+      "ar": "سؤال مهذب في ممر الجامعة قبل بدء المحاضرة.",
+      "fr": "Question polie dans le couloir de l’université avant le cours."
+    },
+    "russianSubtitle": "Прости́те, где нахо́дится аудито́рия три́ста двена́дцать?",
+    "translations": {
+      "ru": "Прости́те, где нахо́дится аудито́рия три́ста двена́дцать?",
+      "en": "Excuse me, where is classroom three hundred twelve located?",
+      "ar": "عذراً، أين تقع القاعة رقم ثلاثمئة واثني عشر؟",
+      "fr": "Excusez-moi, où se trouve la salle trois cent douze ?"
+    },
+    "targetWeakCases": [
+      "Nominative"
+    ],
+    "targetWeakWords": [
+      "аудито́рия",
+      "ле́кция"
+    ],
+    "sceneTheme": "campus",
+    "characterSpeaker": "Amina",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Prof. E. Sokolova (MADI Russian Dept.)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-14T09:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Прости́те,",
+        "startSec": 0,
+        "endSec": 0.77
+      },
+      {
+        "word": "где",
+        "startSec": 0.77,
+        "endSec": 1.53
+      },
+      {
+        "word": "нахо́дится",
+        "startSec": 1.53,
+        "endSec": 2.3
+      },
+      {
+        "word": "аудито́рия",
+        "startSec": 2.3,
+        "endSec": 3.07
+      },
+      {
+        "word": "три́ста",
+        "startSec": 3.07,
+        "endSec": 3.83
+      },
+      {
+        "word": "двена́дцать?",
+        "startSec": 3.83,
+        "endSec": 4.6
+      }
+    ]
+  },
+  {
+    "id": "clip-28",
+    "title": {
+      "ru": "Вече́рний маршру́т на авто́бусе",
+      "en": "Evening Bus Route",
+      "ar": "مسار الحافلة المسائي",
+      "fr": "Itinéraire de bus du soir"
+    },
+    "level": "A2",
+    "topic": "metro",
+    "grammarPoint": "Verb идти́ / е́хать for Public Transport",
+    "durationSec": 4.8,
+    "register": "formal",
+    "registerNote": {
+      "ru": "В русском языке про автобус или поезд часто говорят «авто́бус идёт до...».",
+      "en": "In Russian, buses and trains often use \"идёт до...\" (goes to...).",
+      "ar": "في اللغة الروسية يقال غالباً عن الحافلة أو القطار \"авто́бус идёт до...\".",
+      "fr": "En russe, on dit souvent pour un bus ou un train « авто́бус идёт до... »."
+    },
+    "russianSubtitle": "Скажи́те, э́тот авто́бус идёт до ста́нции метро́ Со́кол?",
+    "translations": {
+      "ru": "Скажи́те, э́тот авто́бус идёт до ста́нции метро́ Со́кол?",
+      "en": "Tell me, does this bus go to the Sokol metro station?",
+      "ar": "قل لي، هل تذهب هذه الحافلة إلى محطة مترو سوكول؟",
+      "fr": "Dites-moi, ce bus va-t-il jusqu’à la station de métro Sokol ?"
+    },
+    "targetWeakCases": [
+      "Genitive"
+    ],
+    "targetWeakWords": [
+      "авто́бус",
+      "метро́"
+    ],
+    "sceneTheme": "metro",
+    "characterSpeaker": "Karim",
+    "sourceType": "open_license",
+    "license": "CC-BY-4.0 Russian Open Audio Corpus",
+    "author": "Open Russian Audio Project",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-14T09:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Скажи́те,",
+        "startSec": 0,
+        "endSec": 0.6
+      },
+      {
+        "word": "э́тот",
+        "startSec": 0.6,
+        "endSec": 1.2
+      },
+      {
+        "word": "авто́бус",
+        "startSec": 1.2,
+        "endSec": 1.8
+      },
+      {
+        "word": "идёт",
+        "startSec": 1.8,
+        "endSec": 2.4
+      },
+      {
+        "word": "до",
+        "startSec": 2.4,
+        "endSec": 3
+      },
+      {
+        "word": "ста́нции",
+        "startSec": 3,
+        "endSec": 3.6
+      },
+      {
+        "word": "метро́",
+        "startSec": 3.6,
+        "endSec": 4.2
+      },
+      {
+        "word": "Со́кол?",
+        "startSec": 4.2,
+        "endSec": 4.8
+      }
+    ]
+  },
+  {
+    "id": "clip-29",
+    "title": {
+      "ru": "По́мощь с дома́шним зада́нием",
+      "en": "Help with Homework",
+      "ar": "المساعدة في الواجب المنزلي",
+      "fr": "Aide pour les devoirs"
+    },
+    "level": "A2",
+    "topic": "street_speech",
+    "grammarPoint": "Dative Pronoun (Помоги́ мне) & Instrumental",
+    "durationSec": 4.7,
+    "register": "colloquial",
+    "registerNote": {
+      "ru": "Дружеская просьба о помощи в общежитии («Помоги́ мне, пожа́луйста»).",
+      "en": "Friendly request for help in the dorm (\"Помоги́ мне, пожа́луйста\").",
+      "ar": "طلب مساعدة ودي في السكن الجامعي.",
+      "fr": "Demande d’aide amicale à la résidence universitaire."
+    },
+    "russianSubtitle": "Помоги́ мне, пожа́луйста, перевести́ э́тот тру́дный техни́ческий текст!",
+    "translations": {
+      "ru": "Помоги́ мне, пожа́луйста, перевести́ э́тот тру́дный техни́ческий текст!",
+      "en": "Help me, please, translate this difficult technical text!",
+      "ar": "ساعدني من فضلك في ترجمة هذا النص التقني الصعب!",
+      "fr": "Aide-moi, s’il vous plaît, à traduire ce texte technique difficile !"
+    },
+    "targetWeakCases": [
+      "Dative",
+      "Accusative"
+    ],
+    "targetWeakWords": [
+      "слова́рь",
+      "кни́га"
+    ],
+    "sceneTheme": "dorm",
+    "characterSpeaker": "Karim",
+    "sourceType": "ai_original",
+    "license": "madingo Original Scene CC-BY-4.0",
+    "author": "madingo Studio Team",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-14T10:00:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Помоги́",
+        "startSec": 0,
+        "endSec": 0.59
+      },
+      {
+        "word": "мне,",
+        "startSec": 0.59,
+        "endSec": 1.18
+      },
+      {
+        "word": "пожа́луйста,",
+        "startSec": 1.18,
+        "endSec": 1.76
+      },
+      {
+        "word": "перевести́",
+        "startSec": 1.76,
+        "endSec": 2.35
+      },
+      {
+        "word": "э́тот",
+        "startSec": 2.35,
+        "endSec": 2.94
+      },
+      {
+        "word": "тру́дный",
+        "startSec": 2.94,
+        "endSec": 3.53
+      },
+      {
+        "word": "техни́ческий",
+        "startSec": 3.53,
+        "endSec": 4.11
+      },
+      {
+        "word": "текст!",
+        "startSec": 4.11,
+        "endSec": 4.7
+      }
+    ]
+  },
+  {
+    "id": "clip-30",
+    "title": {
+      "ru": "Вы́дача инструме́нтов в гараже́ МАДИ́",
+      "en": "Checking Out Tools in the MADI Garage",
+      "ar": "استلام الأدوات في مرآب مادي",
+      "fr": "Retrait d’outils au garage de MADI"
+    },
+    "level": "A2",
+    "topic": "cars_roads",
+    "grammarPoint": "Instrumental of Tool & Genitive Purpose",
+    "durationSec": 5.3,
+    "register": "formal",
+    "registerNote": {
+      "ru": "Практическое занятие в автомеханической мастерской МАДИ.",
+      "en": "Hands-on workshop session in the MADI automotive laboratory.",
+      "ar": "تدريب عملي في ورشة ميكانيكا السيارات بجامعة مادي.",
+      "fr": "Séance pratique dans l’atelier mécanique de MADI."
+    },
+    "russianSubtitle": "Ма́стер проверя́ет давле́ние в ши́нах специа́льным прибо́ром.",
+    "translations": {
+      "ru": "Ма́стер проверя́ет давле́ние в ши́нах специа́льным прибо́ром.",
+      "en": "The master technician checks the tire pressure with a special instrument.",
+      "ar": "يفحص الفني المختص ضغط الإطارات بجهاز خاص.",
+      "fr": "Le chef d’atelier vérifie la pression des pneus avec un appareil spécial."
+    },
+    "targetWeakCases": [
+      "Instrumental",
+      "Prepositional"
+    ],
+    "targetWeakWords": [
+      "колесо́",
+      "двига́тель",
+      "маши́на"
+    ],
+    "sceneTheme": "garage",
+    "characterSpeaker": "Prof. Sokolova",
+    "sourceType": "madi_creator",
+    "license": "MADI Creator License v1.0 (Signed)",
+    "author": "Dr. A. Morozov (MADI Transport Lab)",
+    "consentConfirmed": true,
+    "reviewedBy": "reviewer-sokolova",
+    "reviewedAt": "2026-10-14T10:30:00Z",
+    "reviewStatus": "approved",
+    "wordTimings": [
+      {
+        "word": "Ма́стер",
+        "startSec": 0,
+        "endSec": 0.76
+      },
+      {
+        "word": "проверя́ет",
+        "startSec": 0.76,
+        "endSec": 1.51
+      },
+      {
+        "word": "давле́ние",
+        "startSec": 1.51,
+        "endSec": 2.27
+      },
+      {
+        "word": "в",
+        "startSec": 2.27,
+        "endSec": 3.03
+      },
+      {
+        "word": "ши́нах",
+        "startSec": 3.03,
+        "endSec": 3.79
+      },
+      {
+        "word": "специа́льным",
+        "startSec": 3.79,
+        "endSec": 4.54
+      },
+      {
+        "word": "прибо́ром.",
+        "startSec": 4.54,
+        "endSec": 5.3
+      }
+    ]
+  }
+]

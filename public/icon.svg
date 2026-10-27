@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="120" fill="#0B3D91"/>
+  <!-- Road stripe background -->
+  <path d="M96 420L210 92H302L416 420H96Z" fill="#2B2F3A"/>
+  <path d="M256 120V390" stroke="#F4F1DE" stroke-width="16" stroke-dasharray="28 24" stroke-linecap="round"/>
+  <!-- Wheel 'o' emblem -->
+  <circle cx="256" cy="264" r="118" fill="#0A1F44" stroke="#FF8A1F" stroke-width="24"/>
+  <circle cx="256" cy="264" r="74" fill="#0B3D91" stroke="#F4F1DE" stroke-width="10"/>
+  <circle cx="256" cy="264" r="28" fill="#FF8A1F"/>
+  <path d="M256 190V236M256 292V338M182 264H228M284 264H330" stroke="#F4F1DE" stroke-width="12" stroke-linecap="round"/>
+</svg>
