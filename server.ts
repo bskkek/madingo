@@ -130,39 +130,50 @@ async function startServer() {
   interface MadiLiveStory {
     id: string;
     imageUrl: string;
+    localImageUrl?: string;
     proxyImageUrl: string;
     title: string;
     subtitle: string;
     href: string;
   }
 
+  const KNOWN_LOCAL_MADI_STORY_MAP: Record<string, string> = {
+    'https://www.madi.ru/uploads/images/2026/10/23/1792763352_sayit31.10.png':
+      '/assets/madi-stories/story-1.webp',
+    'https://www.madi.ru/uploads/images/2026/09/14/1789381155_madi-banner-universal.png':
+      '/assets/madi-stories/story-2.webp',
+    'https://www.madi.ru/uploads/images/2025/04/24/1745486917_SayitKnigaPamyati.png':
+      '/assets/madi-stories/story-3.webp',
+    'https://www.madi.ru/uploads/images/2026/09/15/1789480019_image.png':
+      '/assets/madi-stories/story-4.webp',
+    'https://www.madi.ru/uploads/images/2022/03/25/1648201524_Slayidersocseti-min.png':
+      '/assets/madi-stories/story-5.webp',
+  };
+
   const DEFAULT_MADI_STORIES: MadiLiveStory[] = [
     {
       id: 'madi-story-1',
       imageUrl: 'https://www.madi.ru/uploads/images/2026/10/23/1792763352_sayit31.10.png',
-      proxyImageUrl:
-        '/api/madi-image-proxy?url=' +
-        encodeURIComponent('https://www.madi.ru/uploads/images/2026/10/23/1792763352_sayit31.10.png'),
-      title: 'ВСЕРОССИЙСКАЯ ОЛИМПИАДА «ВСЕ ДОРОГИ ВЕДУТ В МАДИ»',
+      localImageUrl: '/assets/madi-stories/story-1.webp',
+      proxyImageUrl: '/assets/madi-stories/story-1.webp',
+      title: '',
       subtitle: '',
       href: 'https://forms.cloud.microsoft/e/pBHtH0wVPA/',
     },
     {
       id: 'madi-story-2',
       imageUrl: 'https://www.madi.ru/uploads/images/2026/09/14/1789381155_madi-banner-universal.png',
-      proxyImageUrl:
-        '/api/madi-image-proxy?url=' +
-        encodeURIComponent('https://www.madi.ru/uploads/images/2026/09/14/1789381155_madi-banner-universal.png'),
-      title: 'ВСЕРОССИЙСКАЯ ОЛИМПИАДА «ВСЕ ДОРОГИ ВЕДУТ В МАДИ»',
+      localImageUrl: '/assets/madi-stories/story-2.webp',
+      proxyImageUrl: '/assets/madi-stories/story-2.webp',
+      title: '',
       subtitle: '',
       href: 'https://olimpiada.madi.ru/',
     },
     {
       id: 'madi-story-3',
       imageUrl: 'https://www.madi.ru/uploads/images/2025/04/24/1745486917_SayitKnigaPamyati.png',
-      proxyImageUrl:
-        '/api/madi-image-proxy?url=' +
-        encodeURIComponent('https://www.madi.ru/uploads/images/2025/04/24/1745486917_SayitKnigaPamyati.png'),
+      localImageUrl: '/assets/madi-stories/story-3.webp',
+      proxyImageUrl: '/assets/madi-stories/story-3.webp',
       title: 'Книга памяти МАДИ',
       subtitle: '',
       href: 'https://madi.ru/8596-kniga-pamyati-madi.html',
@@ -170,9 +181,8 @@ async function startServer() {
     {
       id: 'madi-story-4',
       imageUrl: 'https://www.madi.ru/uploads/images/2026/09/15/1789480019_image.png',
-      proxyImageUrl:
-        '/api/madi-image-proxy?url=' +
-        encodeURIComponent('https://www.madi.ru/uploads/images/2026/09/15/1789480019_image.png'),
+      localImageUrl: '/assets/madi-stories/story-4.webp',
+      proxyImageUrl: '/assets/madi-stories/story-4.webp',
       title: 'МАДИ в топ-100 лучших вузов России',
       subtitle: 'Первая лига Национального агрегированного рейтинга',
       href: 'https://www.madi.ru/7481-madi-voshel-v-pervuyu-ligu-nacionalnogo-agregirovannogo-reyt.html',
@@ -180,9 +190,8 @@ async function startServer() {
     {
       id: 'madi-story-5',
       imageUrl: 'https://www.madi.ru/uploads/images/2022/03/25/1648201524_Slayidersocseti-min.png',
-      proxyImageUrl:
-        '/api/madi-image-proxy?url=' +
-        encodeURIComponent('https://www.madi.ru/uploads/images/2022/03/25/1648201524_Slayidersocseti-min.png'),
+      localImageUrl: '/assets/madi-stories/story-5.webp',
+      proxyImageUrl: '/assets/madi-stories/story-5.webp',
       title: 'МАДИ в социальных сетях',
       subtitle: 'Подписывайтесь на официальные аккаунты университета',
       href: 'https://taplink.cc/madiuniversity',
@@ -192,6 +201,7 @@ async function startServer() {
   let cachedMadiStories: MadiLiveStory[] = [...DEFAULT_MADI_STORIES];
   let lastMadiStoriesSyncAt = 0;
   const MADI_STORIES_TTL_MS = 5 * 60 * 1000; // 5 minutes live sync
+  const madiImageMemoryCache = new Map<string, { buffer: Buffer; contentType: string }>();
 
   async function syncMadiStoriesFromWebsite(): Promise<MadiLiveStory[]> {
     try {
@@ -250,14 +260,12 @@ async function startServer() {
           imgUrl = `https://www.madi.ru/${imgUrl}`;
         }
 
-        const titleAttrMatch = attrs.match(/title="([^"]*)"/i);
         const hrefAttrMatch = attrs.match(/href="([^"]*)"/i);
         const h3Match = inner.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i);
         const pMatch = inner.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
 
-        const title =
-          cleanText(h3Match ? h3Match[1] : '') ||
-          cleanText(titleAttrMatch ? titleAttrMatch[1] : '');
+        // Only display overlay title when the slide explicitly includes an <h3> text overlay on madi.ru
+        const title = cleanText(h3Match ? h3Match[1] : '');
         const subtitle = cleanText(pMatch ? pMatch[1] : '');
 
         let href = (hrefAttrMatch ? hrefAttrMatch[1] : '').trim();
@@ -265,10 +273,14 @@ async function startServer() {
           href = `https://www.madi.ru${href}`;
         }
 
+        const knownLocal = KNOWN_LOCAL_MADI_STORY_MAP[imgUrl];
+        const proxyUrl = knownLocal || `/api/madi-image-proxy?url=${encodeURIComponent(imgUrl)}`;
+
         extracted.push({
-          id: `madi-live-${extracted.length + 1}-${ Buffer.from(imgUrl).toString('base64').slice(-8) }`,
+          id: `madi-live-${extracted.length + 1}-${Buffer.from(imgUrl).toString('base64').slice(-8)}`,
           imageUrl: imgUrl,
-          proxyImageUrl: `/api/madi-image-proxy?url=${encodeURIComponent(imgUrl)}`,
+          localImageUrl: knownLocal,
+          proxyImageUrl: proxyUrl,
           title,
           subtitle,
           href: href || 'https://www.madi.ru/',
@@ -307,6 +319,19 @@ async function startServer() {
       if (!rawUrl || !/^https?:\/\/([a-z0-9-]+\.)?madi\.ru\//i.test(rawUrl)) {
         return res.status(400).send('Invalid MADI image URL');
       }
+
+      const knownLocal = KNOWN_LOCAL_MADI_STORY_MAP[rawUrl];
+      if (knownLocal) {
+        return res.redirect(knownLocal);
+      }
+
+      const cached = madiImageMemoryCache.get(rawUrl);
+      if (cached) {
+        res.setHeader('Content-Type', cached.contentType);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return res.send(cached.buffer);
+      }
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 9000);
       const upstream = await fetch(rawUrl, {
@@ -320,20 +345,18 @@ async function startServer() {
       clearTimeout(timeout);
 
       if (!upstream.ok) {
-        return res.redirect(rawUrl);
+        return res.redirect('/assets/madi-stories/story-2.webp');
       }
 
       const contentType = upstream.headers.get('content-type') || 'image/png';
       const arrayBuffer = await upstream.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      madiImageMemoryCache.set(rawUrl, { buffer, contentType });
       res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=1800');
-      return res.send(Buffer.from(arrayBuffer));
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      return res.send(buffer);
     } catch {
-      const fallbackUrl = String(req.query.url || '');
-      if (fallbackUrl.startsWith('http')) {
-        return res.redirect(fallbackUrl);
-      }
-      return res.status(502).send('Failed to proxy image');
+      return res.redirect('/assets/madi-stories/story-2.webp');
     }
   });
 

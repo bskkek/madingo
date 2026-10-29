@@ -14,39 +14,50 @@ import { MadiCrewSection } from './MadiCrewSection';
 interface MadiLiveStoryItem {
   id: string;
   imageUrl: string;
+  localImageUrl?: string;
   proxyImageUrl?: string;
   title: string;
   subtitle: string;
   href: string;
 }
 
+const KNOWN_LOCAL_STORY_ASSETS: Record<string, string> = {
+  'https://www.madi.ru/uploads/images/2026/10/23/1792763352_sayit31.10.png':
+    '/assets/madi-stories/story-1.webp',
+  'https://www.madi.ru/uploads/images/2026/09/14/1789381155_madi-banner-universal.png':
+    '/assets/madi-stories/story-2.webp',
+  'https://www.madi.ru/uploads/images/2025/04/24/1745486917_SayitKnigaPamyati.png':
+    '/assets/madi-stories/story-3.webp',
+  'https://www.madi.ru/uploads/images/2026/09/15/1789480019_image.png':
+    '/assets/madi-stories/story-4.webp',
+  'https://www.madi.ru/uploads/images/2022/03/25/1648201524_Slayidersocseti-min.png':
+    '/assets/madi-stories/story-5.webp',
+};
+
 const INITIAL_MADI_STORIES: MadiLiveStoryItem[] = [
   {
     id: 'madi-story-1',
     imageUrl: 'https://www.madi.ru/uploads/images/2026/10/23/1792763352_sayit31.10.png',
-    proxyImageUrl:
-      '/api/madi-image-proxy?url=' +
-      encodeURIComponent('https://www.madi.ru/uploads/images/2026/10/23/1792763352_sayit31.10.png'),
-    title: 'ВСЕРОССИЙСКАЯ ОЛИМПИАДА «ВСЕ ДОРОГИ ВЕДУТ В МАДИ»',
+    localImageUrl: '/assets/madi-stories/story-1.webp',
+    proxyImageUrl: '/assets/madi-stories/story-1.webp',
+    title: '',
     subtitle: '',
     href: 'https://forms.cloud.microsoft/e/pBHtH0wVPA/',
   },
   {
     id: 'madi-story-2',
     imageUrl: 'https://www.madi.ru/uploads/images/2026/09/14/1789381155_madi-banner-universal.png',
-    proxyImageUrl:
-      '/api/madi-image-proxy?url=' +
-      encodeURIComponent('https://www.madi.ru/uploads/images/2026/09/14/1789381155_madi-banner-universal.png'),
-    title: 'ВСЕРОССИЙСКАЯ ОЛИМПИАДА «ВСЕ ДОРОГИ ВЕДУТ В МАДИ»',
+    localImageUrl: '/assets/madi-stories/story-2.webp',
+    proxyImageUrl: '/assets/madi-stories/story-2.webp',
+    title: '',
     subtitle: '',
     href: 'https://olimpiada.madi.ru/',
   },
   {
     id: 'madi-story-3',
     imageUrl: 'https://www.madi.ru/uploads/images/2025/04/24/1745486917_SayitKnigaPamyati.png',
-    proxyImageUrl:
-      '/api/madi-image-proxy?url=' +
-      encodeURIComponent('https://www.madi.ru/uploads/images/2025/04/24/1745486917_SayitKnigaPamyati.png'),
+    localImageUrl: '/assets/madi-stories/story-3.webp',
+    proxyImageUrl: '/assets/madi-stories/story-3.webp',
     title: 'Книга памяти МАДИ',
     subtitle: '',
     href: 'https://madi.ru/8596-kniga-pamyati-madi.html',
@@ -54,9 +65,8 @@ const INITIAL_MADI_STORIES: MadiLiveStoryItem[] = [
   {
     id: 'madi-story-4',
     imageUrl: 'https://www.madi.ru/uploads/images/2026/09/15/1789480019_image.png',
-    proxyImageUrl:
-      '/api/madi-image-proxy?url=' +
-      encodeURIComponent('https://www.madi.ru/uploads/images/2026/09/15/1789480019_image.png'),
+    localImageUrl: '/assets/madi-stories/story-4.webp',
+    proxyImageUrl: '/assets/madi-stories/story-4.webp',
     title: 'МАДИ в топ-100 лучших вузов России',
     subtitle: 'Первая лига Национального агрегированного рейтинга',
     href: 'https://www.madi.ru/7481-madi-voshel-v-pervuyu-ligu-nacionalnogo-agregirovannogo-reyt.html',
@@ -64,9 +74,8 @@ const INITIAL_MADI_STORIES: MadiLiveStoryItem[] = [
   {
     id: 'madi-story-5',
     imageUrl: 'https://www.madi.ru/uploads/images/2022/03/25/1648201524_Slayidersocseti-min.png',
-    proxyImageUrl:
-      '/api/madi-image-proxy?url=' +
-      encodeURIComponent('https://www.madi.ru/uploads/images/2022/03/25/1648201524_Slayidersocseti-min.png'),
+    localImageUrl: '/assets/madi-stories/story-5.webp',
+    proxyImageUrl: '/assets/madi-stories/story-5.webp',
     title: 'МАДИ в социальных сетях',
     subtitle: 'Подписывайтесь на официальные аккаунты университета',
     href: 'https://taplink.cc/madiuniversity',
@@ -101,7 +110,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [storyProgress, setStoryProgress] = useState(0);
   const [isStoryPaused, setIsStoryPaused] = useState(false);
-  const [useProxyByUrl, setUseProxyByUrl] = useState<Record<string, boolean>>({});
+  const [fallbackByStoryId, setFallbackByStoryId] = useState<Record<string, boolean>>({});
 
   // Sync live stories from madi.ru via backend endpoint automatically
   useEffect(() => {
@@ -112,7 +121,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         if (!res.ok) return;
         const data = await res.json();
         if (isMounted && Array.isArray(data.stories) && data.stories.length > 0) {
-          setMadiStories(data.stories);
+          const normalized = data.stories.map((st: MadiLiveStoryItem, idx: number) => {
+            const localMatch =
+              st.localImageUrl ||
+              KNOWN_LOCAL_STORY_ASSETS[st.imageUrl] ||
+              `/assets/madi-stories/story-${(idx % 5) + 1}.webp`;
+            return {
+              ...st,
+              localImageUrl: localMatch,
+              proxyImageUrl: st.proxyImageUrl || localMatch,
+            };
+          });
+          setMadiStories(normalized);
         }
       } catch {
         // Keep current/initial stories on network error
@@ -230,12 +250,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         onMouseLeave={() => setIsStoryPaused(false)}
         onTouchStart={() => setIsStoryPaused(true)}
         onTouchEnd={() => setIsStoryPaused(false)}
-        className="relative w-full overflow-hidden bg-white select-none"
+        className="relative w-full overflow-hidden bg-white select-none pt-1 pb-2"
       >
-        <div className="max-w-7xl mx-auto px-0 sm:px-6 pt-1">
-          <div className="relative w-full aspect-[16/7] sm:aspect-[21/8] overflow-hidden sm:rounded-t-3xl bg-white">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+          <div className="relative w-full aspect-[31/10] min-h-[132px] sm:min-h-[210px] overflow-hidden rounded-2xl sm:rounded-3xl bg-[#1b2540] border border-slate-200/90 shadow-md">
             {/* Story Progress Bars at Top */}
-            <div className="absolute top-2.5 inset-x-3 sm:inset-x-6 z-30 flex items-center gap-1.5">
+            <div className="absolute top-2 sm:top-3 inset-x-3 sm:inset-x-5 z-30 flex items-center gap-1.5">
               {madiStories.map((st, idx) => {
                 const fillWidth =
                   idx < activeStoryIndex
@@ -249,7 +269,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     type="button"
                     aria-label={`Story ${idx + 1}`}
                     onClick={() => handleSelectStory(idx)}
-                    className="flex-1 h-1.5 rounded-full bg-white/40 backdrop-blur-xs overflow-hidden cursor-pointer"
+                    className="flex-1 h-1.5 rounded-full bg-slate-900/25 ring-1 ring-white/60 backdrop-blur-xs overflow-hidden cursor-pointer"
                   >
                     <div
                       className="h-full bg-accent-orange transition-all duration-75 rounded-full"
@@ -260,42 +280,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               })}
             </div>
 
-            {/* Rotating Story Images from madi.ru */}
+            {/* Rotating Story Images from madi.ru (served via local pre-cache / proxy for instant load) */}
             {madiStories.map((story, idx) => {
               const isActive = idx === activeStoryIndex;
-              const imgSrc = useProxyByUrl[story.imageUrl]
-                ? story.proxyImageUrl || story.imageUrl
-                : story.imageUrl;
+              const fallbackLocalSrc = `/assets/madi-stories/story-${(idx % 5) + 1}.webp`;
+              const primarySrc =
+                story.localImageUrl ||
+                KNOWN_LOCAL_STORY_ASSETS[story.imageUrl] ||
+                story.proxyImageUrl ||
+                fallbackLocalSrc;
+              const imgSrc = fallbackByStoryId[story.id] ? fallbackLocalSrc : primarySrc;
+
               return (
                 <div
                   key={story.id || idx}
-                  className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                  className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
                     isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                   }`}
                 >
                   <img
                     src={imgSrc}
                     alt={story.title || `MADI Story ${idx + 1}`}
-                    referrerPolicy="no-referrer"
+                    loading={idx === 0 ? 'eager' : 'lazy'}
                     onError={() => {
-                      if (!useProxyByUrl[story.imageUrl] && story.proxyImageUrl) {
-                        setUseProxyByUrl((prev) => ({ ...prev, [story.imageUrl]: true }));
+                      if (!fallbackByStoryId[story.id]) {
+                        setFallbackByStoryId((prev) => ({ ...prev, [story.id]: true }));
                       }
                     }}
-                    className="w-full h-full object-cover object-center"
+                    className="w-full h-full object-cover object-center bg-[#1b2540]"
                   />
 
-                  {/* Subtle text overlay only when story has a headline on madi.ru */}
+                  {/* Subtle text overlay only when story has an explicit headline on madi.ru */}
                   {(story.title || story.subtitle) && (
-                    <div className="absolute inset-x-0 bottom-6 sm:bottom-10 z-20 px-4 sm:px-8 pointer-events-none">
-                      <div className="max-w-2xl">
+                    <div className="absolute inset-x-0 bottom-2 sm:bottom-4 z-20 ps-3 pe-24 sm:ps-6 sm:pe-28 pointer-events-none">
+                      <div className="max-w-xl text-start" dir="ltr">
                         {story.title && (
-                          <div className="inline-block px-3 py-1 rounded-xl bg-slate-900/65 backdrop-blur-xs text-white font-display font-extrabold text-xs sm:text-base shadow-sm">
+                          <div className="inline-block px-2.5 py-1 rounded-lg bg-slate-900/75 backdrop-blur-xs text-white font-display font-extrabold text-[11px] sm:text-base shadow-sm leading-snug">
                             {story.title}
                           </div>
                         )}
                         {story.subtitle && (
-                          <p className="mt-1 text-[11px] sm:text-xs text-white/95 font-medium drop-shadow">
+                          <p className="hidden sm:block mt-1 text-xs text-white/95 font-medium drop-shadow">
                             {story.subtitle}
                           </p>
                         )}
@@ -306,7 +331,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               );
             })}
 
-            {/* Left / Right Invisible Tap Zones for Story Navigation */}
+            {/* Left / Right Tap Zones for Story Navigation */}
             <button
               type="button"
               aria-label="Previous Story"
@@ -326,13 +351,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               className="absolute inset-y-0 end-0 w-1/4 z-20 cursor-pointer focus:outline-none"
             />
 
-            {/* Seamless Frameless White Fade at Bottom */}
+            {/* Story Counter Pill in Bottom Corner */}
             <div
-              className="absolute inset-x-0 bottom-0 h-12 sm:h-20 z-20 pointer-events-none"
-              style={{
-                background: 'linear-gradient(to bottom, rgba(255,255,255,0) 0%, #ffffff 100%)',
-              }}
-            />
+              className="absolute bottom-2 sm:bottom-3 right-2.5 sm:right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/70 backdrop-blur-xs text-white text-[10px] font-bold tracking-wider pointer-events-none"
+              dir="ltr"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-orange animate-pulse" />
+              <span>
+                МАДИ • {activeStoryIndex + 1}/{madiStories.length}
+              </span>
+            </div>
           </div>
         </div>
       </div>
