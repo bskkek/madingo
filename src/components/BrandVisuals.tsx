@@ -341,10 +341,6 @@ export const HeroPanoramaIllustration: React.FC<{ scrollOffset?: number }> = ({
           {/* Moscow City Glass Towers */}
           <path d="M510 250 L518 105 L548 92 L548 250 Z" fill="#38BDF8" fillOpacity="0.35" stroke="#BAE6FD" strokeWidth="1.5" />
           <path d="M556 250 L556 80 L590 100 L590 250 Z" fill="#0284C7" fillOpacity="0.45" stroke="#BAE6FD" strokeWidth="1.5" />
-          {/* Ostankino / Spasskaya Spire */}
-          <rect x="612" y="130" width="16" height="120" fill="#991B1B" />
-          <polygon points="620,62 612,130 628,130" fill="#DC2626" />
-          <circle cx="620" cy="58" r="5" fill="#FF8A1F" />
           {/* Stylized Onion Domes */}
           <rect x="652" y="175" width="36" height="75" rx="4" fill="#F4F1DE" />
           <path

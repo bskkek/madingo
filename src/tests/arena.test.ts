@@ -234,3 +234,50 @@ test('Typing Curriculum: 50+ progressive sentences and paragraphs', async () => 
   assert.equal(PROGRESSIVE_TYPING_DRILLS[PROGRESSIVE_TYPING_DRILLS.length - 1].textClean.length > 50, true);
 });
 
+test('Arena Localization: ARENA_I18N provides complete, distinct translations for ar, fr, en, and ru', async () => {
+  const {
+    ARENA_I18N,
+    getArenaQuestionInstruction,
+    getArenaQuestionExplanation,
+  } = await import('../lib/arenaEngine');
+
+  assert.equal(ARENA_I18N.ar.heroTitle, 'غرف التحدي');
+  assert.equal(ARENA_I18N.fr.heroTitle, 'Salles de Défi');
+  assert.equal(ARENA_I18N.en.heroTitle, 'Challenge Rooms');
+  assert.equal(ARENA_I18N.ru.heroTitle, 'Комнаты вызова');
+
+  assert.equal(ARENA_I18N.ar.teacherTitle, 'أنشئ غرفة تحدي');
+  assert.equal(ARENA_I18N.fr.teacherTitle, 'Créer une salle de défi');
+  assert.equal(ARENA_I18N.en.teacherTitle, 'Create a Challenge Room');
+  assert.equal(ARENA_I18N.ru.teacherTitle, 'Создать комнату вызова');
+
+  assert.equal(ARENA_I18N.ar.studentTitle, 'انضم إلى غرفة');
+  assert.equal(ARENA_I18N.fr.studentTitle, 'Rejoindre une salle');
+  assert.equal(ARENA_I18N.en.studentTitle, 'Join a Room');
+  assert.equal(ARENA_I18N.ru.studentTitle, 'Войти в комнату');
+
+  const sampleQuestion = {
+    id: 'q1',
+    promptRu: 'Мы едем в ...',
+    instructionRu: 'Выберите правильный ответ',
+    instructionAr: 'اختر الإجابة الصحيحة',
+    instructionEn: 'Choose the correct answer',
+    options: ['Москву', 'Москве', 'Москва', 'Москвой'],
+    correctIndex: 0,
+    explanationRu: 'Винительный падеж направления.',
+    explanationAr: 'حالة النصب للاتجاه.',
+    explanationEn: 'Accusative case of direction.',
+    points: 10,
+  };
+
+  assert.equal(getArenaQuestionInstruction(sampleQuestion, 'ar'), 'اختر الإجابة الصحيحة');
+  assert.equal(getArenaQuestionInstruction(sampleQuestion, 'fr'), 'Choisissez la bonne réponse');
+  assert.equal(getArenaQuestionInstruction(sampleQuestion, 'en'), 'Choose the correct answer');
+  assert.equal(getArenaQuestionInstruction(sampleQuestion, 'ru'), 'Выберите правильный ответ');
+
+  assert.equal(getArenaQuestionExplanation(sampleQuestion, 'ar'), 'حالة النصب للاتجاه.');
+  assert.equal(getArenaQuestionExplanation(sampleQuestion, 'en'), 'Accusative case of direction.');
+  assert.equal(getArenaQuestionExplanation(sampleQuestion, 'ru'), 'Винительный падеж направления.');
+});
+
+

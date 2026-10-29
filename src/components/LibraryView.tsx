@@ -402,11 +402,32 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       {/* =====================================================================
           HERO HEADER — OFFICIAL MADI PREPARATORY FACULTY & RKI PDF LIBRARY
          ===================================================================== */}
-      <div className="rounded-3xl bg-gradient-to-br from-[#0B1838] via-[#10265C] to-[#0A132C] text-white p-6 sm:p-8 shadow-xl border border-white/10">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="space-y-2.5 max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-amber-300 tracking-wide">
-              <GraduationCap className="w-4 h-4 shrink-0" />
+      <div
+        dir="ltr"
+        className="rounded-[32px] bg-[#162453] bg-[radial-gradient(circle_at_58%_45%,#172658_0%,#152350_55%,#0B1536_100%)] text-white p-6 sm:p-8 lg:p-10 shadow-2xl border border-white/10 relative overflow-hidden"
+      >
+        {/* Background Illustration: MADI University Building + 3 Crew Characters with Books */}
+        <img
+          src="/assets/aistudio/library-hero-illustration.png"
+          alt="MADI Library Illustration"
+          className="absolute right-[-4px] sm:right-2 lg:right-6 bottom-[105px] sm:bottom-4 lg:bottom-3 w-[53%] max-w-[330px] sm:max-w-[370px] lg:max-w-[430px] object-contain pointer-events-none select-none z-0"
+        />
+
+        <div className="relative z-10 w-full flex flex-col items-start text-left">
+          <div className="flex items-center justify-between gap-4 mb-2.5 w-full">
+            <GraduationCap className="w-7 h-7 text-amber-400 shrink-0" />
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full p-0.5 bg-white/10 ring-1 ring-white/25 shadow-lg shadow-black/30 shrink-0">
+              <img
+                src="/assets/aistudio/madi-emblem-circle.png"
+                alt="MADI Official Emblem"
+                className="w-full h-full rounded-full object-contain"
+              />
+            </div>
+          </div>
+
+          <div className="w-full max-w-2xl">
+
+            <div className="text-sm sm:text-base font-extrabold text-amber-400 leading-snug tracking-wide">
               <span>
                 {lang === 'ar'
                   ? 'المكتبة الرقمية الرسمية للسنة التحضيرية بجامعة مادي (МАДИ) وأشهر مراجع اللغة الروسية (РКИ)'
@@ -414,13 +435,16 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   ? 'Официальная электронная библиотека Подготовительного факультета МАДИ и классика РКИ'
                   : 'Official MADI Preparatory Faculty Digital Library & Classic RKI Books'}
               </span>
-              <span aria-hidden="true">·</span>
-              <span className="text-sky-300">
+            </div>
+
+            <div className="flex items-center gap-2 text-sm sm:text-base font-extrabold mt-2">
+              <span className="text-amber-400" aria-hidden="true">·</span>
+              <span className="text-sky-400">
                 {lang === 'ar' ? `${originCounts.all} كتاب رسمي بصيغة PDF` : `${originCounts.all} Official PDF Books`}
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight mt-3 max-w-xl">
               {lang === 'ar'
                 ? 'مكتبة جامعة مادي الرسمية والكتب العالمية (PDF)'
                 : lang === 'ru'
@@ -428,7 +452,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                 : t('library.title')}
             </h1>
 
-            <p className="text-sm text-slate-200/90 leading-relaxed">
+            <p className="text-xs sm:text-sm lg:text-base text-slate-200/95 leading-relaxed mt-3.5 max-w-[51%] sm:max-w-[54%] lg:max-w-xl">
               {lang === 'ar'
                 ? 'تصفح وحمّل جميع كتب ومقررات السنة التحضيرية الرسمية الصادرة عن مطبعة جامعة مادي (lib.madi.ru / madi.ru) بالإضافة إلى أشهر كتب القواعد والتمارين والقراءة العالمية بصيغة PDF مباشرة، مع إمكانية المعاينة الفورية والقراءة الذكية بالضغط على أي كلمة روسية.'
                 : lang === 'ru'
@@ -437,15 +461,15 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-6 shrink-0">
             <a
               href="https://www.madi.ru/6999-podgotovitelnyy-fakultet-dlya-inostrannyhgrazhdan-pfi-.html"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="madi-official-portal-link"
-              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-extrabold flex items-center gap-2 transition"
+              className="px-5 py-3 rounded-2xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/25 text-xs sm:text-sm font-extrabold inline-flex items-center gap-2.5 transition backdrop-blur-sm"
             >
-              <ExternalLink className="w-4 h-4 text-amber-300" />
+              <ExternalLink className="w-4 h-4 text-amber-400 shrink-0" />
               <span>
                 {lang === 'ar'
                   ? 'بوابة كتب السنة التحضيرية بموقع madi.ru'
@@ -462,9 +486,9 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                 setShowUploadModal(true);
               }}
               data-testid="library-upload-open-btn"
-              className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-extrabold flex items-center gap-2 transition shadow-md"
+              className="px-5 py-3 rounded-2xl bg-[#FFB800] hover:bg-[#FFC629] text-slate-950 text-xs sm:text-sm font-extrabold inline-flex items-center gap-2.5 transition shadow-lg shadow-amber-500/20"
             >
-              <Upload className="w-4 h-4" />
+              <Upload className="w-4 h-4 stroke-[2.5] shrink-0" />
               <span>
                 {lang === 'ar'
                   ? 'إضافة كتاب / مرجع'

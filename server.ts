@@ -423,6 +423,44 @@ async function startServer() {
     }
   });
 
+  app.post('/api/auth/quick-entry', async (req, res) => {
+    try {
+      const { firstName, lastName, uiLang, goalMinutes, learningReason } = req.body || {};
+      const fName = (firstName || '').trim();
+      const lName = (lastName || '').trim();
+
+      if (!fName) {
+        return res.status(400).json({
+          error:
+            uiLang === 'ar'
+              ? 'يرجى إدخال الاسم الأول على الأقل للبدء.'
+              : uiLang === 'ru'
+              ? 'Пожалуйста, введите как минимум имя.'
+              : 'Please enter at least your first name to begin.',
+        });
+      }
+
+      const fullName = lName ? `${fName} ${lName}` : fName;
+      const uid = `usr_quick_${crypto.randomBytes(8).toString('hex')}`;
+      const email = `student_${Date.now()}_${crypto.randomBytes(3).toString('hex')}@madi.student`;
+
+      await getOrCreateUser(uid, email, {
+        displayName: fullName,
+        uiLang: uiLang || 'ar',
+        goalMinutes: Number(goalMinutes) || 10,
+        learningReason: learningReason || 'university',
+        consentAccepted: true,
+      });
+
+      const token = createSessionToken(uid, email);
+      const dashboard = await getUserDashboardData(uid);
+      res.json({ token, dashboard });
+    } catch (error: any) {
+      console.error('Quick entry failed:', error);
+      res.status(500).json({ error: error.message || 'Quick entry failed' });
+    }
+  });
+
   app.post('/api/auth/login', async (req, res) => {
     try {
       const { email, password, uiLang } = req.body || {};
@@ -1851,14 +1889,113 @@ async function startServer() {
     }
   });
 
+  function ensureMadi101TrainingRoom(): ArenaRoom {
+    const existing = runtimeArenaRooms.get('room-madi-101');
+    if (existing) return existing;
+
+    const madi101: ArenaRoom = {
+      id: 'room-madi-101',
+      code: 'MADI-101',
+      title: 'MADI-101 — Практический русский язык и транспорт',
+      description: 'Тренировочная комната подготовительного факультета МАДИ',
+      teacherId: 'teacher-madi-1',
+      teacherName: 'Кафедра русского языка МАДИ',
+      status: 'waiting',
+      exerciseTopic: 'Глаголы движения и падежи (МАДИ)',
+      teacherInstructions: 'Выберите правильный грамматический вариант',
+      pages: [],
+      questions: [
+        {
+          id: 'm101-q1',
+          promptRu: 'Ка́ждый день студе́нты ... в университе́т МАДИ́ на метро́.',
+          instructionRu: 'Выберите правильный глагол движения',
+          instructionAr: 'اختر فعل الحركة الصحيح',
+          instructionEn: 'Choose the correct verb of motion',
+          options: ['е́здят', 'е́дут', 'хо́дят', 'иду́т'],
+          correctIndex: 0,
+          explanationRu: '«Ка́ждый день» указывает на регулярное движение на транспорте (на метро) → глагол «е́здят».',
+          explanationAr: 'عبارة «Ка́ждый день» تدل على حركة متكررة بوسيلة نقل (المترو) فنستخدم الفعل المتعدد الاتجاهات «е́здят».',
+          explanationEn: '"Каждый день" indicates habitual movement by vehicle (metro) → multidirectional verb "ездят".',
+          points: 10,
+        },
+        {
+          id: 'm101-q2',
+          promptRu: 'Мы изу́чаем ру́сский язы́к на подготови́тельном ... МАДИ́.',
+          instructionRu: 'Выберите правильную форму предложного падежа',
+          instructionAr: 'اختر الصيغة الصحيحة في حالة المجرور (Предложный падеж)',
+          instructionEn: 'Choose the correct Prepositional case form',
+          options: ['факульте́те', 'факульте́т', 'факульте́та', 'факульте́ту'],
+          correctIndex: 0,
+          explanationRu: 'Вопрос «Где?» (на чём?) требует предложного падежа: на факульте́те.',
+          explanationAr: 'السؤال عن المكان «Где؟» مع حرف الجر «на» يتطلب حالة المجرور: на факульте́те.',
+          explanationEn: 'Answering "Где?" (where) with "на" requires the Prepositional case: на факультете.',
+          points: 10,
+        },
+        {
+          id: 'm101-q3',
+          promptRu: 'Авто́бус останови́лся пе́ред гла́вным ... университе́та.',
+          instructionRu: 'Выберите правильную форму творительного падежа',
+          instructionAr: 'اختر الصيغة الصحيحة بعد حرف الجر «пе́ред»',
+          instructionEn: 'Choose the correct Instrumental case form after "перед"',
+          options: ['зда́нием', 'зда́ние', 'зда́ния', 'зда́нии'],
+          correctIndex: 0,
+          explanationRu: 'Предлог «пе́ред» всегда употребляется с творительным падежом (чем?): пе́ред зда́нием.',
+          explanationAr: 'حرف الجر «пе́ред» (أمام) يتطلب دائماً حالة الأداة (Творительный падеж): пе́ред зда́нием.',
+          explanationEn: 'The preposition "перед" (in front of) requires the Instrumental case: перед зданием.',
+          points: 10,
+        },
+      ],
+      currentQuestionIndex: 0,
+      questionTimeLimitSeconds: 30,
+      participants: {
+        'stud-demo-1': {
+          id: 'stud-demo-1',
+          name: 'Yassine B.',
+          avatar: 'car-madi-blue',
+          role: 'student',
+          score: 0,
+          correctCount: 0,
+          totalAnswered: 0,
+          currentStreak: 0,
+          bestStreak: 0,
+          answers: {},
+          isOnline: true,
+          joinedAt: new Date().toISOString(),
+        },
+        'stud-demo-2': {
+          id: 'stud-demo-2',
+          name: 'Amina K.',
+          avatar: 'misha-cap',
+          role: 'student',
+          score: 0,
+          correctCount: 0,
+          totalAnswered: 0,
+          currentStreak: 0,
+          bestStreak: 0,
+          answers: {},
+          isOnline: true,
+          joinedAt: new Date().toISOString(),
+        },
+      },
+      createdAt: new Date().toISOString(),
+    };
+
+    runtimeArenaRooms.set(madi101.id, madi101);
+    return madi101;
+  }
+
   // GET /api/arena/rooms/:roomIdOrCode — Get room details
   app.get('/api/arena/rooms/:roomIdOrCode', (req, res) => {
     const param = req.params.roomIdOrCode.trim();
-    const room =
+    let room =
       runtimeArenaRooms.get(param) ||
       Array.from(runtimeArenaRooms.values()).find(
         (r) => r.code.toUpperCase() === param.toUpperCase()
       );
+
+    if (!room && (param.toUpperCase() === 'MADI-101' || param === 'room-madi-101')) {
+      room = ensureMadi101TrainingRoom();
+    }
 
     if (!room) {
       return res.status(404).json({ error: 'Room not found' });
@@ -1912,11 +2049,15 @@ async function startServer() {
   // POST /api/arena/rooms/:roomId/join — Join room
   app.post('/api/arena/rooms/:roomId/join', (req, res) => {
     const { roomId } = req.params;
-    const room =
+    let room =
       runtimeArenaRooms.get(roomId) ||
       Array.from(runtimeArenaRooms.values()).find(
         (r) => r.code.toUpperCase() === roomId.toUpperCase()
       );
+
+    if (!room && (roomId.toUpperCase() === 'MADI-101' || roomId === 'room-madi-101')) {
+      room = ensureMadi101TrainingRoom();
+    }
 
     if (!room) {
       return res.status(404).json({ error: 'Room not found' });

@@ -530,6 +530,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
 
+          {/* About Us / Who Are We? (English-only with small muted video beside it) */}
+          <div
+            dir="ltr"
+            data-testid="landing-about-us-section"
+            className="py-5 border-b border-slate-100 flex flex-row items-center justify-between gap-4 sm:gap-6 text-left"
+          >
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <div className="inline-flex items-center gap-2 text-[11px] font-display font-extrabold uppercase tracking-wider text-brand-blue">
+                <span>Who Are We?</span>
+              </div>
+              <h3 className="text-sm sm:text-base font-display font-black text-slate-900 leading-snug">
+                I am student <span className="text-brand-blue">Besskek Billel Anisse</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed max-w-xl">
+                I created this application based on my previous experience.
+              </p>
+            </div>
+
+            <div className="shrink-0 w-28 h-24 sm:w-32 sm:h-28 bg-white flex items-center justify-center overflow-hidden">
+              <video
+                src="/assets/aistudio/gemini_generated_video_d8d0f419_ba9d5bac.mp4"
+                data-testid="landing-about-us-video"
+                autoPlay
+                loop
+                muted
+                playsInline
+                disablePictureInPicture
+                controlsList="nodownload nofullscreen noremoteplayback"
+                onLoadedMetadata={(e) => {
+                  e.currentTarget.muted = true;
+                  e.currentTarget.volume = 0;
+                }}
+                onPlay={(e) => {
+                  e.currentTarget.muted = true;
+                  e.currentTarget.volume = 0;
+                }}
+                className="w-full h-full object-contain pointer-events-none select-none mix-blend-multiply brightness-[1.15] contrast-[1.08] saturate-[1.05] [mask-image:radial-gradient(closest-side,black_78%,transparent_100%)]"
+              />
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <MadingoWordmark size="sm" />

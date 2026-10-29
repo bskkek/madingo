@@ -36,6 +36,9 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   const [reason, setReason] = useState<'university' | 'travel' | 'work' | 'fun'>('university');
   const [goalMinutes, setGoalMinutes] = useState<5 | 10 | 20>(10);
 
+  const [authTab, setAuthTab] = useState<'quick' | 'email'>('quick');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,6 +53,55 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     token: string;
     dashboard: any;
   } | null>(null);
+
+  const handleQuickEntrySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const fName = firstName.trim();
+    if (!fName) {
+      setErrorMsg(
+        lang === 'ar'
+          ? 'يرجى إدخال الاسم الأول على الأقل للبدء.'
+          : lang === 'ru'
+          ? 'Пожалуйста, введите имя.'
+          : 'Please enter at least your first name.'
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/auth/quick-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: fName,
+          lastName: lastName.trim(),
+          uiLang: lang,
+          goalMinutes,
+          learningReason: reason,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Quick entry failed');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (isLoginMode) {
+        onAuthenticated(data.token, data.dashboard);
+      } else {
+        setPendingAuthResult({ token: data.token, dashboard: data.dashboard });
+        setStep(5);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Network error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -389,18 +441,77 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             </div>
           )}
 
-          {/* STEP 4: Sign Up / Log In */}
+          {/* STEP 4: Sign Up / Log In Form */}
           {step === 4 && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-in fade-in duration-200">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-display font-bold text-slate-900 dark:text-white">
-                  {isLoginMode
-                    ? t('onboarding.stepAuthTitleLogin')
-                    : t('onboarding.stepAuthTitleSignup')}
+                  {lang === 'ar'
+                    ? 'دخول التطبيق'
+                    : lang === 'ru'
+                    ? 'Вход в приложение'
+                    : lang === 'fr'
+                    ? 'Entrer dans Madingo'
+                    : 'Enter Madingo'}
                 </h1>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                  {t('onboarding.stepAuthSub')}
+                  {lang === 'ar'
+                    ? 'أدخل بالاسم واللقب فقط بدون تسجيل في قوقل أو كلمة مرور'
+                    : lang === 'ru'
+                    ? 'Войдите по имени и фамилии без регистрации в Google'
+                    : lang === 'fr'
+                    ? 'Accès rapide avec Prénom et Nom sans connexion Google'
+                    : 'Quick entry with First Name & Last Name without Google sign-in'}
                 </p>
+              </div>
+
+              {/* Mode Tabs */}
+              <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-800 p-1.5 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorMsg(null);
+                    setAuthTab('quick');
+                  }}
+                  className={`flex-1 min-h-[44px] px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    authTab === 'quick'
+                      ? 'bg-white dark:bg-slate-700 text-brand-blue dark:text-accent-orange shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>
+                    {lang === 'ar'
+                      ? 'دخول سريع (اسم ولقب)'
+                      : lang === 'ru'
+                      ? 'Быстрый вход (Имя)'
+                      : lang === 'fr'
+                      ? 'Accès rapide (Nom)'
+                      : 'Quick Entry (Name)'}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorMsg(null);
+                    setAuthTab('email');
+                  }}
+                  className={`flex-1 min-h-[44px] px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    authTab === 'email'
+                      ? 'bg-white dark:bg-slate-700 text-brand-blue dark:text-accent-orange shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <span>
+                    {lang === 'ar'
+                      ? 'البريد الإلكتروني'
+                      : lang === 'ru'
+                      ? 'Email и пароль'
+                      : lang === 'fr'
+                      ? 'Email & Mot de passe'
+                      : 'Email & Password'}
+                  </span>
+                </button>
               </div>
 
               {errorMsg && (
@@ -413,122 +524,218 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                 </div>
               )}
 
-              <form onSubmit={handleAuthSubmit} className="space-y-4" noValidate>
-                {!isLoginMode && (
+              {authTab === 'quick' ? (
+                <form onSubmit={handleQuickEntrySubmit} className="space-y-4" noValidate>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label
+                        htmlFor="quick-first-name"
+                        className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+                      >
+                        {lang === 'ar'
+                          ? 'الاسم الأول *'
+                          : lang === 'ru'
+                          ? 'Имя *'
+                          : lang === 'fr'
+                          ? 'Prénom *'
+                          : 'First Name *'}
+                      </label>
+                      <input
+                        id="quick-first-name"
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder={
+                          lang === 'ar'
+                            ? 'مثال: محمد'
+                            : lang === 'ru'
+                            ? 'Например: Алексей'
+                            : 'e.g., Alex'
+                        }
+                        required
+                        className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="quick-last-name"
+                        className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+                      >
+                        {lang === 'ar'
+                          ? 'اللقب / اسم العائلة'
+                          : lang === 'ru'
+                          ? 'Фамилия'
+                          : lang === 'fr'
+                          ? 'Nom de famille'
+                          : 'Last Name'}
+                      </label>
+                      <input
+                        id="quick-last-name"
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder={
+                          lang === 'ar'
+                            ? 'مثال: أحمد (اختياري)'
+                            : lang === 'ru'
+                            ? 'Например: Иванов'
+                            : 'e.g., Smith'
+                        }
+                        className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full min-h-[52px] rounded-2xl bg-accent-orange text-brand-navy font-display font-extrabold text-lg shadow-md hover:brightness-105 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                    >
+                      {isSubmitting ? (
+                        t('common.loading')
+                      ) : (
+                        <span>
+                          {lang === 'ar'
+                            ? 'دخول مباشر إلى التطبيق'
+                            : lang === 'ru'
+                            ? 'Войти в приложение'
+                            : lang === 'fr'
+                            ? 'Entrer dans l’application'
+                            : 'Enter App Instantly'}
+                        </span>
+                      )}
+                    </button>
+                    <p className="mt-2.5 text-center text-xs text-slate-500 dark:text-slate-400">
+                      {lang === 'ar'
+                        ? 'لا يلزم إدخال كلمة مرور أو التسجيل عبر قوقل — بدء فوري ومباشر!'
+                        : lang === 'ru'
+                        ? 'Без паролей и без входа через Google — мгновенный старт!'
+                        : lang === 'fr'
+                        ? 'Sans mot de passe ni connexion Google — démarrage immédiat !'
+                        : 'No passwords or Google login required — instant start!'}
+                    </p>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleAuthSubmit} className="space-y-4" noValidate>
+                  {!isLoginMode && (
+                    <div>
+                      <label
+                        htmlFor="onboard-name"
+                        className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+                      >
+                        {t('onboarding.displayNameLabel')}
+                      </label>
+                      <input
+                        id="onboard-name"
+                        type="text"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder={t('onboarding.displayNamePlaceholder')}
+                        className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                      />
+                    </div>
+                  )}
+
                   <div>
                     <label
-                      htmlFor="onboard-name"
+                      htmlFor="onboard-email"
                       className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
                     >
-                      {t('onboarding.displayNameLabel')}
+                      {t('onboarding.emailLabel')}
                     </label>
                     <input
-                      id="onboard-name"
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder={t('onboarding.displayNamePlaceholder')}
+                      id="onboard-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={t('onboarding.emailPlaceholder')}
                       className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
                     />
                   </div>
-                )}
 
-                <div>
-                  <label
-                    htmlFor="onboard-email"
-                    className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
-                  >
-                    {t('onboarding.emailLabel')}
-                  </label>
-                  <input
-                    id="onboard-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('onboarding.emailPlaceholder')}
-                    className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="onboard-password"
-                    className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
-                  >
-                    {t('onboarding.passwordLabel')}
-                  </label>
-                  <input
-                    id="onboard-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('onboarding.passwordPlaceholder')}
-                    className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
-                  />
-                </div>
-
-                {!isLoginMode && (
-                  <div className="space-y-2.5 pt-1 rounded-2xl bg-slate-50 dark:bg-slate-800/60 p-3.5 border border-slate-200 dark:border-slate-700">
-                    <label className="flex items-start gap-3 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={consentAccepted}
-                        onChange={(e) => setConsentAccepted(e.target.checked)}
-                        className="mt-1 w-5 h-5 rounded border-slate-300 text-brand-blue focus:ring-brand-blue shrink-0"
-                      />
-                      <span className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
-                        {t('onboarding.consentLabel')} *
-                      </span>
+                  <div>
+                    <label
+                      htmlFor="onboard-password"
+                      className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+                    >
+                      {t('onboarding.passwordLabel')}
                     </label>
-                    <label className="flex items-start gap-3 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={micPermissionAcknowledged}
-                        onChange={(e) =>
-                          setMicPermissionAcknowledged(e.target.checked)
-                        }
-                        className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue shrink-0"
-                      />
-                      <span className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-                        {lang === 'ru'
-                          ? 'Разрешить доступ к микрофону браузера для произношения в окне «Говорить» (обработка по запросу).'
-                          : lang === 'ar'
-                          ? 'السماح باستخدام الميكروفون لتدريبات النطق في نافذة التحدث (عند الطلب فقط).'
-                          : 'Acknowledge browser microphone use for pronunciation practice in the Speak tab (on-demand only).'}
-                      </span>
-                    </label>
-                    <label className="flex items-start gap-3 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={optionalRecordingStorageConsent}
-                        onChange={(e) =>
-                          setOptionalRecordingStorageConsent(e.target.checked)
-                        }
-                        className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue shrink-0"
-                      />
-                      <span className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-                        {lang === 'ru'
-                          ? 'Опционально: сохранять мои голосовые попытки для проверки преподавателем (по умолчанию выключено).'
-                          : lang === 'ar'
-                          ? 'اختياري: حفظ التسجيلات الصوتية لمراجعة المعلم (معطل افتراضياً).'
-                          : 'Optional: store my voice recordings for teacher review (off by default; can be deleted anytime).'}
-                      </span>
-                    </label>
+                    <input
+                      id="onboard-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={t('onboarding.passwordPlaceholder')}
+                      className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    />
                   </div>
-                )}
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full min-h-[52px] rounded-2xl bg-accent-orange text-brand-navy font-display font-extrabold text-base shadow-md hover:brightness-105 transition cursor-pointer disabled:opacity-60"
-                >
-                  {isSubmitting
-                    ? t('common.loading')
-                    : isLoginMode
-                    ? t('onboarding.loginButton')
-                    : t('onboarding.signupButton')}
-                </button>
-              </form>
+                  {!isLoginMode && (
+                    <div className="space-y-2.5 pt-1 rounded-2xl bg-slate-50 dark:bg-slate-800/60 p-3.5 border border-slate-200 dark:border-slate-700">
+                      <label className="flex items-start gap-3 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={consentAccepted}
+                          onChange={(e) => setConsentAccepted(e.target.checked)}
+                          className="mt-1 w-5 h-5 rounded border-slate-300 text-brand-blue focus:ring-brand-blue shrink-0"
+                        />
+                        <span className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                          {t('onboarding.consentLabel')} *
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-3 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={micPermissionAcknowledged}
+                          onChange={(e) =>
+                            setMicPermissionAcknowledged(e.target.checked)
+                          }
+                          className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue shrink-0"
+                        />
+                        <span className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                          {lang === 'ru'
+                            ? 'Разрешить доступ к микрофону браузера для произношения в окне «Говорить» (обработка по запросу).'
+                            : lang === 'ar'
+                            ? 'السماح باستخدام الميكروفون لتدريبات النطق في نافذة التحدث (عند الطلب فقط).'
+                            : 'Acknowledge browser microphone use for pronunciation practice in the Speak tab (on-demand only).'}
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-3 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={optionalRecordingStorageConsent}
+                          onChange={(e) =>
+                            setOptionalRecordingStorageConsent(e.target.checked)
+                          }
+                          className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue shrink-0"
+                        />
+                        <span className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                          {lang === 'ru'
+                            ? 'Опционально: сохранять мои голосовые попытки для проверки преподавателем (по умолчанию выключено).'
+                            : lang === 'ar'
+                            ? 'اختياري: حفظ التسجيلات الصوتية لمراجعة المعلم (معطل افتراضياً).'
+                            : 'Optional: store my voice recordings for teacher review (off by default; can be deleted anytime).'}
+                        </span>
+                      </label>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full min-h-[52px] rounded-2xl bg-accent-orange text-brand-navy font-display font-extrabold text-base shadow-md hover:brightness-105 transition cursor-pointer disabled:opacity-60"
+                  >
+                    {isSubmitting
+                      ? t('common.loading')
+                      : isLoginMode
+                      ? t('onboarding.loginButton')
+                      : t('onboarding.signupButton')}
+                  </button>
+                </form>
+              )}
 
               <div className="flex flex-col gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <button

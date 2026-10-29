@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Swords,
   Plus,
   Users,
   Trophy,
@@ -29,6 +28,7 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  Ticket,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -36,6 +36,10 @@ import {
   ArenaQuestion,
   RankedStudent,
   ClassroomAnalytics,
+  ARENA_I18N,
+  getArenaQuestionInstruction,
+  getArenaQuestionExplanation,
+  getArenaQuestionHint,
 } from '../lib/arenaEngine';
 import { speakRussian, playSoundEffect } from '../lib/audio';
 import { useI18n } from '../lib/i18n';
@@ -48,8 +52,6 @@ interface AIClassroomArenaViewProps {
   soundEnabled: boolean;
 }
 
-
-
 export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   currentUserId,
   currentUserName,
@@ -57,7 +59,9 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   userRole,
   soundEnabled,
 }) => {
-  const { lang } = useI18n();
+  const { lang, dir } = useI18n();
+  const L = ARENA_I18N[lang] || ARENA_I18N.en;
+  const isRtl = dir === 'rtl';
 
   // Mode: 'lobby' | 'create' | 'room' | 'active_quiz' | 'podium'
   const [viewMode, setViewMode] = useState<'lobby' | 'create' | 'room' | 'active_quiz' | 'podium'>('lobby');
@@ -79,7 +83,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   // Custom manual question builder state
   const [showAddQuestionForm, setShowAddQuestionForm] = useState(false);
   const [manualPromptRu, setManualPromptRu] = useState('');
-  const [manualInstructionAr, setManualInstructionAr] = useState('اختر الإجابة الصحيحة');
+  const [manualInstructionAr, setManualInstructionAr] = useState(L.defaultManualInstruction);
   const [manualOptions, setManualOptions] = useState<string[]>(['', '', '', '']);
   const [manualCorrectIndex, setManualCorrectIndex] = useState<number>(0);
   const [manualExplanationAr, setManualExplanationAr] = useState('');
@@ -92,15 +96,16 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     pointsEarned: number;
     explanationRu: string;
     explanationAr: string;
+    explanationEn?: string;
   } | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
   const [myStreak, setMyStreak] = useState(0);
   const [copiedCode, setCopiedCode] = useState(false);
 
   // Room Creation state
-  const [newTitle, setNewTitle] = useState('تحدي ورقة الأستاذ — غرفة جديدة');
-  const [newTopic, setNewTopic] = useState('تحليل ورقة الأستاذ بالذكاء الاصطناعي');
-  const [newInstructions, setNewInstructions] = useState('استخرج جميع التمارين الموجودة في هذه الورقة بدقة');
+  const [newTitle, setNewTitle] = useState(L.defaultRoomTitle);
+  const [newTopic, setNewTopic] = useState(L.defaultTopic);
+  const [newInstructions, setNewInstructions] = useState(L.defaultInstructions);
   const [newTimeLimit, setNewTimeLimit] = useState(30);
   const [newQuestionCount, setNewQuestionCount] = useState(5);
   const [customText, setCustomText] = useState('');
@@ -108,6 +113,30 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   const [customImageName, setCustomImageName] = useState<string>('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
+
+  // Sync default form text when UI language switches
+  useEffect(() => {
+    const allDefaultTitles = Object.values(ARENA_I18N).flatMap((x) => [
+      x.defaultRoomTitle,
+      x.defaultCreatedRoomTitle,
+    ]);
+    if (allDefaultTitles.includes(newTitle)) {
+      setNewTitle(L.defaultRoomTitle);
+    }
+    const allDefaultTopics = Object.values(ARENA_I18N).map((x) => x.defaultTopic);
+    if (allDefaultTopics.includes(newTopic)) {
+      setNewTopic(L.defaultTopic);
+    }
+    const allDefaultInstr = Object.values(ARENA_I18N).map((x) => x.defaultInstructions);
+    if (allDefaultInstr.includes(newInstructions)) {
+      setNewInstructions(L.defaultInstructions);
+    }
+    const allDefaultManualInstr = Object.values(ARENA_I18N).map((x) => x.defaultManualInstruction);
+    if (allDefaultManualInstr.includes(manualInstructionAr)) {
+      setManualInstructionAr(L.defaultManualInstruction);
+    }
+    setJoinError(null);
+  }, [lang]);
 
   // WebSocket & timer references
   const wsRef = useRef<WebSocket | null>(null);
@@ -328,6 +357,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         pointsEarned: 0,
         explanationRu: currQ.explanationRu,
         explanationAr: currQ.explanationAr,
+        explanationEn: currQ.explanationEn,
       });
       try {
         const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/answer`, {
@@ -356,7 +386,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   const handleJoinRoom = async (codeOrId: string) => {
     const cleanCode = codeOrId.trim();
     if (!cleanCode) {
-      setJoinError('الرجاء إدخال كود الغرفة أولاً.');
+      setJoinError(L.errEnterCodeFirst);
       return;
     }
     setJoinError(null);
@@ -373,8 +403,8 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       });
 
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        setJoinError(err.error || 'تعذر الانضمام للغرفة. تأكد من صحة الكود.');
+        await resp.json().catch(() => ({}));
+        setJoinError(L.errJoinFailed);
         return;
       }
 
@@ -399,16 +429,16 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         await refreshRoomDetails(data.room.id);
         setViewMode('podium');
       } else if (data.room.questions && data.room.questions.length === 0) {
-        setNewTitle(data.room.title || 'تحدي ورقة الأستاذ');
-        setNewTopic(data.room.exerciseTopic || 'تحليل ورقة الأستاذ بالذكاء الاصطناعي');
-        setNewInstructions(data.room.teacherInstructions || 'استخرج جميع التمارين الموجودة في هذه الورقة بدقة');
+        setNewTitle(data.room.title || L.defaultRoomTitle);
+        setNewTopic(data.room.exerciseTopic || L.defaultTopic);
+        setNewInstructions(data.room.teacherInstructions || L.defaultInstructions);
         setNewTimeLimit(data.room.questionTimeLimitSeconds || 30);
         setViewMode('create');
       } else {
         setViewMode('room');
       }
     } catch (err: any) {
-      setJoinError(err?.message || 'خطأ في الاتصال بالخادم.');
+      setJoinError(err?.message || L.errServerConn);
     }
   };
 
@@ -417,7 +447,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     const resolvedTitle =
       (typeof customTitleOverride === 'string' && customTitleOverride.trim()) ||
       newTitle.trim() ||
-      `غرفة تحدي ${newTopic}`;
+      L.defaultCreatedRoomTitle;
     setNewTitle(resolvedTitle);
     setExtractError(null);
 
@@ -479,7 +509,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
 
     // Optimistic removal from lobby list immediately
     setRooms((prev) => prev.filter((r) => r.id !== roomIdOrCode && r.code !== roomIdOrCode));
-    setDeleteNotice(`تم حذف الغرفة "${roomTitle || roomIdOrCode}" بنجاح لمنع تراكم الغرف.`);
+    setDeleteNotice(L.deleteNoticeTemplate(roomTitle || roomIdOrCode));
     setTimeout(() => setDeleteNotice(null), 3500);
 
     try {
@@ -522,7 +552,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: newTitle.trim() || `غرفة تحدي ${newTopic}`,
+            title: newTitle.trim() || L.defaultCreatedRoomTitle,
             teacherId: currentUserId,
             teacherName: currentUserName,
             exerciseTopic: newTopic,
@@ -531,7 +561,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           }),
         });
         if (!createResp.ok) {
-          setExtractError('تعذر إنشاء الغرفة. حاول مرة أخرى.');
+          setExtractError(L.errCreateRoom);
           return;
         }
         targetRoom = await createResp.json();
@@ -544,11 +574,11 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         timeLimitSeconds: newTimeLimit,
         pageText: customText.trim(),
         pageImageBase64: customImageBase64,
-        bookTitle: customImageName || 'ورقة الأستاذ المرفوعة',
+        bookTitle: customImageName || L.uploadedSheetDefaultName,
         pageNumber: 1,
         teacherInstructions: newInstructions || targetRoom!.teacherInstructions,
         topic: newTopic || targetRoom!.exerciseTopic,
-        questionCount: 20,
+        questionCount: newQuestionCount || 20,
       };
 
       const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(targetRoom!.id)}/extract-page`, {
@@ -559,7 +589,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
-        setExtractError(err.error || 'فشل استخراج التمارين من الصفحة.');
+        setExtractError(err.error || L.errExtractPage);
         return;
       }
 
@@ -569,7 +599,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       setViewMode('room');
       confetti({ particleCount: 40, spread: 60 });
     } catch (err: any) {
-      setExtractError(err?.message || 'خطأ في معالجة الصفحة بالذكاء الاصطناعي.');
+      setExtractError(err?.message || L.errAiProcess);
     } finally {
       setIsExtracting(false);
     }
@@ -584,13 +614,13 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       id: `q-manual-${Date.now()}`,
       promptRu: manualPromptRu.trim(),
       instructionRu: 'Выберите правильный ответ',
-      instructionAr: manualInstructionAr.trim() || 'اختر الإجابة الصحيحة',
+      instructionAr: manualInstructionAr.trim() || L.defaultManualInstruction,
       instructionEn: 'Choose the correct answer',
       options: filledOptions,
       correctIndex: manualCorrectIndex,
       explanationRu: manualExplanationAr.trim() || 'Правильный грамматический выбор.',
       explanationAr: manualExplanationAr.trim() || 'الإجابة النحوية الصحيحة.',
-      explanationEn: 'Correct grammatical choice.',
+      explanationEn: manualExplanationAr.trim() || 'Correct grammatical choice.',
       points: 10,
     };
 
@@ -702,6 +732,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           pointsEarned: result.pointsEarned,
           explanationRu: result.explanationRu || currentQ.explanationRu,
           explanationAr: result.explanationAr || currentQ.explanationAr,
+          explanationEn: currentQ.explanationEn,
         });
         setRankings(result.rankings || []);
         if (result.isCorrect) {
@@ -720,6 +751,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           pointsEarned: isLocalCorrect ? 10 : 0,
           explanationRu: currentQ.explanationRu,
           explanationAr: currentQ.explanationAr,
+          explanationEn: currentQ.explanationEn,
         });
       }
     } catch (err) {
@@ -730,6 +762,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         pointsEarned: isLocalCorrect ? 10 : 0,
         explanationRu: currentQ.explanationRu,
         explanationAr: currentQ.explanationAr,
+        explanationEn: currentQ.explanationEn,
       });
     }
   };
@@ -792,17 +825,17 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   };
 
   // ==========================================================================
-  // RENDER: 1. LOBBY VIEW
+  // RENDER: 1. LOBBY VIEW (Styled per Reference Image 1 using Image 2 & Image 3)
   // ==========================================================================
   if (viewMode === 'lobby') {
     return (
-      <div className="max-w-5xl mx-auto px-4 pt-6 pb-28 space-y-6 animate-fade-in" dir="rtl">
+      <div className="max-w-xl mx-auto px-3 sm:px-4 pb-28 animate-fade-in" dir={dir}>
         {/* Delete notification toast */}
         {deleteNotice && (
           <div
             data-testid="arena-delete-notice"
             role="status"
-            className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center justify-between gap-2 shadow-xs"
+            className="mb-3 p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center justify-between gap-2 shadow-xs"
           >
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -818,236 +851,381 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           </div>
         )}
 
-        {/* Hero Header */}
-        <div className="rounded-3xl bg-linear-to-br from-brand-navy via-slate-900 to-brand-blue p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-white/10">
-          <div className="absolute top-0 start-0 w-64 h-64 bg-accent-orange/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-orange/20 border border-accent-orange/30 text-accent-orange text-xs font-bold">
-              <Swords className="w-3.5 h-3.5" />
-              <span>نظام غرف التحدي والاختبار المنظم — معهد مادي (МАДИ)</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white leading-tight">
-              حلبة التنافس الصفي والاختبارات الحية
+        {/* Top Scenic Road Hero Banner using Image 3 (/assets/aistudio/1793153092003_48d96bde.jpg) */}
+        <div className="relative -mx-3 sm:-mx-4 h-[235px] sm:h-[265px] overflow-hidden select-none">
+          {/* Cropped Image 3 so the full orange car, winding road, green hills & Moscow towers appear cleanly without the bottom grey/tan strips */}
+          <img
+            src="/assets/aistudio/1793153092003_48d96bde.jpg"
+            alt={L.heroAlt}
+            className="w-full h-[170%] object-cover object-[center_28%] pointer-events-none"
+          />
+
+          {/* Soft sky & edge blending gradients so the illustration merges seamlessly into the page */}
+          <div
+            className="absolute inset-x-0 top-0 h-20 bg-linear-to-b from-[#F8FAFC] via-[#F8FAFC]/70 to-transparent dark:from-slate-950 dark:via-slate-950/70 pointer-events-none"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute inset-y-0 left-0 w-8 bg-linear-to-r from-[#F8FAFC]/65 to-transparent dark:from-slate-950/60 pointer-events-none"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 h-8 bg-linear-to-t from-[#F8FAFC] to-transparent dark:from-slate-950 pointer-events-none"
+            aria-hidden="true"
+          />
+
+          {/* Centered Header Title & Subtitle overlaid on the sky */}
+          <div className="absolute inset-x-0 top-2.5 sm:top-3.5 z-10 text-center px-4 space-y-0.5">
+            <h1 className="text-2xl sm:text-4xl font-display font-black text-[#0B2545] dark:text-white tracking-tight drop-shadow-[0_2px_10px_rgba(255,255,255,0.95)] dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+              {L.heroTitle}
             </h1>
-            <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-              نظام منظم وسلس: يقوم الأستاذ أولاً بإنشاء وتجهيز الغرفة بالتمارين، ثم ينضم الطلاب عبر الكود البسيط السريع (4 أرقام). يمكن حذف أي غرفة بضغطة زر لمنع تراكم الغرف واختلاطها!
+            <p className="text-xs sm:text-base font-display font-bold text-[#2B4C7E] dark:text-slate-200 drop-shadow-[0_1px_8px_rgba(255,255,255,0.95)] dark:drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)]">
+              {L.heroSubtitle}
             </p>
+          </div>
+
+          {/* Highway Road Sign "Moscou ->" positioned cleanly by the roadside */}
+          <div
+            dir="ltr"
+            className="absolute left-3 sm:left-5 bottom-7 z-10 flex flex-col items-center pointer-events-none"
+          >
+            <div className="px-2.5 py-1 rounded-lg bg-[#0B3D91] border-2 border-white shadow-md text-white font-display font-extrabold text-xs flex items-center gap-1">
+              <span>{L.roadSignCity}</span>
+              <span className="text-xs leading-none">→</span>
+            </div>
+            <div className="w-1.5 h-4 bg-slate-600 border-x border-slate-400" />
           </div>
         </div>
 
-        {/* Two-Column Structured Flow: 1. Teacher Setup vs 2. Student Join */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Step 1: Teacher Flow */}
-          <div className="rounded-3xl bg-white dark:bg-slate-900 border-2 border-accent-orange/30 dark:border-accent-orange/20 p-5 shadow-xs flex flex-col justify-between space-y-4">
-            <div className="space-y-2 text-start">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-xl bg-accent-orange/10 text-accent-orange text-xs font-bold">
-                <GraduationCap className="w-4 h-4" />
-                <span>الخطوة 1: للأستاذ — إنشاء وتجهيز الغرفة</span>
+        {/* Main Stacked Cards Container */}
+        <div className="relative z-20 -mt-5 space-y-4">
+          {/* CARD 1: Teacher Room Creation Card */}
+          <div className="rounded-[28px] bg-white dark:bg-slate-900 border-2 border-[#FAD6A5] dark:border-orange-500/30 p-4 sm:p-6 shadow-[0_10px_30px_rgba(245,130,32,0.08)] space-y-4">
+            {/* Top Content Row */}
+            <div className="flex items-center justify-between gap-2.5">
+              {/* Tilted Orange Clipboard Checklist Illustration */}
+              <div className="relative w-20 h-20 sm:w-26 sm:h-26 shrink-0 flex items-center justify-center">
+                <div
+                  className="absolute inset-1 rounded-full bg-[#FFF3E6] dark:bg-orange-950/40"
+                  aria-hidden="true"
+                />
+                <svg
+                  viewBox="0 0 120 120"
+                  className="w-20 h-20 sm:w-24 sm:h-24 relative z-10 drop-shadow-xs"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <g transform="rotate(7 60 60)">
+                    {/* Clipboard board */}
+                    <rect
+                      x="26"
+                      y="20"
+                      width="68"
+                      height="84"
+                      rx="10"
+                      fill="#FF8A1F"
+                    />
+                    {/* Inner paper */}
+                    <rect
+                      x="32"
+                      y="28"
+                      width="56"
+                      height="70"
+                      rx="6"
+                      fill="#FFFFFF"
+                    />
+                    {/* Top clip */}
+                    <path
+                      d="M46 18C46 14.6863 48.6863 12 52 12H68C71.3137 12 74 14.6863 74 18V25H46V18Z"
+                      fill="#F26700"
+                    />
+                    <circle cx="60" cy="17" r="3" fill="#FFF3E6" />
+                    {/* Row 1 checkbox + lines */}
+                    <rect x="38" y="38" width="11" height="11" rx="2.5" fill="#FF8A1F" />
+                    <path
+                      d="M40.5 43.5L43 46L46.8 41"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <rect x="54" y="40" width="26" height="3.5" rx="1.75" fill="#CBD5E1" />
+                    <rect x="54" y="45.5" width="18" height="3" rx="1.5" fill="#E2E8F0" />
+
+                    {/* Row 2 checkbox + lines */}
+                    <rect x="38" y="56" width="11" height="11" rx="2.5" fill="#FF8A1F" />
+                    <path
+                      d="M40.5 61.5L43 64L46.8 59"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <rect x="54" y="58" width="26" height="3.5" rx="1.75" fill="#CBD5E1" />
+                    <rect x="54" y="63.5" width="20" height="3" rx="1.5" fill="#E2E8F0" />
+
+                    {/* Row 3 checkbox + lines */}
+                    <rect x="38" y="74" width="11" height="11" rx="2.5" fill="#FF8A1F" />
+                    <path
+                      d="M40.5 79.5L43 82L46.8 77"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <rect x="54" y="76" width="24" height="3.5" rx="1.75" fill="#CBD5E1" />
+                    <rect x="54" y="81.5" width="16" height="3" rx="1.5" fill="#E2E8F0" />
+                  </g>
+                </svg>
               </div>
-              <h3 className="text-base font-display font-extrabold text-slate-900 dark:text-white">
-                تجهيز أسئلة الاختبار أولاً
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                أنشئ الغرفة، استخرج التمارين فوراً من صفحات كتب مادي الرسمية بالذكاء الاصطناعي، وحدد زمن السؤال لتصبح الغرفة جاهزة للطلاب.
-              </p>
+
+              {/* Center Title & Subtitle */}
+              <div className="flex-1 text-center sm:text-start space-y-1 min-w-0">
+                <div className="flex items-center justify-center sm:justify-start">
+                  <span className="inline-block px-3 py-0.5 rounded-full bg-[#FDE8CD] dark:bg-orange-950/80 text-[#C85A00] dark:text-orange-300 text-xs font-display font-extrabold">
+                    {L.teacherBadge}
+                  </span>
+                </div>
+                <h2 className="text-base sm:text-2xl font-display font-black text-[#0B2545] dark:text-white leading-tight">
+                  {L.teacherTitle}
+                </h2>
+                <p className="text-xs sm:text-sm font-medium text-[#475569] dark:text-slate-400">
+                  {L.teacherDesc}
+                </p>
+              </div>
+
+              {/* Graduation Cap Icon Badge */}
+              <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-[#FFF3E6] dark:bg-orange-950/50 flex items-center justify-center text-[#F58220] shrink-0 self-start">
+                <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 stroke-[2.2]" />
+              </div>
             </div>
 
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            {/* Action Buttons */}
+            <div className="space-y-2.5 pt-1">
               <button
                 type="button"
                 data-testid="arena-create-room-btn"
-                onClick={() => handleCreateRoom('تحدي أفعال الحركة والمصطلحات — مادي')}
-                className="w-full px-4 py-2.5 rounded-xl bg-accent-orange hover:brightness-110 text-brand-navy font-display font-extrabold text-xs flex items-center justify-center gap-2 transition shadow-xs cursor-pointer"
+                onClick={() => handleCreateRoom(L.defaultCreatedRoomTitle)}
+                className="w-full py-3.5 px-5 rounded-2xl bg-linear-to-r from-[#F58220] via-[#FF8C24] to-[#F58220] hover:brightness-105 text-white font-display font-extrabold text-base sm:text-lg shadow-[0_6px_18px_rgba(245,130,32,0.35)] flex items-center justify-center gap-2 transition cursor-pointer"
               >
-                <Plus className="w-4 h-4" />
-                <span>إنشاء وتجهيز غرفة جديدة الآن</span>
+                <Plus className="w-5 h-5 stroke-[2.8]" />
+                <span>{L.createRoomBtn}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleJoinRoom('MADI-101')}
-                className="w-full px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-display font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                className="w-full py-3 px-4 rounded-2xl bg-[#F1F5F9] hover:bg-[#E2E8F0] dark:bg-slate-800 dark:hover:bg-slate-700 text-[#1E293B] dark:text-slate-200 font-display font-extrabold text-sm flex items-center justify-center gap-2 transition cursor-pointer"
               >
-                <Flame className="w-3.5 h-3.5 text-accent-orange" />
-                <span>غرفة تدريب جاهزة مسبقاً (MADI-101)</span>
+                <Flame className="w-4 h-4 text-[#F58220] shrink-0" />
+                <span>{L.practiceRoomBtn}</span>
               </button>
             </div>
           </div>
 
-          {/* Step 2: Student Flow */}
-          <div className="rounded-3xl bg-white dark:bg-slate-900 border-2 border-brand-blue/30 dark:border-brand-blue/20 p-5 shadow-xs flex flex-col justify-between space-y-4">
-            <div className="space-y-2 text-start">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-xl bg-brand-blue/10 text-brand-blue dark:text-sky-400 text-xs font-bold">
-                <Users className="w-4 h-4" />
-                <span>الخطوة 2: للطلاب — الدخول بالكود البسيط</span>
-              </div>
-              <h3 className="text-base font-display font-extrabold text-slate-900 dark:text-white">
-                دخول مباشر بكود الغرفة (4 أرقام)
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                بعد أن يجهز الأستاذ الغرفة، أدخل كود الغرفة السريع والمباشر (مثل: 5491 أو MADI-101) للدخول وبدء التنافس الحي.
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={roomCodeInput}
-                  onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleJoinRoom(roomCodeInput);
-                  }}
-                  placeholder="مثال: 4821 أو MADI-101"
-                  maxLength={10}
-                  className="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-center font-bold text-slate-900 dark:text-white uppercase tracking-wider focus:outline-hidden focus:ring-2 focus:ring-brand-blue text-sm"
+          {/* CARD 2: Student Join Room Card using Image 2 */}
+          <div className="rounded-[28px] bg-white dark:bg-slate-900 border-2 border-[#CBD5E1]/80 dark:border-slate-800 p-4 sm:p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              {/* Image 2 (/assets/aistudio/1793153163292_a75dd14c.jpg) framed on a soft sky-blue backdrop */}
+              <div className="relative w-26 h-34 sm:w-34 sm:h-40 shrink-0 flex items-center justify-center">
+                <div
+                  className="absolute inset-x-0 bottom-1 top-3 rounded-[32px] bg-[#EAF2FF] dark:bg-slate-800/90"
+                  aria-hidden="true"
                 />
-                <button
-                  type="button"
-                  data-testid="arena-join-code-btn"
-                  onClick={() => handleJoinRoom(roomCodeInput)}
-                  className="px-5 py-2 rounded-xl bg-brand-blue hover:opacity-90 text-white font-display font-bold text-xs transition cursor-pointer shrink-0"
-                >
-                  دخول الغرفة
-                </button>
+                <img
+                  src="/assets/aistudio/1793153163292_a75dd14c.jpg"
+                  alt={L.studentsImgAlt}
+                  className="relative z-10 w-full h-full object-contain object-top mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none"
+                />
               </div>
 
-              {joinError && (
-                <div className="text-xs text-rose-500 font-medium flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  <span>{joinError}</span>
+              {/* Content Column */}
+              <div className="flex-1 space-y-2.5 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-block px-3 py-0.5 rounded-full bg-[#E0ECFF] dark:bg-blue-950/80 text-[#0B3D91] dark:text-sky-300 text-xs font-display font-extrabold">
+                    {L.studentBadge}
+                  </span>
+
+                  <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-[#EAF2FF] dark:bg-blue-950/50 flex items-center justify-center text-[#0B3D91] dark:text-sky-400 shrink-0">
+                    <Users className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2]" />
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* Active Rooms Grid with Quick Delete to Prevent Clutter */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5 text-start">
-              <h2 className="text-lg font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Layers className="w-5 h-5 text-accent-orange" />
-                <span>الغرف المتاحة حالياً ({rooms.length})</span>
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                يمكن حذف أي غرفة منتهية أو غير مرغوبة لمنع تراكم الغرف
-              </p>
+                <div className="text-center sm:text-start space-y-1">
+                  <h2 className="text-base sm:text-2xl font-display font-black text-[#0B2545] dark:text-white leading-tight">
+                    {L.studentTitle}
+                  </h2>
+                  <p className="text-xs sm:text-sm font-medium text-[#475569] dark:text-slate-400">
+                    {L.studentDesc}
+                  </p>
+                </div>
+
+                {/* Room Code Input Box with Ticket Icon */}
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={roomCodeInput}
+                    onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleJoinRoom(roomCodeInput);
+                    }}
+                    placeholder="MADI-101"
+                    maxLength={10}
+                    className="w-full pl-3.5 pr-10 py-2.5 sm:py-3 rounded-2xl border-2 border-[#CBD5E1] dark:border-slate-700 bg-white dark:bg-slate-800 font-mono text-left font-bold text-[#334155] dark:text-white uppercase tracking-wider focus:outline-hidden focus:border-[#0B3D91] text-sm sm:text-base"
+                  />
+                  <Ticket className="w-5 h-5 text-[#64748B] absolute right-3 pointer-events-none" />
+                </div>
+              </div>
             </div>
 
+            {joinError && (
+              <div className="text-xs text-rose-500 font-bold flex items-center gap-1.5 px-1">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{joinError}</span>
+              </div>
+            )}
+
+            {/* Deep Royal Blue Join Button */}
             <button
               type="button"
-              onClick={fetchRooms}
-              className="text-xs text-brand-blue dark:text-accent-orange hover:underline font-bold flex items-center gap-1 cursor-pointer"
+              data-testid="arena-join-code-btn"
+              onClick={() => handleJoinRoom(roomCodeInput)}
+              className="w-full py-3.5 px-5 rounded-2xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-display font-extrabold text-base sm:text-lg shadow-[0_6px_18px_rgba(11,61,145,0.28)] flex items-center justify-center transition cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>تحديث القائمة</span>
+              {L.joinRoomBtn}
             </button>
           </div>
 
-          {isLoadingRooms ? (
-            <div className="py-12 text-center text-slate-400 space-y-2">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto text-brand-blue" />
-              <p className="text-xs">جاري تحميل الغرف النشطة...</p>
-            </div>
-          ) : rooms.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-10 text-center space-y-3">
-              <Users className="w-10 h-10 text-slate-400 mx-auto opacity-50" />
-              <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                لا توجد غرف حالياً — القائمة نظيفة ومنظمة
-              </div>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                ابدأ بإنشاء وتجهيز غرفة جديدة لطلابك الآن!
-              </p>
+          {/* CARD 3: Available Rooms Section */}
+          <div className="rounded-[28px] bg-white dark:bg-slate-900 border-2 border-[#E2E8F0] dark:border-slate-800 p-4 sm:p-6 shadow-[0_10px_30px_rgba(15,23,42,0.04)] space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm sm:text-xl font-display font-black text-[#0B2545] dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-[#F58220] shrink-0" />
+                <span>
+                  {L.availableRoomsTitle} ({rooms.length})
+                </span>
+              </h2>
+
               <button
                 type="button"
-                onClick={() => handleCreateRoom('تحدي أفعال الحركة والمصطلحات — مادي')}
-                className="px-4 py-2 rounded-xl bg-brand-blue text-white text-xs font-bold transition hover:opacity-95 cursor-pointer"
+                onClick={fetchRooms}
+                className="px-3.5 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-[#E2E8F0] dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0B3D91] dark:text-sky-400 text-xs sm:text-sm font-display font-extrabold flex items-center gap-1.5 transition cursor-pointer shrink-0"
               >
-                إنشاء غرفة جديدة
+                <span>{L.refreshBtn}</span>
+                <RotateCcw className="w-3.5 h-3.5" />
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {rooms.map((room) => {
-                const isWaiting = room.status === 'waiting' || room.status === 'setup';
-                const isActive = room.status === 'active';
-                return (
-                  <div
-                    key={room.id}
-                    data-testid={`arena-room-card-${room.id}`}
-                    className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-xs flex flex-col justify-between gap-4 hover:border-brand-blue/50 transition text-start"
-                  >
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 font-mono text-xs font-bold text-brand-blue dark:text-sky-300 border border-slate-200 dark:border-slate-700">
-                            كود: {room.code}
+
+            {isLoadingRooms ? (
+              <div className="py-10 text-center text-slate-400 space-y-2">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#0B3D91]" />
+                <p className="text-xs font-bold">{L.loadingRooms}</p>
+              </div>
+            ) : rooms.length === 0 ? (
+              <div className="rounded-2xl border-2 border-dashed border-[#CBD5E1] dark:border-slate-700 bg-[#F8FAFC]/60 dark:bg-slate-800/30 p-8 text-center space-y-2">
+                <Users className="w-9 h-9 text-[#94A3B8] mx-auto stroke-[1.8]" />
+                <div className="text-base font-display font-black text-[#0B2545] dark:text-slate-200">
+                  {L.emptyRoomsTitle}
+                </div>
+                <p className="text-xs sm:text-sm text-[#64748B] dark:text-slate-400 font-medium">
+                  {L.emptyRoomsDesc}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3.5">
+                {rooms.map((room) => {
+                  const isWaiting = room.status === 'waiting' || room.status === 'setup';
+                  const isActive = room.status === 'active';
+                  return (
+                    <div
+                      key={room.id}
+                      data-testid={`arena-room-card-${room.id}`}
+                      className="rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/70 border border-[#E2E8F0] dark:border-slate-700 p-4 flex flex-col justify-between gap-3 hover:border-[#0B3D91]/50 transition text-start"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 font-mono text-xs font-bold text-[#0B3D91] dark:text-sky-300 border border-slate-200 dark:border-slate-700">
+                            {L.codeLabel}: {room.code}
+                          </span>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                              isActive
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 animate-pulse'
+                                : isWaiting
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
+                            }`}
+                          >
+                            {isActive
+                              ? L.statusLive
+                              : isWaiting
+                              ? L.statusWaiting
+                              : L.statusFinished}
                           </span>
                         </div>
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            isActive
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 animate-pulse'
-                              : isWaiting
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                          }`}
-                        >
-                          {isActive ? '● مباشر الآن' : isWaiting ? 'جاهزة / انتظار' : 'مكتملة'}
-                        </span>
+
+                        <h3 className="text-base font-display font-extrabold text-[#0B2545] dark:text-white line-clamp-1">
+                          {room.title}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                          {room.description || room.exerciseTopic}
+                        </p>
                       </div>
 
-                      <h3 className="text-base font-display font-extrabold text-slate-900 dark:text-white line-clamp-1">
-                        {room.title}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                        {room.description || room.exerciseTopic}
-                      </p>
-                    </div>
+                      <div className="pt-2.5 border-t border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <span className="flex items-center gap-1 font-medium">
+                            <Users className="w-3.5 h-3.5" />
+                            <span>
+                              {room.participantsCount} {L.studentsCountUnit}
+                            </span>
+                          </span>
+                          <span className="flex items-center gap-1 font-medium">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span>
+                              {room.questionsCount} {L.questionsCountUnit}
+                            </span>
+                          </span>
+                        </div>
 
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-3 text-xs text-slate-500">
-                        <span className="flex items-center gap-1 font-medium">
-                          <Users className="w-3.5 h-3.5" />
-                          <span>{room.participantsCount} طلاب</span>
-                        </span>
-                        <span className="flex items-center gap-1 font-medium">
-                          <BookOpen className="w-3.5 h-3.5" />
-                          <span>{room.questionsCount} أسئلة</span>
-                        </span>
-                      </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            data-testid={`arena-delete-${room.id}`}
+                            onClick={(e) => handleDeleteRoom(room.id, room.title, e)}
+                            title={L.deleteRoomTooltip}
+                            aria-label={`${L.deleteRoomTooltip} ${room.title}`}
+                            className="p-2 rounded-xl bg-white hover:bg-rose-100 text-slate-500 hover:text-rose-600 dark:bg-slate-900 dark:hover:bg-rose-950/60 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
 
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          data-testid={`arena-delete-${room.id}`}
-                          onClick={(e) => handleDeleteRoom(room.id, room.title, e)}
-                          title="حذف الغرفة لمنع التراكم"
-                          aria-label={`حذف غرفة ${room.title}`}
-                          className="p-2 rounded-xl bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/60 dark:hover:text-rose-400 transition cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-
-                        <button
-                          type="button"
-                          data-testid={`arena-enter-${room.id}`}
-                          onClick={() => handleJoinRoom(room.id)}
-                          className="px-3.5 py-1.5 rounded-xl bg-brand-blue hover:bg-brand-navy text-white text-xs font-display font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0"
-                        >
-                          <span>دخول</span>
-                          <ArrowLeft className="w-3 h-3" />
-                        </button>
+                          <button
+                            type="button"
+                            data-testid={`arena-enter-${room.id}`}
+                            onClick={() => handleJoinRoom(room.id)}
+                            className="px-4 py-1.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-display font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                          >
+                            <span>{L.enterBtn}</span>
+                            {isRtl ? (
+                              <ArrowLeft className="w-3 h-3" />
+                            ) : (
+                              <ArrowRight className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="h-28 w-full shrink-0" aria-hidden="true" />
+
+        <div className="h-24 w-full shrink-0" aria-hidden="true" />
       </div>
     );
   }
@@ -1057,7 +1235,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   // ==========================================================================
   if (viewMode === 'create') {
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-6 animate-fade-in" dir="rtl">
+      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-6 animate-fade-in" dir={dir}>
         {/* Navigation header */}
         <div className="flex items-center justify-between">
           <button
@@ -1065,66 +1243,63 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             onClick={handleCancelCreationStudio}
             className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 hover:bg-slate-200 cursor-pointer"
           >
-            <ArrowRight className="w-4 h-4" />
-            <span>العودة للقائمة</span>
+            {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+            <span>{L.backToList}</span>
           </button>
           {activeRoom?.code && (
             <div className="text-xs font-mono font-bold text-slate-500">
-              كود الغرفة: <span className="text-brand-blue font-extrabold">{activeRoom.code}</span>
+              {L.roomCodeHeader}{' '}
+              <span className="text-brand-blue font-extrabold">{activeRoom.code}</span>
             </div>
           )}
         </div>
 
         {/* Creator Studio Card */}
         <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-4 space-y-1">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-4 space-y-1 text-start">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-orange">
               <Sparkles className="w-4 h-4" />
-              <span>استخراج التمارين الذكي من صفحات الدروس (AI Page-to-Quiz)</span>
+              <span>{L.studioBadge}</span>
             </div>
             <h2 className="text-xl font-display font-extrabold text-slate-900 dark:text-white">
-              إعداد غرفة الاختبار واستخراج الأسئلة
+              {L.studioTitle}
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              اختر صفحة من كتب معهد مادي الرسمية، أو ارفع صورة ورقة التمرين، وحدد نوع الأسئلة التي تريد اختبار طلابك فيها ليقوم الذكاء الاصطناعي ببنائها فوراً!
-            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{L.studioDesc}</p>
           </div>
 
           {/* Form Settings */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5 text-start">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                عنوان الغرفة / اسم الاختبار
+                {L.roomTitleLabel}
               </label>
               <input
                 type="text"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="مثال: اختبار أفعال الحركة — الفوج الهندسي"
+                placeholder={L.roomTitlePlaceholder}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
               />
             </div>
 
             <div className="space-y-1.5 text-start">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                الموضوع والقاعدة النحوية
+                {L.topicLabel}
               </label>
               <input
                 type="text"
                 value={newTopic}
                 onChange={(e) => setNewTopic(e.target.value)}
-                placeholder="مثال: Глаголы движения, Падежи, Транспортная лексика"
+                placeholder={L.topicPlaceholder}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
               />
             </div>
           </div>
 
-
-
-          {/* Or Upload Custom Scanned Page / Paste Text */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+          {/* Upload Custom Scanned Page / Paste Text */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-3 text-start">
             <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              أو قم برفع صفحة خارجية (صورة / سكان) أو لصق نص التمرين:
+              {L.uploadSectionLabel}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1132,7 +1307,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               <div className="border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-4 text-center space-y-2 bg-slate-50/50 dark:bg-slate-800/30">
                 <Upload className="w-6 h-6 text-slate-400 mx-auto" />
                 <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {customImageName ? customImageName : 'رفع صورة الصفحة (PNG / JPG)'}
+                  {customImageName ? customImageName : L.uploadBtnLabel}
                 </div>
                 <input
                   type="file"
@@ -1147,7 +1322,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                 value={customText}
                 onChange={(e) => setCustomText(e.target.value)}
                 rows={3}
-                placeholder="الصق نص الصفحة أو جمل التمرين هنا يدوياً..."
+                placeholder={L.pasteTextPlaceholder}
                 className="w-full p-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
               />
             </div>
@@ -1156,27 +1331,22 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           {/* Teacher Instructions to AI */}
           <div className="space-y-2 text-start">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              توجيهات الأستاذ للذكاء الاصطناعي (ما نوع الأسئلة التي تريد استخراجها؟)
+              {L.aiInstructionsLabel}
             </label>
             <input
               type="text"
               value={newInstructions}
               onChange={(e) => setNewInstructions(e.target.value)}
-              placeholder="مثال: استخرج أسئلة أفعال حركة، أو ركز على حالات الإعراب مع 4 خيارات وشرح نحوي"
+              placeholder={L.aiInstructionsPlaceholder}
               className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
             />
             {/* Quick Prompt Chips */}
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {[
-                'أفعال الحركة مع البادئات (Приставки)',
-                'حالات الإعراب (المجرور والمضاف والنصب)',
-                'مصطلحات الهندسة والسيارات في موسكو',
-                'إشارات المرور والسلامة الطرقية',
-              ].map((chip) => (
+              {L.chips.map((chip) => (
                 <button
                   key={chip}
                   type="button"
-                  onClick={() => setNewInstructions(`استخرج تمارين اختيار من متعدد حول ${chip}`)}
+                  onClick={() => setNewInstructions(L.chipPrefixPrompt(chip))}
                   className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-brand-blue hover:text-white text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition cursor-pointer"
                 >
                   + {chip}
@@ -1188,20 +1358,18 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           {/* Time Limit Setting */}
           <div className="space-y-1 text-start max-w-sm">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              الوقت المتاح لكل سؤال في التحدي
+              {L.timeLimitLabel}
             </label>
             <select
               value={newTimeLimit}
               onChange={(e) => setNewTimeLimit(Number(e.target.value))}
               className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
             >
-              <option value={15}>15 ثانية (سريع جداً)</option>
-              <option value={30}>30 ثانية (موصى به)</option>
-              <option value={45}>45 ثانية (مريح)</option>
+              <option value={15}>{L.time15}</option>
+              <option value={30}>{L.time30}</option>
+              <option value={45}>{L.time45}</option>
             </select>
-            <p className="text-[11px] text-slate-500 pt-1">
-              ملاحظة: سيتم استخراج **جميع** التمارين والأسئلة الموجودة في ورقة الأستاذ المرفوعة بالكامل تلقائياً (سواء تمرينين أو ثلاثة أو أكثر).
-            </p>
+            <p className="text-[11px] text-slate-500 pt-1">{L.extractNote}</p>
           </div>
 
           {extractError && (
@@ -1222,12 +1390,12 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             {isExtracting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>جاري معالجة الصفحة بالذكاء الاصطناعي واستخراج الأسئلة...</span>
+                <span>{L.extractingBtn}</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-5 h-5" />
-                <span>استخراج التمارين بالذكاء الاصطناعي وحفظها في الغرفة</span>
+                <span>{L.extractSaveBtn}</span>
               </>
             )}
           </button>
@@ -1246,7 +1414,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     );
 
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-6 animate-fade-in" dir="rtl">
+      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-6 animate-fade-in" dir={dir}>
         {/* Top bar with back and delete buttons */}
         <div className="flex items-center justify-between">
           <button
@@ -1257,8 +1425,8 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             }}
             className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 hover:bg-slate-200 cursor-pointer"
           >
-            <ArrowRight className="w-4 h-4" />
-            <span>العودة لحلبة الغرف</span>
+            {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+            <span>{L.backToArena}</span>
           </button>
 
           <button
@@ -1268,22 +1436,23 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 transition border border-rose-200 dark:border-rose-800 cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-            <span>حذف الغرفة</span>
+            <span>{L.deleteRoomBtn}</span>
           </button>
         </div>
 
         {/* Room Header Banner */}
         <div className="rounded-3xl bg-linear-to-r from-brand-navy to-brand-blue p-6 text-white space-y-4 shadow-xl border border-white/10">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-1">
+            <div className="space-y-1 text-start">
               <span className="text-xs text-accent-orange font-bold uppercase tracking-wider">
-                غرفة الاختبار الحية
+                {L.liveQuizRoomBadge}
               </span>
               <h1 className="text-xl sm:text-2xl font-display font-extrabold text-white">
                 {activeRoom.title}
               </h1>
               <p className="text-xs text-slate-300">
-                الموضوع: {activeRoom.exerciseTopic} • الأستاذ: {activeRoom.teacherName}
+                {L.topicPrefix}: {activeRoom.exerciseTopic} • {L.teacherPrefix}:{' '}
+                {activeRoom.teacherName}
               </p>
             </div>
 
@@ -1291,27 +1460,35 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             <button
               type="button"
               onClick={copyRoomCode}
-              title="نسخ كود الغرفة"
+              title={L.copyRoomCodeTitle}
               className="px-4 py-2 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 flex items-center gap-2 text-white font-mono font-extrabold text-base transition cursor-pointer"
             >
-              <span>كود: {activeRoom.code}</span>
+              <span>
+                {L.codeLabel}: {activeRoom.code}
+              </span>
               {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/10 text-xs">
-            <div className="flex items-center gap-4 text-slate-300">
+            <div className="flex flex-wrap items-center gap-4 text-slate-300">
               <span className="flex items-center gap-1.5 font-bold">
                 <Users className="w-4 h-4 text-accent-orange" />
-                <span>{studentParticipants.length} طلاب متصلون</span>
+                <span>
+                  {studentParticipants.length} {L.connectedStudentsUnit}
+                </span>
               </span>
               <span className="flex items-center gap-1.5 font-bold">
                 <BookOpen className="w-4 h-4 text-accent-orange" />
-                <span>{activeRoom.questions.length} أسئلة مستخرجة</span>
+                <span>
+                  {activeRoom.questions.length} {L.extractedQuestionsUnit}
+                </span>
               </span>
               <span className="flex items-center gap-1.5 font-bold">
                 <Clock className="w-4 h-4 text-accent-orange" />
-                <span>{activeRoom.questionTimeLimitSeconds} ث/سؤال</span>
+                <span>
+                  {activeRoom.questionTimeLimitSeconds} {L.secPerQuestionUnit}
+                </span>
               </span>
             </div>
 
@@ -1323,7 +1500,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                 className="px-5 py-2 rounded-xl bg-accent-orange hover:brightness-110 text-brand-navy font-display font-extrabold text-sm flex items-center gap-2 shadow-md transition cursor-pointer"
               >
                 <Play className="w-4 h-4" />
-                <span>بدء التحدي لجميع الطلاب الآن!</span>
+                <span>{L.startQuizForAllBtn}</span>
               </button>
             ) : (
               <button
@@ -1332,7 +1509,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                 className="px-5 py-2 rounded-xl bg-accent-orange hover:brightness-110 text-brand-navy font-display font-extrabold text-sm flex items-center gap-2 shadow-md transition cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>استخراج وتجهيز أسئلة الغرفة</span>
+                <span>{L.prepareQuestionsBtn}</span>
               </button>
             )}
           </div>
@@ -1343,7 +1520,9 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-base font-display font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <FileText className="w-5 h-5 text-brand-blue dark:text-accent-orange" />
-              <span>أسئلة الغرفة الجاهزة ({activeRoom.questions.length})</span>
+              <span>
+                {L.readyQuestionsTitle} ({activeRoom.questions.length})
+              </span>
             </h3>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -1357,12 +1536,12 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                     {showTeacherAnswersPreview ? (
                       <>
                         <EyeOff className="w-3.5 h-3.5 text-amber-500" />
-                        <span>إخفاء الإجابات الصحيحة</span>
+                        <span>{L.hideCorrectAnswersBtn}</span>
                       </>
                     ) : (
                       <>
                         <Eye className="w-3.5 h-3.5 text-brand-blue" />
-                        <span>مراجعة الإجابات (للأستاذ)</span>
+                        <span>{L.reviewAnswersTeacherBtn}</span>
                       </>
                     )}
                   </button>
@@ -1372,7 +1551,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                     onClick={() => setShowAddQuestionForm((prev) => !prev)}
                     className="px-3 py-1.5 rounded-xl bg-brand-blue/10 hover:bg-brand-blue/20 text-brand-blue dark:text-accent-orange text-xs font-bold cursor-pointer transition"
                   >
-                    + سؤال يدوي
+                    {L.addManualQuestionBtn}
                   </button>
 
                   <button
@@ -1380,7 +1559,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                     onClick={() => setViewMode('create')}
                     className="text-xs font-bold text-brand-blue hover:underline cursor-pointer px-2"
                   >
-                    إعادة استخراج بالذكاء الاصطناعي
+                    {L.reExtractAiBtn}
                   </button>
                 </>
               )}
@@ -1391,7 +1570,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           {showAddQuestionForm && (
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-brand-blue/30 space-y-3 text-start">
               <div className="text-xs font-extrabold text-brand-blue dark:text-accent-orange">
-                إضافة سؤال جديد يدوياً إلى الغرفة:
+                {L.addManualFormTitle}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
@@ -1399,14 +1578,14 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                   dir="ltr"
                   value={manualPromptRu}
                   onChange={(e) => setManualPromptRu(e.target.value)}
-                  placeholder="نص السؤال بالروسية (مثال: Мы едем в ...)"
+                  placeholder={L.manualPromptPlaceholder}
                   className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold"
                 />
                 <input
                   type="text"
                   value={manualInstructionAr}
                   onChange={(e) => setManualInstructionAr(e.target.value)}
-                  placeholder="التعليمة بالعربية (مثال: اختر الصيغة الصحيحة)"
+                  placeholder={L.manualInstructionPlaceholder}
                   className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
                 />
               </div>
@@ -1419,7 +1598,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                       name="manualCorrectIdx"
                       checked={manualCorrectIndex === idx}
                       onChange={() => setManualCorrectIndex(idx)}
-                      title="حدد كإجابة صحيحة"
+                      title={L.markAsCorrectTitle}
                     />
                     <input
                       type="text"
@@ -1430,7 +1609,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                         next[idx] = e.target.value;
                         setManualOptions(next);
                       }}
-                      placeholder={`الخيار ${idx + 1}${manualCorrectIndex === idx ? ' (الصحيح)' : ''}`}
+                      placeholder={L.optionPlaceholder(idx + 1, manualCorrectIndex === idx)}
                       className="flex-1 px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
                     />
                   </div>
@@ -1442,7 +1621,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                   type="text"
                   value={manualExplanationAr}
                   onChange={(e) => setManualExplanationAr(e.target.value)}
-                  placeholder="شرح القاعدة النحوية (اختياري)..."
+                  placeholder={L.manualExplanationPlaceholder}
                   className="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
                 />
                 <button
@@ -1450,84 +1629,85 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                   onClick={handleAddManualQuestion}
                   className="px-4 py-1.5 rounded-xl bg-brand-blue text-white text-xs font-bold cursor-pointer"
                 >
-                  حفظ السؤال
+                  {L.saveQuestionBtn}
                 </button>
               </div>
             </div>
           )}
 
           {!showTeacherAnswersPreview && (
-            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-center justify-between gap-2">
-              <span>
-                🔒 تم إخفاء الإجابات الصحيحة تلقائياً في شاشة الانتظار حتى لا تظهر للطلاب قبل بدء المسابقة.
-              </span>
+            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-center justify-between gap-2 text-start">
+              <span>{L.answersHiddenNotice}</span>
             </div>
           )}
 
           <div className="space-y-3">
-            {activeRoom.questions.map((q, idx) => (
-              <div
-                key={q.id}
-                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2 text-start"
-              >
-                <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-                  <span>السؤال {idx + 1}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md bg-brand-blue/10 text-brand-blue dark:text-accent-orange">
-                      {q.instructionAr || q.instructionRu}
-                    </span>
-                    {isRoomOwner && activeRoom.questions.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteQuestion(q.id)}
-                        title="حذف هذا السؤال"
-                        className="p-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-500 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+            {activeRoom.questions.map((q, idx) => {
+              const qExplanation = getArenaQuestionExplanation(q, lang);
+              return (
+                <div
+                  key={q.id}
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2 text-start"
+                >
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                    <span>{L.questionLabel(idx + 1)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-brand-blue/10 text-brand-blue dark:text-accent-orange">
+                        {getArenaQuestionInstruction(q, lang)}
+                      </span>
+                      {isRoomOwner && activeRoom.questions.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteQuestion(q.id)}
+                          title={L.deleteQuestionTitle}
+                          className="p-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-500 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div className="text-base font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span dir="ltr">{q.promptRu}</span>
-                  <button
-                    type="button"
-                    onClick={() => speakRussian(q.promptRu, undefined, soundEnabled)}
-                    className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-brand-blue cursor-pointer"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  {q.options.map((opt, oIdx) => {
-                    const revealCorrect = showTeacherAnswersPreview && oIdx === q.correctIndex;
-                    return (
-                      <div
-                        key={`${q.id}-preview-opt-${oIdx}`}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-medium border flex items-center justify-between ${
-                          revealCorrect
-                            ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold'
-                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                        }`}
-                      >
-                        <span dir="ltr">{opt}</span>
-                        {revealCorrect && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {showTeacherAnswersPreview && q.explanationAr && (
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-700/50">
-                    💡 <span className="font-semibold">{q.explanationAr}</span>
+                  <div className="text-base font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span dir="ltr">{q.promptRu}</span>
+                    <button
+                      type="button"
+                      onClick={() => speakRussian(q.promptRu, undefined, soundEnabled)}
+                      className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-brand-blue cursor-pointer"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {q.options.map((opt, oIdx) => {
+                      const revealCorrect = showTeacherAnswersPreview && oIdx === q.correctIndex;
+                      return (
+                        <div
+                          key={`${q.id}-preview-opt-${oIdx}`}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-medium border flex items-center justify-between ${
+                            revealCorrect
+                              ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold'
+                              : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          <span dir="ltr">{opt}</span>
+                          {revealCorrect && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {showTeacherAnswersPreview && qExplanation && (
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-700/50">
+                      💡 <span className="font-semibold">{qExplanation}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -1536,9 +1716,11 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-display font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <Users className="w-4 h-4 text-emerald-500" />
-              <span>الطلاب المنضمون للقاعة حالياً ({studentParticipants.length})</span>
+              <span>
+                {L.connectedStudentsRosterTitle} ({studentParticipants.length})
+              </span>
             </h3>
-            <span className="text-xs text-slate-400">في انتظار بدء الاختبار...</span>
+            <span className="text-xs text-slate-400">{L.waitingToStartText}</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -1556,7 +1738,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                   </div>
                   <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span>متصل</span>
+                    <span>{L.onlineStatus}</span>
                   </div>
                 </div>
               </div>
@@ -1576,20 +1758,21 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     const totalQ = Math.max(1, activeRoom.questions.length);
     const isLastQuestion = activeRoom.currentQuestionIndex + 1 >= totalQ;
     const progressPct = Math.round(((activeRoom.currentQuestionIndex + 1) / totalQ) * 100);
+    const currentHint = currentQuestion ? getArenaQuestionHint(currentQuestion, lang) : undefined;
 
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-5 animate-fade-in" dir="rtl">
+      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-5 animate-fade-in" dir={dir}>
         {/* Progress & Live Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex items-center gap-3">
             <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
             <div className="text-xs font-bold text-slate-900 dark:text-white">
-              السؤال {activeRoom.currentQuestionIndex + 1} من {totalQ}
+              {L.questionProgress(activeRoom.currentQuestionIndex + 1, totalQ)}
             </div>
             {myStreak >= 2 && (
               <span className="px-2 py-0.5 rounded-full bg-accent-orange/20 text-accent-orange text-xs font-extrabold flex items-center gap-1">
                 <Flame className="w-3.5 h-3.5" />
-                <span>{myStreak}x متتالي!</span>
+                <span>{L.streakBadge(myStreak)}</span>
               </span>
             )}
           </div>
@@ -1603,7 +1786,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>{timeLeft} ثانية</span>
+            <span>{L.secondsLeft(timeLeft)}</span>
           </div>
 
           {/* Navigation / Finish controls */}
@@ -1614,8 +1797,8 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               onClick={handleNextQuestion}
               className="px-3.5 py-1.5 rounded-xl bg-brand-blue hover:bg-brand-navy text-white text-xs font-display font-bold flex items-center gap-1.5 cursor-pointer"
             >
-              <span>{isLastQuestion ? 'عرض النتيجة النهائية' : 'السؤال التالي'}</span>
-              <ArrowLeft className="w-3 h-3" />
+              <span>{isLastQuestion ? L.showFinalResultsBtn : L.nextQuestionBtn}</span>
+              {isRtl ? <ArrowLeft className="w-3 h-3" /> : <ArrowRight className="w-3 h-3" />}
             </button>
             <button
               type="button"
@@ -1623,7 +1806,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               onClick={handleFinishQuiz}
               className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/20 text-xs font-bold text-rose-600 dark:text-rose-400 cursor-pointer"
             >
-              إنهاء
+              {L.finishBtn}
             </button>
           </div>
         </div>
@@ -1641,7 +1824,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-md space-y-6 text-center">
             {/* Instruction pill */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-blue/10 text-brand-blue dark:text-accent-orange text-xs font-bold">
-              <span>{currentQuestion.instructionAr || currentQuestion.instructionRu}</span>
+              <span>{getArenaQuestionInstruction(currentQuestion, lang)}</span>
             </div>
 
             {/* Russian prompt with audio button */}
@@ -1659,15 +1842,15 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                   className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-brand-blue hover:text-white text-xs font-bold text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <Volume2 className="w-4 h-4" />
-                  <span>استمع للنطق الروسي</span>
+                  <span>{L.listenRussianPronunciation}</span>
                 </button>
               </div>
             </div>
 
             {/* Hint if provided */}
-            {currentQuestion.hintAr && (
+            {currentHint && (
               <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl max-w-lg mx-auto">
-                💡 تلميح: {currentQuestion.hintAr}
+                💡 {L.hintPrefix}: {currentHint}
               </div>
             )}
 
@@ -1722,17 +1905,17 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span>
                     {lastAnswerOutcome.isCorrect
-                      ? '✅ إجابة صحيحة وممتازة!'
+                      ? L.feedbackCorrect
                       : selectedOption === null
-                      ? '⏰ انتهى الوقت المتاح للسؤال!'
-                      : '❌ إجابة غير دقيقة!'}
+                      ? L.feedbackTimeout
+                      : L.feedbackWrong}
                   </span>
                   <span className="font-extrabold">
-                    +{lastAnswerOutcome.pointsEarned} نقطة
+                    {L.pointsEarnedLabel(lastAnswerOutcome.pointsEarned)}
                   </span>
                 </div>
                 <p className="text-xs leading-relaxed opacity-90">
-                  {lastAnswerOutcome.explanationAr || lastAnswerOutcome.explanationRu}
+                  {getArenaQuestionExplanation(lastAnswerOutcome, lang)}
                 </p>
 
                 <div className="pt-2 flex justify-end">
@@ -1742,11 +1925,13 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                     className="px-5 py-2 rounded-xl bg-brand-blue hover:bg-brand-navy text-white text-xs font-display font-extrabold flex items-center gap-2 shadow-sm transition cursor-pointer"
                   >
                     <span>
-                      {isLastQuestion
-                        ? 'إنهاء التحدي وعرض لوحة الشرف 🏆'
-                        : 'الانتقال إلى السؤال التالي'}
+                      {isLastQuestion ? L.finishAndShowPodiumBtn : L.goToNextQuestionBtn}
                     </span>
-                    <ArrowLeft className="w-3.5 h-3.5" />
+                    {isRtl ? (
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                    ) : (
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -1759,9 +1944,9 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           <div className="flex items-center justify-between">
             <div className="text-xs font-display font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
               <Trophy className="w-4 h-4 text-accent-orange" />
-              <span>ترتيب المشاركين المباشر في الغرفة</span>
+              <span>{L.liveLeaderboardTitle}</span>
             </div>
-            <span className="text-[11px] text-slate-400">تحديث فوري لكل سؤال</span>
+            <span className="text-[11px] text-slate-400">{L.instantUpdatePerQuestion}</span>
           </div>
 
           <div className="space-y-2">
@@ -1779,15 +1964,17 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                   <span className="font-bold text-slate-900 dark:text-white">{st.name}</span>
                   {st.id === currentUserId && (
                     <span className="px-1.5 py-0.5 rounded-md bg-brand-blue text-white text-[10px] font-extrabold">
-                      أنت
+                      {L.youBadge}
                     </span>
                   )}
                   {st.tier === 'gold' && <Crown className="w-3.5 h-3.5 text-accent-orange shrink-0" />}
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-slate-500">{st.accuracyPct}% دقة</span>
+                  <span className="text-slate-500">
+                    {st.accuracyPct}% {L.accuracyUnit}
+                  </span>
                   <span className="font-mono font-extrabold text-brand-blue dark:text-accent-orange">
-                    {st.score} نقطة
+                    {st.score} {L.pointsUnit}
                   </span>
                 </div>
               </div>
@@ -1808,18 +1995,18 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     const top3 = rankings[2];
 
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-6 animate-fade-in" dir="rtl">
+      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-6 animate-fade-in" dir={dir}>
         {/* Celebration Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-orange/15 text-accent-orange text-xs font-extrabold">
             <Trophy className="w-4 h-4" />
-            <span>اكتملت المنافسة بنجاح!</span>
+            <span>{L.competitionCompletedBadge}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 dark:text-white">
-            لوحة شرف وترتيب الطلاب النهائي
+            {L.podiumTitle}
           </h1>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
-            {activeRoom.title} — تم تصنيف درجات جميع أعضاء الغرفة وفقاً للنقاط والدقة النحوية
+            {activeRoom.title} — {L.podiumSubtitle}
           </p>
         </div>
 
@@ -1834,7 +2021,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               {top2?.name || '—'}
             </div>
             <div className="text-[11px] font-mono font-bold text-slate-500">
-              {top2?.score ?? 0} نقطة
+              {top2?.score ?? 0} {L.pointsUnit}
             </div>
             <div className="w-full h-20 rounded-t-2xl bg-linear-to-t from-slate-300 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
               2
@@ -1851,7 +2038,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               {top1?.name || '—'}
             </div>
             <div className="text-xs font-mono font-extrabold text-accent-orange">
-              {top1?.score ?? 0} نقطة
+              {top1?.score ?? 0} {L.pointsUnit}
             </div>
             <div className="w-full h-28 rounded-t-2xl bg-linear-to-t from-accent-orange to-amber-400 flex items-center justify-center font-extrabold text-brand-navy text-xl shadow-lg">
               1
@@ -1867,7 +2054,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               {top3?.name || '—'}
             </div>
             <div className="text-[11px] font-mono font-bold text-slate-500">
-              {top3?.score ?? 0} نقطة
+              {top3?.score ?? 0} {L.pointsUnit}
             </div>
             <div className="w-full h-14 rounded-t-2xl bg-linear-to-t from-amber-700/30 to-amber-700/20 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
               3
@@ -1880,9 +2067,11 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           <div className="flex items-center justify-between">
             <h3 className="text-base font-display font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <Award className="w-5 h-5 text-brand-blue" />
-              <span>قائمة تصنيف المشاركين كاملاً (المتميزون ومن يحتاجون مراجعة)</span>
+              <span>{L.fullRankingsTitle}</span>
             </h3>
-            <span className="text-xs text-slate-500">{rankings.length} مشاركين</span>
+            <span className="text-xs text-slate-500">
+              {rankings.length} {L.participantsUnit}
+            </span>
           </div>
 
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1898,14 +2087,16 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                       <span>{st.name}</span>
                       {st.id === currentUserId && (
                         <span className="px-1.5 py-0.5 rounded-md bg-brand-blue text-white text-[10px] font-extrabold">
-                          أنت
+                          {L.youBadge}
                         </span>
                       )}
                     </div>
                     <div className="text-xs text-slate-500 flex items-center gap-2">
-                      <span>{st.correctCount} من {st.totalAnswered} إجابات صحيحة</span>
+                      <span>{L.correctOfTotal(st.correctCount, st.totalAnswered)}</span>
                       <span>•</span>
-                      <span>أعلى تسلسل: {st.bestStreak}x</span>
+                      <span>
+                        {L.bestStreakLabel}: {st.bestStreak}x
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1922,11 +2113,11 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                         : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                     }`}
                   >
-                    {st.tierLabel[lang] || st.tierLabel.ar}
+                    {st.tierLabel[lang] || st.tierLabel.en}
                   </span>
 
                   <span className="font-mono font-extrabold text-sm text-brand-blue dark:text-accent-orange min-w-[70px] text-end">
-                    {st.score} نقطة
+                    {st.score} {L.pointsUnit}
                   </span>
                 </div>
               </div>
@@ -1939,33 +2130,33 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           <div className="rounded-3xl bg-linear-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-850 border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4 text-start">
             <div className="flex items-center gap-2 text-brand-blue dark:text-accent-orange font-bold text-sm">
               <BarChart3 className="w-4 h-4" />
-              <span>تقرير تحليل الفصل للأستاذ (Class Performance Insights)</span>
+              <span>{L.teacherAnalyticsTitle}</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                <div className="text-[11px] text-slate-500 font-bold">متوسط نقاط الفصل</div>
+                <div className="text-[11px] text-slate-500 font-bold">{L.avgClassScoreLabel}</div>
                 <div className="text-lg font-extrabold text-slate-900 dark:text-white font-mono">
-                  {analytics.averageScore} نقطة
+                  {analytics.averageScore} {L.pointsUnit}
                 </div>
               </div>
               <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                <div className="text-[11px] text-slate-500 font-bold">متوسط الدقة العامة</div>
+                <div className="text-[11px] text-slate-500 font-bold">{L.avgClassAccuracyLabel}</div>
                 <div className="text-lg font-extrabold text-slate-900 dark:text-white font-mono">
                   {analytics.classAccuracyPct}%
                 </div>
               </div>
               <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 col-span-2 sm:col-span-1">
-                <div className="text-[11px] text-slate-500 font-bold">بحاجة لمراجعة</div>
+                <div className="text-[11px] text-slate-500 font-bold">{L.needsReviewCountLabel}</div>
                 <div className="text-lg font-extrabold text-rose-500 font-mono">
-                  {analytics.needsSupportStudents.length} طلاب
+                  {analytics.needsSupportStudents.length} {L.studentsCountUnit}
                 </div>
               </div>
             </div>
 
             <div className="space-y-2 pt-2">
               <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                الأسئلة الأكثر صعوبة (التي واجه فيها الطلاب أخطاءً):
+                {L.hardestQuestionsLabel}
               </div>
               <div className="space-y-1.5">
                 {analytics.hardestQuestions.map((hq) => (
@@ -1977,7 +2168,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                       {hq.questionPrompt}
                     </span>
                     <span className="text-rose-500 font-bold shrink-0">
-                      {hq.mistakeCount} أخطاء ({hq.successRatePct}% نجاح)
+                      {L.mistakesAndSuccessRate(hq.mistakeCount, hq.successRatePct)}
                     </span>
                   </div>
                 ))}
@@ -1994,7 +2185,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             className="px-6 py-2.5 rounded-2xl bg-brand-blue hover:opacity-90 text-white font-display font-extrabold text-sm flex items-center gap-2 cursor-pointer shadow-md"
           >
             <RotateCcw className="w-4 h-4" />
-            <span>إعادة تشغيل التحدي</span>
+            <span>{L.restartChallengeBtn}</span>
           </button>
 
           <button
@@ -2007,7 +2198,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             }}
             className="px-6 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-display font-bold text-sm cursor-pointer"
           >
-            العودة إلى حلبة الغرف
+            {L.backToArena}
           </button>
 
           <button
@@ -2017,7 +2208,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             className="px-5 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-300 font-display font-bold text-sm flex items-center gap-2 cursor-pointer border border-rose-200 dark:border-rose-800 transition"
           >
             <Trash2 className="w-4 h-4 text-rose-500" />
-            <span>حذف هذه الغرفة نهائياً</span>
+            <span>{L.deleteRoomPermanentlyBtn}</span>
           </button>
         </div>
         <div className="h-28 w-full shrink-0" aria-hidden="true" />
@@ -2027,3 +2218,4 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
 
   return null;
 };
+
