@@ -9,6 +9,7 @@ declare global {
 export const createPool = () => {
   if (!global._postgresPool) {
     const dbUrl =
+      process.env.NETLIFY_DB_URL ||
       process.env.SQL_DB_URL ||
       process.env.NETLIFY_DATABASE_URL ||
       process.env.DATABASE_URL ||

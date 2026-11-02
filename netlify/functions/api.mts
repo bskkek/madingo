@@ -4,7 +4,7 @@ let cachedHandler: ((req: any, ctx: any) => Promise<any>) | null = null;
 
 function applyDbUrlEnv() {
   const dbUrl =
-    process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL || '';
+    process.env.NETLIFY_DB_URL || process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL || '';
   if (dbUrl && !process.env.SQL_HOST) {
     try {
       const u = new URL(dbUrl);
