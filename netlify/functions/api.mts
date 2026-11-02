@@ -19,6 +19,60 @@ function applyDbUrlEnv() {
   }
 }
 
+async function toV1Event(req: any): Promise<any> {
+  const isWebRequest =
+    req &&
+    typeof req.method === 'string' &&
+    typeof req.url === 'string' &&
+    typeof req.text === 'function' &&
+    req.headers &&
+    typeof req.headers.forEach === 'function' &&
+    !req.httpMethod;
+  if (!isWebRequest) return req;
+  const url = new URL(req.url);
+  const headers: Record<string, string> = {};
+  (req.headers as Headers).forEach((v: string, k: string) => {
+    headers[k] = v;
+  });
+  let body: string | null = null;
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    body = await req.text();
+  }
+  return {
+    httpMethod: req.method,
+    path: url.pathname,
+    headers,
+    rawQuery: url.search ? url.search.slice(1) : '',
+    body,
+    isBase64Encoded: false,
+    requestContext: { http: { method: req.method, path: url.pathname } },
+  };
+}
+
+function toResponse(result: any, wasWebRequest: boolean) {
+  if (!wasWebRequest) return result;
+  if (
+    result &&
+    typeof result.statusCode === 'number' &&
+    typeof Response !== 'undefined'
+  ) {
+    const headers: Record<string, string> = {};
+    for (const h of [result.headers, result.multiValueHeaders]) {
+      if (!h) continue;
+      for (const [k, v] of Object.entries(h)) {
+        (headers as any)[k.toLowerCase()] = Array.isArray(v)
+          ? v.join(', ')
+          : String(v);
+      }
+    }
+    return new Response(
+      result.body == null ? null : String(result.body),
+      { status: result.statusCode, headers }
+    );
+  }
+  return result;
+}
+
 export default async (req: any, ctx: any) => {
   if (!cachedHandler) {
     applyDbUrlEnv();
@@ -27,7 +81,7 @@ export default async (req: any, ctx: any) => {
     await serverMod.serverReady;
     const app = serverMod.getApiApp();
     const base = serverlessHttp(app);
-    cachedHandler = (request: any, context: any) => {
+    cachedHandler = async (request: any, context: any) => {
       // Netlify rewrites /api/* to the function path; map it back for express
       if (
         typeof request?.url === 'string' &&
@@ -35,8 +89,16 @@ export default async (req: any, ctx: any) => {
       ) {
         request.url = request.url.replace('/.netlify/functions/api', '/api');
       }
+      if (
+        typeof request?.path === 'string' &&
+        request.path.startsWith('/.netlify/functions/api')
+      ) {
+        request.path = request.path.replace('/.netlify/functions/api', '/api');
+      }
       return base(request, context);
     };
   }
-  return cachedHandler(req, ctx);
+  const event = await toV1Event(req);
+  const result = await cachedHandler(event, ctx);
+  return toResponse(result, event !== req);
 };
