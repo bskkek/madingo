@@ -3,7 +3,6 @@ import http from 'node:http';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
-import { createServer as createViteServer } from 'vite';
 import {
   requireAuth,
   AuthRequest,
@@ -124,6 +123,7 @@ const runtimeTelemetry = {
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  (globalThis as any).__madiApiApp = app;
 
   app.use(express.json({ limit: '10mb' }));
 
@@ -2546,21 +2546,23 @@ async function startServer() {
     res.json({ ok: true, room, rankings, analytics });
   });
 
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+  if (!process.env.SERVERLESS) {
+    if (process.env.NODE_ENV !== 'production') {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (_req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
 
-  const httpServer = http.createServer(app);
+    const httpServer = http.createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: '/ws/arena' });
 
   wss.on('connection', (ws, req) => {
@@ -2595,10 +2597,15 @@ async function startServer() {
     });
   });
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`madingo server running on http://localhost:${PORT}`);
-  });
+    httpServer.listen(PORT, '0.0.0.0', () => {
+      console.log(`madingo server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
-startServer();
+export function getApiApp(): express.Express | undefined {
+  return (globalThis as any).__madiApiApp;
+}
+
+export const serverReady = startServer();
 
