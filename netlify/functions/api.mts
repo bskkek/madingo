@@ -1,4 +1,5 @@
 // Netlify function: serves the madingo API under /api/*
+process.env.SERVERLESS = '1';
 let cachedHandler: ((req: any, ctx: any) => Promise<any>) | null = null;
 
 function applyDbUrlEnv() {
