@@ -327,7 +327,10 @@ export class ConfigurableTTSProvider implements TTSProvider {
 
     // 2. Secondary: Gemini 2.5 Flash Preview TTS if configured & within quota
     const ai = getGenAIClient();
-    if (ai) {
+    if (!ai) {
+      throw new Error('AI extraction unavailable: GEMINI_API_KEY is not configured on the server. الميزة تحتاج مفتاح الذكاء الاصطناعي (GEMINI_API_KEY) في إعدادات الخادم.');
+    }
+    {
       try {
         const promptText = params.slow
           ? `Произнесите медленно и чётко: ${cleanText}`
@@ -1249,7 +1252,10 @@ Respond in simple, natural Russian at level ${params.level} with stress marks (U
     const instructions = params.teacherInstructions || 'استخرج جميع التمارين والأسئلة الموجودة في هذه الورقة بالكامل';
 
     const ai = getGenAIClient();
-    if (ai) {
+    if (!ai) {
+      throw new Error('AI extraction unavailable: GEMINI_API_KEY is not configured on the server. الميزة تحتاج مفتاح الذكاء الاصطناعي (GEMINI_API_KEY) في إعدادات الخادم.');
+    }
+    {
       try {
         const contents: any[] = [];
         if (params.pageImageBase64 && params.pageImageBase64.length > 50) {
@@ -1316,8 +1322,10 @@ ${params.pageText ? `Текст со страницы:\n${params.pageText.slice(
           };
         }
       } catch (err: any) {
-        console.warn('[LLMProvider] Gemini page extraction fallback triggered:', err?.message || err);
+        console.warn('[LLMProvider] Gemini page extraction failed:', err?.message || err);
+        throw new Error('AI extraction failed: ' + (err?.message || err) + '. حدث خطأ أثناء تحليل الورقة بالذكاء الاصطناعي، حاول مرة أخرى أو أرفق صورة/نصاً أوضح.');
       }
+      throw new Error('AI did not return any parseable questions from this page. الذكاء الاصطناعي لم يستخرج أسئلة من هذه الصفحة، جرّب صورة أو نصاً أوضح.');
     }
 
     // Pedagogical Fallback: MADI Preparatory Faculty standard exercises
