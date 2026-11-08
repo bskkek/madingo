@@ -12,7 +12,8 @@ import {
   Clock,
   Sparkles,
   Milestone,
-  FlaskConical,
+  Mic,
+  Target,
 } from 'lucide-react';
 import {
   CURRICULUM_UNITS,
@@ -44,9 +45,13 @@ interface RoadMapViewProps {
   onStartLesson: (lesson: CurriculumLesson) => void;
   onOpenGarage?: () => void;
   onOpenDictionary?: () => void;
+  // Kept in the interface so App.tsx still compiles; intentionally NOT rendered:
+  // the /dev/exercises preview must not be reachable from the production UI
+  // (dev routes stay reachable only by direct URL in dev mode).
   onOpenDevExercises?: () => void;
   onOpenExamsAndPlacement?: () => void;
   onOpenLeaguesAndBadges?: () => void;
+  onOpenSpeaking?: () => void;
   todayRecommendation?: TodayForYouRecommendation;
   onExecuteRecommendation?: (rec: TodayForYouRecommendation) => void;
   equippedCarSkin?: string;
@@ -56,11 +61,11 @@ interface RoadMapViewProps {
 }
 
 const UNIT_MASCOTS = [
-  { sprite: '/assets/madi-crew/sprites/engineer.png', name: 'Madi Engineer' },
-  { sprite: '/assets/madi-crew/sprites/kid.png', name: 'Madi Kid' },
-  { sprite: '/assets/madi-crew/sprites/professor.png', name: 'Madi Professor' },
-  { sprite: '/assets/madi-crew/sprites/builder.png', name: 'Madi Builder' },
-  { sprite: '/assets/madi-crew/sprites/girl.png', name: 'Madi Girl' },
+  { sprite: import.meta.env.BASE_URL + 'assets/madi-crew/sprites/engineer.png', name: 'Madi Engineer' },
+  { sprite: import.meta.env.BASE_URL + 'assets/madi-crew/sprites/kid.png', name: 'Madi Kid' },
+  { sprite: import.meta.env.BASE_URL + 'assets/madi-crew/sprites/professor.png', name: 'Madi Professor' },
+  { sprite: import.meta.env.BASE_URL + 'assets/madi-crew/sprites/builder.png', name: 'Madi Builder' },
+  { sprite: import.meta.env.BASE_URL + 'assets/madi-crew/sprites/girl.png', name: 'Madi Girl' },
 ];
 
 /** Padlock icon with keyhole matching the reference road map design */
@@ -294,14 +299,20 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
   todayMinutesCompleted,
   soundEnabled = true,
   onStartLesson,
-  onOpenDevExercises,
   onOpenLeaguesAndBadges,
+  onOpenGarage,
+  onOpenExamsAndPlacement,
+  onOpenSpeaking,
+  dueGarageCount = 0,
   equippedCarSkin = 'car_classic_blue',
   equippedMapTheme = 'theme_autumn_madi',
   teacherAssignments = [],
 }) => {
   const { lang, t } = useI18n();
   const [showRoadSignsModal, setShowRoadSignsModal] = useState(false);
+  // Locked-stop preview: tapping a locked node/card reveals what it teaches
+  // and what unlocks it, instead of doing nothing.
+  const [lockedPreviewLessonId, setLockedPreviewLessonId] = useState<string | null>(null);
 
   const orderedIds = getOrderedLessonIds();
   const statuses = computeLessonNodeStatuses(orderedIds, completedLessonIds);
@@ -765,11 +776,19 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                         {/* Circular Node Directly on the Winding Road */}
                         <button
                           type="button"
-                          disabled={isLocked}
-                          onClick={() => onStartLesson(lesson)}
+                          onClick={() => {
+                            if (isLocked) {
+                              setLockedPreviewLessonId((prev) =>
+                                prev === lesson.id ? null : lesson.id
+                              );
+                            } else {
+                              onStartLesson(lesson);
+                            }
+                          }}
                           aria-label={`${lesson.title[lang]} (${status})`}
+                          aria-expanded={isLocked ? lockedPreviewLessonId === lesson.id : undefined}
                           style={{ left: `${leftPct}%` }}
-                          className={`pointer-events-auto absolute top-0 -translate-x-1/2 -translate-y-1/2 w-[62px] h-[62px] sm:w-[72px] sm:h-[72px] rounded-full border-[4px] border-white flex items-center justify-center transition duration-200 cursor-pointer disabled:cursor-not-allowed ${
+                          className={`pointer-events-auto absolute top-0 -translate-x-1/2 -translate-y-1/2 w-[62px] h-[62px] sm:w-[72px] sm:h-[72px] rounded-full border-[4px] border-white flex items-center justify-center transition duration-200 cursor-pointer ${
                             isCurrent
                               ? 'bg-gradient-to-b from-[#FFA336] to-[#FF7700] shadow-[0_0_28px_6px_rgba(255,138,31,0.72)] hover:scale-105'
                               : isCompleted
@@ -795,7 +814,13 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                             maxWidth: '330px',
                           }}
                           onClick={() => {
-                            if (!isLocked) onStartLesson(lesson);
+                            if (isLocked) {
+                              setLockedPreviewLessonId((prev) =>
+                                prev === lesson.id ? null : lesson.id
+                              );
+                            } else {
+                              onStartLesson(lesson);
+                            }
                           }}
                           className={`pointer-events-auto absolute top-0 -translate-y-1/2 rounded-[24px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-3 sm:px-5 sm:py-4 shadow-[0_12px_30px_rgba(15,23,42,0.16)] border border-white dark:border-slate-800 transition ${
                             !isLocked ? 'cursor-pointer hover:shadow-[0_14px_34px_rgba(15,23,42,0.22)]' : ''
@@ -849,6 +874,24 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                           {lettersBadge && (
                             <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
                               {lettersBadge}
+                            </div>
+                          )}
+
+                          {/* Locked-stop preview: what this stop teaches + what unlocks it */}
+                          {isLocked && lockedPreviewLessonId === lesson.id && (
+                            <div className="mt-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-3 text-start">
+                              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                {lesson.description[lang]}
+                              </p>
+                              <p className="mt-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                <MapPadlockIcon className="w-3.5 h-3.5 shrink-0" />
+                                <span>{t('map.unitLocked')}</span>
+                              </p>
+                            </div>
+                          )}
+                          {isLocked && lockedPreviewLessonId !== lesson.id && (
+                            <div className="mt-1.5 text-[11px] font-bold text-slate-400 dark:text-slate-500">
+                              {t('map.lessonLocked')}
                             </div>
                           )}
 
@@ -909,7 +952,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
               className="pointer-events-none absolute inset-y-0 right-0 w-6 sm:w-10 z-10 bg-gradient-to-l from-white via-white/40 to-transparent dark:from-slate-900 dark:via-slate-900/40 dark:to-transparent"
             />
             <img
-              src="/assets/aistudio/1793067979920_f1e14560.jpg"
+              src={import.meta.env.BASE_URL + "aistudio/1793067979920_f1e14560.jpg"}
               alt="MADI Crew Family in Moscow"
               className="w-full h-auto object-cover select-none"
               referrerPolicy="no-referrer"
@@ -918,6 +961,33 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
         </div>
 
         <aside className="lg:col-span-4 space-y-6">
+          {onOpenGarage && (
+            <div className="bg-white dark:bg-slate-900 border-0 p-6 shadow-none space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent-orange/15 flex items-center justify-center shrink-0">
+                  <Wrench className="w-5 h-5 text-accent-orange" />
+                </div>
+                <div>
+                  <div className="font-display font-bold text-sm text-slate-900 dark:text-white">
+                    {t('map.garageDueBannerTitle', { count: dueGarageCount })}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {dueGarageCount > 0
+                      ? 'Daily review — 5 fuel per correct answer.'
+                      : 'Nothing due right now — your Garage is up to date.'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenGarage}
+                className="w-full min-h-[40px] rounded-xl bg-brand-blue/10 dark:bg-slate-800 text-xs font-display font-bold text-brand-blue dark:text-accent-orange hover:bg-brand-blue/20 transition cursor-pointer"
+              >
+                {dueGarageCount > 0 ? 'Review now →' : 'Open the Garage →'}
+              </button>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-slate-900 border-0 p-6 shadow-none space-y-5">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -1042,6 +1112,37 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
             )}
           </div>
 
+          {(onOpenExamsAndPlacement || onOpenSpeaking) && (
+            <div className="bg-white dark:bg-slate-900 border-0 p-6 shadow-none space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white">
+                  Practice
+                </h3>
+                <Compass className="w-5 h-5 text-accent-orange" />
+              </div>
+              {onOpenExamsAndPlacement && (
+                <button
+                  type="button"
+                  onClick={onOpenExamsAndPlacement}
+                  className="w-full min-h-[40px] rounded-xl bg-brand-blue/10 dark:bg-slate-800 text-xs font-display font-bold text-brand-blue dark:text-accent-orange hover:bg-brand-blue/20 transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Target className="w-4 h-4" />
+                  Placement Test — start at your level →
+                </button>
+              )}
+              {onOpenSpeaking && (
+                <button
+                  type="button"
+                  onClick={onOpenSpeaking}
+                  className="w-full min-h-[40px] rounded-xl bg-brand-blue/10 dark:bg-slate-800 text-xs font-display font-bold text-brand-blue dark:text-accent-orange hover:bg-brand-blue/20 transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Mic className="w-4 h-4" />
+                  Speaking Practice — Repeat After Me →
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="bg-white dark:bg-slate-900 border-0 p-5 space-y-3 shadow-none">
             <div className="flex items-center gap-4">
               <MishaMascot expression="idle" size={72} />
@@ -1052,17 +1153,6 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                 Tap any green or orange stop on the highway to practice Russian letters, cases, and campus dialogues.
               </div>
             </div>
-
-            {onOpenDevExercises && (
-              <button
-                type="button"
-                onClick={onOpenDevExercises}
-                className="w-full min-h-[38px] px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-500 hover:text-brand-blue flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <FlaskConical className="w-3.5 h-3.5" />
-                <span>/dev/exercises (Preview all 10 types)</span>
-              </button>
-            )}
           </div>
         </aside>
       </div>

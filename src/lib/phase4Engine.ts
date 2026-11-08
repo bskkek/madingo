@@ -1121,7 +1121,8 @@ export type NotificationType =
   | 'assignment_due'
   | 'league_result'
   | 'certificate_issued'
-  | 'teacher_announcement';
+  | 'teacher_announcement'
+  | 'friend_nudge';
 
 export interface NotificationPreferences {
   inAppEnabled: boolean;
@@ -1147,6 +1148,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
     league_result: true,
     certificate_issued: true,
     teacher_announcement: true,
+    friend_nudge: true,
   },
 };
 

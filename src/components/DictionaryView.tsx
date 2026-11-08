@@ -17,14 +17,21 @@ import {
   Trash2,
   BookOpen,
   AlertCircle,
+  Library,
+  Search,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   CYRILLIC_LETTERS,
   CurriculumLesson,
+  CyrillicLetterData,
+  ExampleWord,
 } from '../data/curriculum';
 import { useI18n } from '../lib/i18n';
 import { speakRussian, speakText } from '../lib/audio';
-import { SupportedLang } from '../lib/phase2Engine';
+import { SupportedLang, stripStressMarks, type DictionaryWordRecord } from '../lib/phase2Engine';
+import browseDictionaryJson from '../../content/dictionary.json';
 
 export interface UserWordRecord {
   wordId: string;
@@ -196,6 +203,15 @@ const UI_COPY: Record<
     voiceInputBtn: string;
     voiceListening: string;
     retryBtn: string;
+    tabBrowse: string;
+    browseSearchPlaceholder: string;
+    browseAll: string;
+    browseWordsSuffix: string;
+    browseNoResults: string;
+    browseExamples: string;
+    browseLevelLabel: string;
+    browseTopicLabel: string;
+    browseShowing: string;
   }
 > = {
   ar: {
@@ -231,6 +247,15 @@ const UI_COPY: Record<
     voiceInputBtn: 'إدخال صوتي',
     voiceListening: 'جاري الاستماع...',
     retryBtn: 'إعادة المحاولة',
+    tabBrowse: 'تصفّح القاموس',
+    browseSearchPlaceholder: 'ابحث بالروسية أو بالعربية أو الإنجليزية أو الفرنسية...',
+    browseAll: 'الكل',
+    browseWordsSuffix: 'كلمة',
+    browseNoResults: 'لا توجد كلمات مطابقة لبحثك.',
+    browseExamples: 'أمثلة',
+    browseLevelLabel: 'المستوى',
+    browseTopicLabel: 'الموضوع',
+    browseShowing: 'عرض',
   },
   ru: {
     title: 'Мгновенный ИИ-Переводчик',
@@ -265,6 +290,15 @@ const UI_COPY: Record<
     voiceInputBtn: 'Голосовой ввод',
     voiceListening: 'Слушаю...',
     retryBtn: 'Повторить',
+    tabBrowse: 'Словарь: обзор',
+    browseSearchPlaceholder: 'Поиск на русском, арабском, английском или французском...',
+    browseAll: 'Все',
+    browseWordsSuffix: 'слов',
+    browseNoResults: 'По вашему запросу ничего не найдено.',
+    browseExamples: 'Примеры',
+    browseLevelLabel: 'Уровень',
+    browseTopicLabel: 'Тема',
+    browseShowing: 'Показано',
   },
   en: {
     title: 'AI Instant Translator',
@@ -299,6 +333,15 @@ const UI_COPY: Record<
     voiceInputBtn: 'Voice Input',
     voiceListening: 'Listening...',
     retryBtn: 'Retry',
+    tabBrowse: 'Browse Dictionary',
+    browseSearchPlaceholder: 'Search in Russian, Arabic, English or French...',
+    browseAll: 'All',
+    browseWordsSuffix: 'words',
+    browseNoResults: 'No words match your search.',
+    browseExamples: 'Examples',
+    browseLevelLabel: 'Level',
+    browseTopicLabel: 'Topic',
+    browseShowing: 'Showing',
   },
   fr: {
     title: 'Traducteur IA Instantané',
@@ -333,6 +376,15 @@ const UI_COPY: Record<
     voiceInputBtn: 'Dictée vocale',
     voiceListening: 'Écoute en cours...',
     retryBtn: 'Réessayer',
+    tabBrowse: 'Parcourir le dictionnaire',
+    browseSearchPlaceholder: 'Rechercher en russe, arabe, anglais ou français...',
+    browseAll: 'Tout',
+    browseWordsSuffix: 'mots',
+    browseNoResults: 'Aucun mot ne correspond à votre recherche.',
+    browseExamples: 'Exemples',
+    browseLevelLabel: 'Niveau',
+    browseTopicLabel: 'Thème',
+    browseShowing: 'Affichage',
   },
 };
 
@@ -363,6 +415,50 @@ const QUICK_SAMPLES: Record<SupportedLang, string[]> = {
   ],
 };
 
+const BROWSE_DICTIONARY_WORDS: DictionaryWordRecord[] =
+  browseDictionaryJson as unknown as DictionaryWordRecord[];
+
+type BrowseLevel = 'ALL' | 'A1' | 'A2' | 'B1' | 'B2';
+const BROWSE_LEVELS: BrowseLevel[] = ['ALL', 'A1', 'A2', 'B1', 'B2'];
+
+const TOPIC_LABELS: Record<string, Record<SupportedLang, string>> = {
+  madi_auto: { en: 'MADI Auto', ru: 'МАДИ Авто', ar: 'سيارات مادي', fr: 'Auto MADI' },
+  campus: { en: 'Campus', ru: 'Кампус', ar: 'الحرم الجامعي', fr: 'Campus' },
+  greetings: { en: 'Greetings', ru: 'Приветствия', ar: 'التحيات', fr: 'Salutations' },
+  city_metro: { en: 'City & Metro', ru: 'Город и метро', ar: 'المدينة والمترو', fr: 'Ville et métro' },
+  numbers_time: { en: 'Numbers & Time', ru: 'Числа и время', ar: 'الأرقام والوقت', fr: 'Nombres et heure' },
+  daily: { en: 'Daily Life', ru: 'Повседневная жизнь', ar: 'الحياة اليومية', fr: 'Vie quotidienne' },
+};
+
+/**
+ * Alphabet fix: the curriculum data (CYRILLIC_LETTERS, src/data/curriculum.ts)
+ * uses the same example word «Ру́ль» for BOTH Р (let-r) and Ь (let-soft).
+ * Until the data is patched at the source, the view overrides Ь's first
+ * example with «Де́нь» (day) — a correct soft-sign word with the stress on е.
+ */
+const ALPHABET_EXAMPLE_OVERRIDES: Record<string, [ExampleWord, ExampleWord]> = {
+  'let-soft': [
+    {
+      wordWithStress: 'Де́нь',
+      cleanWord: 'День',
+      audioSlug: 'den',
+      iconKey: 'calendar',
+      translations: { en: 'Day', ru: 'День', ar: 'يوم', fr: 'Jour' },
+    },
+    {
+      wordWithStress: 'Тетра́дь',
+      cleanWord: 'Тетрадь',
+      audioSlug: 'tetrad',
+      iconKey: 'notebook',
+      translations: { en: 'Notebook', ru: 'Тетрадь', ar: 'دفتر', fr: 'Cahier' },
+    },
+  ],
+};
+
+function getAlphabetExamples(letter: CyrillicLetterData): [ExampleWord, ExampleWord] {
+  return ALPHABET_EXAMPLE_OVERRIDES[letter.id] || letter.examples;
+}
+
 function loadSavedHistory(): SavedTranslationRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_TRANSLATION_HISTORY);
@@ -387,6 +483,7 @@ function persistSavedHistory(items: SavedTranslationRecord[]) {
 
 export const DictionaryView: React.FC<DictionaryViewProps> = ({
   soundEnabled,
+  userWords,
   initialQuery = '',
   onToggleUserWord,
   onAddWordToGarage,
@@ -394,9 +491,14 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
   const { lang } = useI18n();
   const copy = UI_COPY[lang] || UI_COPY.en;
 
-  const [sectionTab, setSectionTab] = useState<'translator' | 'history' | 'letters'>(
+  const [sectionTab, setSectionTab] = useState<'translator' | 'history' | 'letters' | 'browse'>(
     'translator'
   );
+  // Browse-dictionary state
+  const [browseQuery, setBrowseQuery] = useState('');
+  const [browseLevel, setBrowseLevel] = useState<BrowseLevel>('ALL');
+  const [browseTopic, setBrowseTopic] = useState<string>('ALL');
+  const [expandedWordId, setExpandedWordId] = useState<string | null>(null);
   const [sourceLang, setSourceLang] = useState<'auto' | SupportedLang>('auto');
   const [targetLang, setTargetLang] = useState<SupportedLang>(() =>
     lang === 'ru' ? 'ar' : 'ru'
@@ -682,6 +784,48 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
     return savedHistory.find((h) => h.id === recordId) || null;
   }, [result, targetLang, savedHistory]);
 
+  // ---- Browse dictionary: search + level/topic filters ----
+  const browseTopics = useMemo(() => {
+    const seen = new Set<string>();
+    for (const w of BROWSE_DICTIONARY_WORDS) seen.add(w.topic);
+    return Array.from(seen).sort();
+  }, []);
+
+  const browseLevelCounts = useMemo(() => {
+    const counts: Record<BrowseLevel, number> = { ALL: BROWSE_DICTIONARY_WORDS.length, A1: 0, A2: 0, B1: 0, B2: 0 };
+    for (const w of BROWSE_DICTIONARY_WORDS) {
+      if (w.level in counts) counts[w.level as BrowseLevel] += 1;
+    }
+    return counts;
+  }, []);
+
+  const filteredBrowseWords = useMemo(() => {
+    const q = stripStressMarks(browseQuery.trim()).toLowerCase();
+    return BROWSE_DICTIONARY_WORDS.filter((w) => {
+      if (browseLevel !== 'ALL' && w.level !== browseLevel) return false;
+      if (browseTopic !== 'ALL' && w.topic !== browseTopic) return false;
+      if (!q) return true;
+      const haystack = [
+        stripStressMarks(w.russian).toLowerCase(),
+        stripStressMarks(w.stressed).toLowerCase(),
+        w.translit.toLowerCase(),
+        w.translations.en.toLowerCase(),
+        w.translations.ru.toLowerCase(),
+        w.translations.ar.toLowerCase(),
+        w.translations.fr.toLowerCase(),
+      ].join(' | ');
+      return haystack.includes(q);
+    });
+  }, [browseQuery, browseLevel, browseTopic]);
+
+  const isBrowseWordInGarage = (wordId: string) =>
+    userWords?.some((w) => w.wordId === wordId && w.status === 'garage') ?? false;
+
+  const handleSaveBrowseWordToGarage = (word: DictionaryWordRecord) => {
+    onAddWordToGarage?.(word.stressed, word.translations[lang]);
+    onToggleUserWord?.({ wordId: word.id, status: 'garage', isFavorite: true });
+  };
+
   return (
     <div
       data-testid="ai-instant-translator-view"
@@ -745,6 +889,22 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
           >
             <BookOpen className="w-4 h-4" />
             <span>{copy.tabLetters}</span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="translator-tab-browse"
+            onClick={() => setSectionTab('browse')}
+            className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              sectionTab === 'browse'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300'
+            }`}
+          >
+            <Library className="w-4 h-4" />
+            <span>
+              {copy.tabBrowse} ({BROWSE_DICTIONARY_WORDS.length})
+            </span>
           </button>
         </div>
       </div>
@@ -1456,11 +1616,262 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
       )}
 
       {/* ===================================================================== */}
+      {/* TAB 4: BROWSE DICTIONARY (628 WORDS, SEARCHABLE + FILTERABLE)       */}
+      {/* ===================================================================== */}
+      {sectionTab === 'browse' && (
+        <div className="space-y-4">
+          {/* Search */}
+          <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-3">
+            <div className="flex items-center gap-2 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 px-3.5 py-2.5">
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                data-testid="browse-search-input"
+                value={browseQuery}
+                onChange={(e) => setBrowseQuery(e.target.value)}
+                placeholder={copy.browseSearchPlaceholder}
+                className="w-full bg-transparent outline-none text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 placeholder:font-normal"
+              />
+              {browseQuery && (
+                <button
+                  type="button"
+                  onClick={() => setBrowseQuery('')}
+                  aria-label={copy.clearBtn}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Level filter chips */}
+            <div className="space-y-1.5">
+              <div className="text-xs font-display font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                {copy.browseLevelLabel}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {BROWSE_LEVELS.map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    data-testid={`browse-level-${lvl}`}
+                    onClick={() => setBrowseLevel(lvl)}
+                    className={`min-h-[36px] px-3.5 py-1.5 rounded-xl text-xs font-display font-bold transition cursor-pointer ${
+                      browseLevel === lvl
+                        ? 'bg-brand-blue text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                  >
+                    {lvl === 'ALL' ? copy.browseAll : lvl} ({browseLevelCounts[lvl]})
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Topic filter chips */}
+            <div className="space-y-1.5">
+              <div className="text-xs font-display font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                {copy.browseTopicLabel}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  data-testid="browse-topic-ALL"
+                  onClick={() => setBrowseTopic('ALL')}
+                  className={`min-h-[36px] px-3.5 py-1.5 rounded-xl text-xs font-display font-bold transition cursor-pointer ${
+                    browseTopic === 'ALL'
+                      ? 'bg-accent-orange text-brand-navy shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                  }`}
+                >
+                  {copy.browseAll}
+                </button>
+                {browseTopics.map((topic) => (
+                  <button
+                    key={topic}
+                    type="button"
+                    data-testid={`browse-topic-${topic}`}
+                    onClick={() => setBrowseTopic(topic)}
+                    className={`min-h-[36px] px-3.5 py-1.5 rounded-xl text-xs font-display font-bold transition cursor-pointer ${
+                      browseTopic === topic
+                        ? 'bg-accent-orange text-brand-navy shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                  >
+                    {TOPIC_LABELS[topic]?.[lang] || topic}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {copy.browseShowing} {filteredBrowseWords.length} / {BROWSE_DICTIONARY_WORDS.length}{' '}
+              {copy.browseWordsSuffix}
+            </div>
+          </div>
+
+          {/* Word list */}
+          {filteredBrowseWords.length === 0 ? (
+            <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-10 text-center text-sm text-slate-500">
+              {copy.browseNoResults}
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {filteredBrowseWords.map((word) => {
+                const expanded = expandedWordId === word.id;
+                const inGarage = isBrowseWordInGarage(word.id);
+                return (
+                  <div
+                    key={word.id}
+                    className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden"
+                  >
+                    <button
+                      type="button"
+                      data-testid={`browse-word-${word.id}`}
+                      onClick={() => setExpandedWordId(expanded ? null : word.id)}
+                      className="w-full p-4 flex items-center justify-between gap-3 text-start cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="min-w-0">
+                          <div className="font-display font-extrabold text-base sm:text-lg text-slate-900 dark:text-white truncate">
+                            {word.stressed}
+                            <span className="ms-2 text-xs font-mono font-semibold text-slate-400">
+                              [{word.translit}]
+                            </span>
+                          </div>
+                          <div
+                            dir={lang === 'ar' ? 'rtl' : 'ltr'}
+                            className="text-sm font-bold text-brand-blue dark:text-accent-orange truncate"
+                          >
+                            {word.translations[lang] || word.translations.en}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="px-2 py-0.5 rounded-md bg-brand-blue/10 text-brand-blue dark:text-accent-orange text-[11px] font-mono font-bold">
+                          {word.level}
+                        </span>
+                        <span className="hidden sm:inline px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
+                          {TOPIC_LABELS[word.topic]?.[lang] || word.topic}
+                        </span>
+                        {expanded ? (
+                          <ChevronUp className="w-4 h-4 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-slate-400" />
+                        )}
+                      </div>
+                    </button>
+
+                    {expanded && (
+                      <div className="px-4 pb-4 pt-1 space-y-3 border-t border-slate-100 dark:border-slate-800">
+                        <div className="flex flex-wrap items-center gap-2 pt-3">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 uppercase">
+                            {word.pos}
+                          </span>
+                          {word.gender && (
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300">
+                              {word.gender === 'm' ? 'м.' : word.gender === 'f' ? 'ж.' : word.gender === 'n' ? 'ср.' : 'мн.'}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              speakRussian(word.stressed, word.audioSlug, soundEnabled, 0.9)
+                            }
+                            aria-label="Listen to word"
+                            className="min-h-[36px] px-3 py-1.5 rounded-xl bg-brand-blue/10 text-brand-blue dark:text-accent-orange hover:bg-brand-blue hover:text-white text-xs font-display font-bold flex items-center gap-1.5 transition cursor-pointer"
+                          >
+                            <Volume2 className="w-4 h-4" />
+                            <span>{copy.listenNormal}</span>
+                          </button>
+                          <button
+                            type="button"
+                            data-testid={`browse-save-garage-${word.id}`}
+                            onClick={() => handleSaveBrowseWordToGarage(word)}
+                            className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-display font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                              inGarage
+                                ? 'bg-emerald-500 text-slate-950'
+                                : 'bg-accent-orange text-brand-navy hover:brightness-105'
+                            }`}
+                          >
+                            <Wrench className="w-3.5 h-3.5" />
+                            <span>{inGarage ? copy.savedInGarage : copy.saveToGarage}</span>
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {(['ru', 'ar', 'en', 'fr'] as SupportedLang[]).map((lCode) => (
+                            <div
+                              key={lCode}
+                              className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700"
+                            >
+                              <div className="text-[11px] font-display font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                {LANGUAGE_META[lCode].labels[lang]}
+                              </div>
+                              <div
+                                dir={LANGUAGE_META[lCode].dir}
+                                className="text-sm font-bold text-slate-900 dark:text-white"
+                              >
+                                {word.translations[lCode]}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {word.examples.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="text-xs font-display font-extrabold uppercase tracking-wider text-brand-blue dark:text-accent-orange">
+                              {copy.browseExamples}
+                            </div>
+                            {word.examples.slice(0, 2).map((ex) => (
+                              <div
+                                key={ex.id}
+                                className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-3"
+                              >
+                                <div className="space-y-1 min-w-0">
+                                  <div className="font-display font-bold text-sm text-slate-900 dark:text-white">
+                                    {ex.russianStressed}
+                                  </div>
+                                  <div
+                                    dir={LANGUAGE_META[lang].dir}
+                                    className="text-xs text-slate-600 dark:text-slate-300"
+                                  >
+                                    {ex.translations[lang] || ex.translations.en}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    speakRussian(ex.russianStressed, ex.audioSlug, soundEnabled, 0.9)
+                                  }
+                                  aria-label="Listen to example"
+                                  className="min-h-[38px] min-w-[38px] rounded-xl bg-brand-blue/10 text-brand-blue dark:text-accent-orange flex items-center justify-center hover:bg-brand-blue hover:text-white transition cursor-pointer shrink-0"
+                                >
+                                  <Volume2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ===================================================================== */}
       {/* TAB 3: CYRILLIC ALPHABET (33 LETTERS REFERENCE)                       */}
       {/* ===================================================================== */}
       {sectionTab === 'letters' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {CYRILLIC_LETTERS.map((letter) => (
+          {CYRILLIC_LETTERS.map((letter) => {
+            // Ру́ль fix: Ь (let-soft) gets Де́нь instead of the duplicated Ру́ль.
+            const examples = getAlphabetExamples(letter);
+            return (
             <div
               key={letter.id}
               className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-xs flex flex-col justify-between gap-4"
@@ -1482,7 +1893,7 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
                   type="button"
                   onClick={() =>
                     speakRussian(
-                      letter.examples[0].cleanWord,
+                      examples[0].cleanWord,
                       letter.audioSlug,
                       soundEnabled
                     )
@@ -1499,7 +1910,7 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
               </p>
 
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
-                {letter.examples.map((ex) => (
+                {examples.map((ex) => (
                   <button
                     key={ex.audioSlug}
                     type="button"
@@ -1518,7 +1929,8 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
                 ))}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

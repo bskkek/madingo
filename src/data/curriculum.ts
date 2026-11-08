@@ -1216,11 +1216,11 @@ export const CYRILLIC_LETTERS: CyrillicLetterData[] = [
     },
     examples: [
       {
-        wordWithStress: 'Ру́ль',
-        cleanWord: 'Руль',
-        audioSlug: 'rul',
-        iconKey: 'wheel',
-        translations: { en: 'Steering Wheel', ru: 'Руль', ar: 'عجلة القيادة', fr: 'Volant' },
+        wordWithStress: 'Де́нь',
+        cleanWord: 'День',
+        audioSlug: 'den',
+        iconKey: 'sun',
+        translations: { en: 'Day', ru: 'День', ar: 'يوم', fr: 'Jour' },
       },
       {
         wordWithStress: 'Тетра́дь',
@@ -1916,10 +1916,10 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
         slug: 'hello-and-goodbye',
         estimatedMinutes: 5,
         title: {
-          en: 'Stop 7: Hello & Goodbye',
-          ru: 'Остановка 7: Привет и До свидания',
-          ar: 'المحطة 7: مرحباً وإلى اللقاء',
-          fr: 'Étape 7 : Bonjour et Au revoir',
+          en: 'Stop 1: Hello & Goodbye',
+          ru: 'Остановка 1: Привет и До свидания',
+          ar: 'المحطة 1: مرحباً وإلى اللقاء',
+          fr: 'Étape 1 : Bonjour et Au revoir',
         },
         description: {
           en: 'Learn Приве́т, Здра́вствуйте, Пока́, and До свида́ния.',
@@ -2099,10 +2099,10 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
         slug: 'politeness-and-names',
         estimatedMinutes: 6,
         title: {
-          en: 'Stop 8: Thanks & Introductions',
-          ru: 'Остановка 8: Спасибо и Знакомство',
-          ar: 'المحطة 8: الشكر والتعارف',
-          fr: 'Étape 8 : Remerciements & Présentations',
+          en: 'Stop 2: Thanks & Introductions',
+          ru: 'Остановка 2: Спасибо и Знакомство',
+          ar: 'المحطة 2: الشكر والتعارف',
+          fr: 'Étape 2 : Remerciements & Présentations',
         },
         description: {
           en: 'Master Спаси́бо, Пожа́луйста, Меня́ зову́т..., and Как дела́?.',

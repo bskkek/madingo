@@ -64,9 +64,16 @@ interface Phase4LeaguesAndBadgesViewProps {
   optedOutOfLeaderboard: boolean;
   onToggleLeaderboardOptOut: (nextVal: boolean) => void;
   onAddFriendByCode: (code: string) => void;
-  onSendNudge: (friendId: string) => { allowed: boolean; message: string };
+  onSendNudge: (
+    friendId: string
+  ) => Promise<{ allowed: boolean; message: string }> | { allowed: boolean; message: string };
   onCreateClassChallenge: (title: string, groupName: string, targetFuel: number) => void;
   onEquipCosmetic: (item: CosmeticItem) => void;
+  // Real per-user invite code from GET /api/me/invite (unique per student).
+  // Empty while loading — the view shows a placeholder, never a fake code.
+  ownFriendCode?: string;
+  // Feedback for the add-by-code action (unknown code, own code, success).
+  friendActionMessage?: string | null;
 }
 
 const BADGE_CATEGORIES: { id: 'all' | BadgeCategory; labelEn: string; labelRu: string }[] = [
@@ -185,6 +192,8 @@ export const Phase4LeaguesAndBadgesView: React.FC<Phase4LeaguesAndBadgesViewProp
   onSendNudge,
   onCreateClassChallenge,
   onEquipCosmetic,
+  ownFriendCode = '',
+  friendActionMessage = null,
 }) => {
   const { lang } = useI18n();
   const [subTab, setSubTab] = useState<'leagues' | 'faculty' | 'friends' | 'badges'>('leagues');
@@ -591,17 +600,27 @@ export const Phase4LeaguesAndBadgesView: React.FC<Phase4LeaguesAndBadgesViewProp
               <div>
                 <div className="text-xs text-slate-500">Your Personal Friend Code</div>
                 <div className="font-mono font-extrabold text-lg text-brand-blue dark:text-accent-orange">
-                  MADI-2026
+                  {ownFriendCode || '…'}
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => navigator.clipboard?.writeText('MADI-2026').catch(() => {})}
-                className="min-h-[38px] px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold cursor-pointer"
+                disabled={!ownFriendCode}
+                onClick={() => navigator.clipboard?.writeText(ownFriendCode).catch(() => {})}
+                className="min-h-[38px] px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Copy Code
               </button>
             </div>
+
+            {friendActionMessage && (
+              <div
+                data-testid="friend-action-message"
+                className="p-3 rounded-xl bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-xs font-semibold text-brand-blue dark:text-sky-400"
+              >
+                {friendActionMessage}
+              </div>
+            )}
 
             <div className="flex gap-2">
               <input
@@ -699,8 +718,8 @@ export const Phase4LeaguesAndBadgesView: React.FC<Phase4LeaguesAndBadgesViewProp
                       type="button"
                       data-testid={`nudge-friend-${fr.id}`}
                       disabled={!check.allowed}
-                      onClick={() => {
-                        const res = onSendNudge(fr.id);
+                      onClick={async () => {
+                        const res = await onSendNudge(fr.id);
                         setNudgeFeedback(res.message);
                       }}
                       className={`min-h-[40px] px-3.5 py-1.5 rounded-xl font-display font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${

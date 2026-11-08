@@ -40,6 +40,10 @@ import {
   getArenaQuestionInstruction,
   getArenaQuestionExplanation,
   getArenaQuestionHint,
+  realParticipants,
+  realRankingsForRoom,
+  realAnalyticsForRoom,
+  filterRankingsToReal,
 } from '../lib/arenaEngine';
 import { speakRussian, playSoundEffect } from '../lib/audio';
 import { useI18n } from '../lib/i18n';
@@ -62,6 +66,37 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   const { lang, dir } = useI18n();
   const L = ARENA_I18N[lang] || ARENA_I18N.en;
   const isRtl = dir === 'rtl';
+
+  // REAL-ONLY ROOMS (Phase 3): the server seeds the preset MADI-101
+  // training room with simulated classmates (ids "stud-demo-*", e.g.
+  // Yassine B. / Amina K.) and auto-answers for them. They never joined via
+  // a room code, so they must never appear on screen — in the roster, the
+  // live leaderboard, the podium, the counts, or the analytics. Every room
+  // payload from the server goes through sanitizeRoom/applyRoomData below,
+  // which drops demo ids and recomputes rankings + analytics from the real
+  // participants only. MADI-101 stays available as an honest SOLO practice
+  // room (just you, no fake opponents); every other room shows only real
+  // users who actually joined, or an honest empty state.
+  const sanitizeRoom = (room: ArenaRoom): ArenaRoom => ({
+    ...room,
+    participants: realParticipants(room.participants),
+  });
+  const applyRoomData = (
+    room: ArenaRoom,
+    serverRankings?: RankedStudent[]
+  ): ArenaRoom => {
+    const realRoom = sanitizeRoom(room);
+    setActiveRoom(realRoom);
+    // Never trust server-computed rankings/analytics here: they include the
+    // simulated MADI-101 classmates. Recompute from real participants only.
+    // (For WS payloads carrying rankings without a room, use
+    // filterRankingsToReal instead; the 3.5s poll then recomputes fully.)
+    setRankings(
+      serverRankings ? filterRankingsToReal(serverRankings) : realRankingsForRoom(realRoom)
+    );
+    setAnalytics(realAnalyticsForRoom(realRoom));
+    return realRoom;
+  };
 
   // Mode: 'lobby' | 'create' | 'room' | 'active_quiz' | 'podium'
   const [viewMode, setViewMode] = useState<'lobby' | 'create' | 'room' | 'active_quiz' | 'podium'>('lobby');
@@ -173,22 +208,33 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     fetchRooms();
   }, []);
 
+  // Confetti cleanup: canvas-confetti leaves its canvas on the page after a
+  // celebration, so clear it when the arena unmounts and whenever we return
+  // to the lobby (leaving a room / finishing a quiz).
+  useEffect(() => {
+    return () => {
+      confetti.reset();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (viewMode === 'lobby') confetti.reset();
+  }, [viewMode]);
+
   // Helper to re-fetch room state from backend
   const refreshRoomDetails = async (roomIdOrCode: string, callback?: (loadedRoom: ArenaRoom) => void) => {
     try {
       const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(roomIdOrCode)}`);
       if (resp.ok) {
         const data = await resp.json();
-        setActiveRoom(data.room);
-        setRankings(data.rankings || []);
-        setAnalytics(data.analytics || null);
+        const realRoom = applyRoomData(data.room, data.rankings || []);
         setIsRoomOwner(
           data.room.teacherId === currentUserId ||
             userRole === 'teacher' ||
             userRole === 'admin' ||
             data.room.id === 'room-madi-101'
         );
-        if (callback) callback(data.room);
+        if (callback) callback(realRoom);
       }
     } catch (err) {
       console.error('Error refreshing room details:', err);
@@ -235,7 +281,8 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             });
           } else if (msg.type === 'room:answer_submitted') {
             if (msg.rankings) {
-              setRankings(msg.rankings);
+              // Rankings-only payload: drop simulated ids, renumber 1..n.
+              setRankings(filterRankingsToReal(msg.rankings));
             }
           } else if (msg.type === 'room:next_question') {
             refreshRoomDetails(roomId, (loadedRoom) => {
@@ -246,8 +293,10 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               startTimeRef.current = Date.now();
             });
           } else if (msg.type === 'room:finished') {
-            if (msg.rankings) setRankings(msg.rankings);
-            if (msg.analytics) setAnalytics(msg.analytics);
+            if (msg.rankings) setRankings(filterRankingsToReal(msg.rankings));
+            // Server analytics include simulated classmates: re-fetch the
+            // room so analytics are recomputed from real participants only.
+            refreshRoomDetails(roomId);
             setViewMode('podium');
             confetti({ particleCount: 75, spread: 70, origin: { y: 0.6 } });
           } else if (msg.type === 'room:deleted') {
@@ -279,13 +328,11 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         }
         if (!resp.ok) return;
         const data = await resp.json();
-        const serverRoom: ArenaRoom = data.room;
-
-        setRankings(data.rankings || []);
-        if (data.analytics) setAnalytics(data.analytics);
+        // Real participants only: drop simulated classmates and recompute
+        // rankings/analytics from the real room (never server rankings).
+        const serverRoom: ArenaRoom = applyRoomData(data.room, data.rankings || []);
 
         if (currentMode === 'room' && serverRoom.status === 'active') {
-          setActiveRoom(serverRoom);
           setViewMode('active_quiz');
           setSelectedOption(null);
           setHasAnsweredCurrent(false);
@@ -294,18 +341,14 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           startTimeRef.current = Date.now();
         } else if (currentMode === 'active_quiz') {
           if (serverRoom.status === 'finished') {
-            setActiveRoom(serverRoom);
             setViewMode('podium');
           } else if (serverRoom.currentQuestionIndex !== currentRm.currentQuestionIndex) {
-            setActiveRoom(serverRoom);
             setSelectedOption(null);
             setHasAnsweredCurrent(false);
             setLastAnswerOutcome(null);
             setTimeLeft(serverRoom.questionTimeLimitSeconds || 30);
             startTimeRef.current = Date.now();
           }
-        } else if (currentMode === 'room') {
-          setActiveRoom(serverRoom);
         }
       } catch {
         // ignore transient network errors
@@ -374,7 +417,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         });
         if (resp.ok) {
           const data = await resp.json();
-          if (data.rankings) setRankings(data.rankings);
+          if (data.rankings) setRankings(filterRankingsToReal(data.rankings));
         }
       } catch {
         // ignore
@@ -409,8 +452,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       }
 
       const data = await resp.json();
-      setActiveRoom(data.room);
-      setRankings(data.rankings || []);
+      const realRoom = applyRoomData(data.room, data.rankings || []);
       setShowTeacherAnswersPreview(false);
       setIsRoomOwner(
         data.room.teacherId === currentUserId ||
@@ -428,7 +470,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       } else if (data.room.status === 'finished') {
         await refreshRoomDetails(data.room.id);
         setViewMode('podium');
-      } else if (data.room.questions && data.room.questions.length === 0) {
+      } else if (realRoom.questions && realRoom.questions.length === 0) {
         setNewTitle(data.room.title || L.defaultRoomTitle);
         setNewTopic(data.room.exerciseTopic || L.defaultTopic);
         setNewInstructions(data.room.teacherInstructions || L.defaultInstructions);
@@ -467,7 +509,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
 
       if (resp.ok) {
         const createdRoom = await resp.json();
-        setActiveRoom(createdRoom);
+        setActiveRoom(sanitizeRoom(createdRoom));
         setIsRoomOwner(true);
         setViewMode('create');
       }
@@ -565,7 +607,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           return;
         }
         targetRoom = await createResp.json();
-        setActiveRoom(targetRoom);
+        setActiveRoom(targetRoom ? sanitizeRoom(targetRoom) : targetRoom);
         setIsRoomOwner(true);
       }
 
@@ -633,7 +675,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       });
       if (resp.ok) {
         const data = await resp.json();
-        setActiveRoom(data.room);
+        setActiveRoom(sanitizeRoom(data.room));
         setManualPromptRu('');
         setManualOptions(['', '', '', '']);
         setManualCorrectIndex(0);
@@ -657,7 +699,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       });
       if (resp.ok) {
         const data = await resp.json();
-        setActiveRoom(data.room);
+        setActiveRoom(sanitizeRoom(data.room));
       }
     } catch (err) {
       console.error('Failed to delete question:', err);
@@ -679,8 +721,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       });
       if (resp.ok) {
         const data = await resp.json();
-        setActiveRoom(data.room);
-        if (data.rankings) setRankings(data.rankings);
+        applyRoomData(data.room, data.rankings || []);
         setViewMode('active_quiz');
         setSelectedOption(null);
         setHasAnsweredCurrent(false);
@@ -734,7 +775,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           explanationAr: result.explanationAr || currentQ.explanationAr,
           explanationEn: currentQ.explanationEn,
         });
-        setRankings(result.rankings || []);
+        setRankings(filterRankingsToReal(result.rankings || []));
         if (result.isCorrect) {
           setMyStreak((s) => s + 1);
           playSoundEffect('correct', soundEnabled);
@@ -777,14 +818,11 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       if (resp.ok) {
         const data = await resp.json();
         if (data.finished) {
-          setActiveRoom(data.room);
-          setRankings(data.rankings || []);
-          setAnalytics(data.analytics || null);
+          applyRoomData(data.room, data.rankings || []);
           setViewMode('podium');
           confetti({ particleCount: 80, spread: 80 });
         } else {
-          setActiveRoom(data.room);
-          if (data.rankings) setRankings(data.rankings);
+          applyRoomData(data.room, data.rankings || []);
           setSelectedOption(null);
           setHasAnsweredCurrent(false);
           setLastAnswerOutcome(null);
@@ -806,9 +844,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       });
       if (resp.ok) {
         const data = await resp.json();
-        setActiveRoom(data.room);
-        setRankings(data.rankings || []);
-        setAnalytics(data.analytics || null);
+        applyRoomData(data.room, data.rankings || []);
         setViewMode('podium');
         confetti({ particleCount: 80, spread: 80 });
       }
@@ -828,6 +864,55 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   // RENDER: 1. LOBBY VIEW (Styled per Reference Image 1 using Image 2 & Image 3)
   // ==========================================================================
   if (viewMode === 'lobby') {
+    // The MADI-101 practice room is always available via the button above,
+    // but /api/arena/rooms only lists it after it has been created on the
+    // server — so count it here too, or the header reads "(0)" while the
+    // practice room sits right above it. Avoid double-counting once the
+    // server list already includes it.
+    const isMadi101Listed = rooms.some(
+      (r) => r.code === 'MADI-101' || r.id === 'room-madi-101'
+    );
+    const availableRoomsCount = rooms.length + (isMadi101Listed ? 0 : 1);
+    // The always-available MADI-101 practice room, rendered as a card in the
+    // list itself so the count above always matches the cards shown.
+    const practiceRoomCard = (
+      <div
+        data-testid="arena-room-card-room-madi-101"
+        className="rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/70 border border-[#E2E8F0] dark:border-slate-700 p-4 flex flex-col justify-between gap-3 hover:border-[#0B3D91]/50 transition text-start"
+      >
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 font-mono text-xs font-bold text-[#0B3D91] dark:text-sky-300 border border-slate-200 dark:border-slate-700">
+              {L.codeLabel}: MADI-101
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              {L.statusWaiting}
+            </span>
+          </div>
+          <h3 className="text-base font-display font-extrabold text-[#0B2545] dark:text-white line-clamp-1">
+            {L.practiceRoomBtn}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+            {L.practiceSoloNote}
+          </p>
+        </div>
+        <div className="pt-2.5 border-t border-slate-200/80 dark:border-slate-700/60 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            data-testid="arena-enter-room-madi-101"
+            onClick={() => handleJoinRoom('MADI-101')}
+            className="px-4 py-1.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-display font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <span>{L.enterBtn}</span>
+            {isRtl ? (
+              <ArrowLeft className="w-3 h-3" />
+            ) : (
+              <ArrowRight className="w-3 h-3" />
+            )}
+          </button>
+        </div>
+      </div>
+    );
     return (
       <div className="max-w-xl mx-auto px-3 sm:px-4 pb-28 animate-fade-in" dir={dir}>
         {/* Delete notification toast */}
@@ -855,7 +940,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         <div className="relative -mx-3 sm:-mx-4 h-[235px] sm:h-[265px] overflow-hidden select-none">
           {/* Cropped Image 3 so the full orange car, winding road, green hills & Moscow towers appear cleanly without the bottom grey/tan strips */}
           <img
-            src="/assets/aistudio/1793153092003_48d96bde.jpg"
+            src={import.meta.env.BASE_URL + "aistudio/1793153092003_48d96bde.jpg"}
             alt={L.heroAlt}
             className="w-full h-[170%] object-cover object-[center_28%] pointer-events-none"
           />
@@ -1034,7 +1119,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                   aria-hidden="true"
                 />
                 <img
-                  src="/assets/aistudio/1793153163292_a75dd14c.jpg"
+                  src={import.meta.env.BASE_URL + "aistudio/1793153163292_a75dd14c.jpg"}
                   alt={L.studentsImgAlt}
                   className="relative z-10 w-full h-full object-contain object-top mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none"
                 />
@@ -1104,7 +1189,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               <h2 className="text-sm sm:text-xl font-display font-black text-[#0B2545] dark:text-white flex items-center gap-2">
                 <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-[#F58220] shrink-0" />
                 <span>
-                  {L.availableRoomsTitle} ({rooms.length})
+                  {L.availableRoomsTitle} ({availableRoomsCount})
                 </span>
               </h2>
 
@@ -1124,17 +1209,10 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                 <p className="text-xs font-bold">{L.loadingRooms}</p>
               </div>
             ) : rooms.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-[#CBD5E1] dark:border-slate-700 bg-[#F8FAFC]/60 dark:bg-slate-800/30 p-8 text-center space-y-2">
-                <Users className="w-9 h-9 text-[#94A3B8] mx-auto stroke-[1.8]" />
-                <div className="text-base font-display font-black text-[#0B2545] dark:text-slate-200">
-                  {L.emptyRoomsTitle}
-                </div>
-                <p className="text-xs sm:text-sm text-[#64748B] dark:text-slate-400 font-medium">
-                  {L.emptyRoomsDesc}
-                </p>
-              </div>
+              <div className="grid grid-cols-1 gap-3.5">{practiceRoomCard}</div>
             ) : (
               <div className="grid grid-cols-1 gap-3.5">
+                {!isMadi101Listed && practiceRoomCard}
                 {rooms.map((room) => {
                   const isWaiting = room.status === 'waiting' || room.status === 'setup';
                   const isActive = room.status === 'active';
@@ -1176,12 +1254,23 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
 
                       <div className="pt-2.5 border-t border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-3 text-xs text-slate-500">
-                          <span className="flex items-center gap-1 font-medium">
-                            <Users className="w-3.5 h-3.5" />
-                            <span>
-                              {room.participantsCount} {L.studentsCountUnit}
+                          {/* The list payload's participantsCount for MADI-101
+                              includes the server's simulated classmates, so
+                              never show that number — it is a solo practice
+                              room, not a live room with students. */}
+                          {room.code === 'MADI-101' || room.id === 'room-madi-101' ? (
+                            <span className="flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400">
+                              <Flame className="w-3.5 h-3.5" />
+                              <span>{L.soloPracticeBadge}</span>
                             </span>
-                          </span>
+                          ) : (
+                            <span className="flex items-center gap-1 font-medium">
+                              <Users className="w-3.5 h-3.5" />
+                              <span>
+                                {room.participantsCount} {L.studentsCountUnit}
+                              </span>
+                            </span>
+                          )}
                           <span className="flex items-center gap-1 font-medium">
                             <BookOpen className="w-3.5 h-3.5" />
                             <span>
@@ -1723,27 +1812,64 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             <span className="text-xs text-slate-400">{L.waitingToStartText}</span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {studentParticipants.map((p) => (
-              <div
-                key={p.id}
-                className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2.5"
-              >
-                <div className="w-9 h-9 rounded-full bg-brand-blue/10 text-brand-blue dark:text-accent-orange font-bold flex items-center justify-center shrink-0">
-                  {p.name.slice(0, 2)}
-                </div>
-                <div className="space-y-0.5 text-start overflow-hidden">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                    {p.name}
-                  </div>
-                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span>{L.onlineStatus}</span>
-                  </div>
-                </div>
+          {/* MADI-101 is a SOLO practice room: no other real students are
+              connected here and no simulated classmates are shown — practise
+              the questions on your own. */}
+          {activeRoom.id === 'room-madi-101' && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl p-3">
+              {L.practiceSoloNote}
+            </p>
+          )}
+
+          {/* Honest empty state: only real joined users are ever listed. When
+              nobody else has joined yet, say so and invite sharing the code
+              instead of showing fake players. */}
+          {studentParticipants.filter((p) => p.id !== currentUserId).length === 0 ? (
+            <div
+              data-testid="arena-empty-room-state"
+              className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-dashed border-slate-300 dark:border-slate-700 text-center space-y-2"
+            >
+              <div className="flex items-center justify-center gap-2 text-sm font-display font-extrabold text-slate-900 dark:text-white">
+                <Users className="w-4 h-4 text-brand-blue" />
+                <span>{L.onlyYouTitle}</span>
               </div>
-            ))}
-          </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                {L.onlyYouDesc}
+              </p>
+              <button
+                type="button"
+                onClick={copyRoomCode}
+                className="px-4 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-display font-bold inline-flex items-center gap-2 transition cursor-pointer"
+              >
+                {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>
+                  {L.codeLabel}: {activeRoom.code}
+                </span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {studentParticipants.map((p) => (
+                <div
+                  key={p.id}
+                  className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2.5"
+                >
+                  <div className="w-9 h-9 rounded-full bg-brand-blue/10 text-brand-blue dark:text-accent-orange font-bold flex items-center justify-center shrink-0">
+                    {p.name.slice(0, 2)}
+                  </div>
+                  <div className="space-y-0.5 text-start overflow-hidden">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {p.name}
+                    </div>
+                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                      <span>{L.onlineStatus}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="h-28 w-full shrink-0" aria-hidden="true" />
       </div>
@@ -1950,7 +2076,15 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           </div>
 
           <div className="space-y-2">
-            {rankings.slice(0, 5).map((st) => (
+            {rankings.slice(0, 5).map((st) => {
+              // Accuracy over ANSWERED questions only. The server-sent
+              // st.accuracyPct divides by the total question count, so it
+              // misleadingly reads 33% after 1 correct answer out of 1.
+              const answeredAccuracy =
+                st.totalAnswered > 0
+                  ? Math.round((st.correctCount / st.totalAnswered) * 100)
+                  : 0;
+              return (
               <div
                 key={st.id}
                 className={`p-2.5 rounded-2xl flex items-center justify-between gap-3 text-xs ${
@@ -1971,14 +2105,15 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-slate-500">
-                    {st.accuracyPct}% {L.accuracyUnit}
+                    {answeredAccuracy}% {L.accuracyUnit}
                   </span>
                   <span className="font-mono font-extrabold text-brand-blue dark:text-accent-orange">
                     {st.score} {L.pointsUnit}
                   </span>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
         <div className="h-28 w-full shrink-0" aria-hidden="true" />

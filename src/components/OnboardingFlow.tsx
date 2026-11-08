@@ -33,7 +33,10 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   const [step, setStep] = useState<number>(initialMode === 'login' ? 4 : 1);
   const [isLoginMode, setIsLoginMode] = useState<boolean>(initialMode === 'login');
 
-  const [reason, setReason] = useState<'university' | 'travel' | 'work' | 'fun'>('university');
+  // No pre-selected reason: exactly one option may look selected, and only
+  // after the user explicitly picks it (previously 'university' was the
+  // default, so it rendered as selected before any choice was made).
+  const [reason, setReason] = useState<'university' | 'travel' | 'work' | 'fun' | null>(null);
   const [goalMinutes, setGoalMinutes] = useState<5 | 10 | 20>(10);
 
   const [authTab, setAuthTab] = useState<'quick' | 'email'>('quick');
@@ -374,8 +377,9 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
               <button
                 type="button"
+                disabled={reason === null}
                 onClick={() => setStep(3)}
-                className="w-full min-h-[52px] rounded-2xl bg-accent-orange text-brand-navy font-display font-extrabold text-base flex items-center justify-center gap-2 shadow-md hover:brightness-105 transition cursor-pointer"
+                className="w-full min-h-[52px] rounded-2xl bg-accent-orange text-brand-navy font-display font-extrabold text-base flex items-center justify-center gap-2 shadow-md hover:brightness-105 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100"
               >
                 <span>{t('common.continue')}</span>
                 <ArrowRight className="w-5 h-5 rtl:rotate-180" />

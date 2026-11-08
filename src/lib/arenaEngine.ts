@@ -342,6 +342,54 @@ export function computeClassroomAnalytics(
 }
 
 /**
+ * REAL-ONLY PARTICIPANTS (Phase 3 multiplayer fix).
+ *
+ * The server still seeds the preset MADI-101 training room with simulated
+ * classmates (ids "stud-demo-*": Yassine B. / Amina K., server.ts
+ * ensureMadi101TrainingRoom) and auto-answers for them on every real answer
+ * (server.ts answer endpoint, room-madi-101 branch). Those ids are NOT real
+ * users who joined via a room code, so the client must never display them:
+ * every room payload that reaches the screen goes through these helpers.
+ * Freshly created rooms never contain demo ids — only MADI-101 does.
+ */
+export function isSimulatedParticipantId(participantId: string): boolean {
+  return participantId.startsWith('stud-demo-');
+}
+
+/** Room participants minus simulated classmates — only real joined users. */
+export function realParticipants(
+  participants: Record<string, ArenaParticipant>
+): Record<string, ArenaParticipant> {
+  return Object.fromEntries(
+    Object.entries(participants).filter(([id]) => !isSimulatedParticipantId(id))
+  );
+}
+
+/** Rankings computed from real participants only (re-ranked 1..n). */
+export function realRankingsForRoom(room: ArenaRoom): RankedStudent[] {
+  return computeRankings(realParticipants(room.participants), room.questions.length);
+}
+
+/** Classroom analytics computed from real participants only. */
+export function realAnalyticsForRoom(room: ArenaRoom): ClassroomAnalytics {
+  return computeClassroomAnalytics({
+    ...room,
+    participants: realParticipants(room.participants),
+  });
+}
+
+/**
+ * Filter a server-computed rankings list down to real participants and
+ * renumber ranks 1..n (dropping a simulated #1 must not leave a gap).
+ * Used for WebSocket payloads that carry rankings without the full room.
+ */
+export function filterRankingsToReal(rankings: RankedStudent[]): RankedStudent[] {
+  return rankings
+    .filter((r) => !isSimulatedParticipantId(r.id))
+    .map((r, idx) => ({ ...r, rank: idx + 1 }));
+}
+
+/**
  * Robust parser that extracts interactive ArenaQuestion items from Gemini output
  * whether it returns raw JSON, markdown ```json code blocks, or delimited lines.
  */
@@ -545,6 +593,10 @@ export interface ArenaLocaleStrings {
   mistakesAndSuccessRate: (mistakes: number, successPct: number) => string;
   restartChallengeBtn: string;
   deleteRoomPermanentlyBtn: string;
+  onlyYouTitle: string;
+  onlyYouDesc: string;
+  practiceSoloNote: string;
+  soloPracticeBadge: string;
 }
 
 export const ARENA_I18N: Record<ArenaSupportedLang, ArenaLocaleStrings> = {
@@ -686,6 +738,11 @@ export const ARENA_I18N: Record<ArenaSupportedLang, ArenaLocaleStrings> = {
       `${mistakes} أخطاء (${successPct}% نجاح)`,
     restartChallengeBtn: 'إعادة تشغيل التحدي',
     deleteRoomPermanentlyBtn: 'حذف هذه الغرفة نهائياً',
+    onlyYouTitle: 'أنت وحدك هنا الآن',
+    onlyYouDesc: 'شارك كود الغرفة مع أصدقائك لينضموا إليك وتبدأ المنافسة الحقيقية.',
+    practiceSoloNote:
+      'غرفة تدريب فردية: تدرّب وحدك على الأسئلة — لا يوجد طلاب آخرون متصلون هنا، ولا مشاركون وهميون.',
+    soloPracticeBadge: 'تدريب فردي',
   },
   fr: {
     heroAlt: 'Route vers Moscou — Salles de Défi',
@@ -826,6 +883,12 @@ export const ARENA_I18N: Record<ArenaSupportedLang, ArenaLocaleStrings> = {
       `${mistakes} erreurs (${successPct}% de réussite)`,
     restartChallengeBtn: 'Relancer le défi',
     deleteRoomPermanentlyBtn: 'Supprimer définitivement cette salle',
+    onlyYouTitle: 'Vous êtes seul(e) ici pour le moment',
+    onlyYouDesc:
+      'Partagez le code de la salle avec vos amis pour qu’ils vous rejoignent et que la vraie compétition commence.',
+    practiceSoloNote:
+      'Salle d’entraînement en solo : entraînez-vous seul(e) sur les questions — aucun autre élève n’est connecté ici, et aucun camarade simulé.',
+    soloPracticeBadge: 'Entraînement solo',
   },
   en: {
     heroAlt: 'Road to Moscow — Challenge Rooms',
@@ -966,6 +1029,12 @@ export const ARENA_I18N: Record<ArenaSupportedLang, ArenaLocaleStrings> = {
       `${mistakes} mistakes (${successPct}% success)`,
     restartChallengeBtn: 'Restart Challenge',
     deleteRoomPermanentlyBtn: 'Permanently Delete Room',
+    onlyYouTitle: 'You’re the only one here',
+    onlyYouDesc:
+      'Share the room code with your friends so they can join you and the real competition can begin.',
+    practiceSoloNote:
+      'Solo practice room: practise the questions on your own — no other students are connected here, and no simulated classmates.',
+    soloPracticeBadge: 'Solo practice',
   },
   ru: {
     heroAlt: 'Дорога в Москву — Комнаты вызова',
@@ -1106,6 +1175,12 @@ export const ARENA_I18N: Record<ArenaSupportedLang, ArenaLocaleStrings> = {
       `${mistakes} ошибок (${successPct}% успеха)`,
     restartChallengeBtn: 'Перезапустить вызов',
     deleteRoomPermanentlyBtn: 'Удалить комнату навсегда',
+    onlyYouTitle: 'Пока вы здесь одни',
+    onlyYouDesc:
+      'Поделитесь кодом комнаты с друзьями, чтобы они присоединились и началось настоящее соревнование.',
+    practiceSoloNote:
+      'Комната для соло-тренировки: выполняйте вопросы самостоятельно — других студентов здесь нет, и никаких симулированных одноклассников.',
+    soloPracticeBadge: 'Соло-тренировка',
   },
 };
 

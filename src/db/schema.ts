@@ -7,6 +7,7 @@ import {
   serial,
   text,
   timestamp,
+  unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
@@ -31,6 +32,9 @@ export const profiles = pgTable('profiles', {
   theme: text('theme').notNull().default('light'),
   consentAccepted: boolean('consent_accepted').notNull().default(true),
   role: text('role').notNull().default('student'),
+  // Unique per-user invite code (e.g. MADI-4821) used for add-by-code friends.
+  // Generated lazily on first use; null until then.
+  referralCode: text('referral_code').unique(),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -526,6 +530,53 @@ export const auditLog = pgTable('audit_log', {
   targetType: text('target_type').notNull(),
   targetId: text('target_id').notNull(),
   details: text('details').notNull().default(''),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// --- Friends / invite (Phase 3, minimal real implementation) -----------------
+// A friendship is stored as TWO rows (A->B and B->A) so each side's list is a
+// simple lookup. Nudges are stored rows surfaced as in-app notifications;
+// there is no push delivery (RuStore listing states the app sends none).
+export const friendships = pgTable(
+  'friendships',
+  {
+    id: serial('id').primaryKey(),
+    userId: text('user_id')
+      .references(() => profiles.id)
+      .notNull(),
+    friendId: text('friend_id')
+      .references(() => profiles.id)
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (t) => [unique('friendships_user_friend_unique').on(t.userId, t.friendId)]
+);
+
+export const nudges = pgTable('nudges', {
+  id: serial('id').primaryKey(),
+  fromUserId: text('from_user_id')
+    .references(() => profiles.id)
+    .notNull(),
+  toUserId: text('to_user_id')
+    .references(() => profiles.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  readAt: timestamp('read_at'),
+});
+
+// Teacher-created class challenges (shown in the Leagues > Faculty tab).
+// currentFuel is computed at read time from group members' weekly fuel;
+// it starts at 0 and is aggregated by the teacher dashboard work.
+export const classChallenges = pgTable('class_challenges', {
+  id: serial('id').primaryKey(),
+  groupId: text('group_id').notNull().default(''),
+  groupName: text('group_name').notNull().default(''),
+  teacherId: text('teacher_id')
+    .references(() => profiles.id)
+    .notNull(),
+  teacherName: text('teacher_name').notNull().default(''),
+  title: text('title').notNull(),
+  targetFuel: integer('target_fuel').notNull().default(500),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

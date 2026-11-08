@@ -21,11 +21,7 @@ import {
 import { useI18n } from '../lib/i18n';
 import { Phase4AdminAnalyticsView } from './Phase4AdminAnalyticsView';
 import {
-  INITIAL_TEACHER_GROUPS,
-  INITIAL_ASSIGNMENTS,
-  INITIAL_ANNOUNCEMENTS,
   INITIAL_REVIEW_QUEUE,
-  INITIAL_AUDIT_LOG,
   DEMO_TEACHER_GROUPS,
   DEMO_ASSIGNMENTS,
   DEMO_ANNOUNCEMENTS,
@@ -48,6 +44,7 @@ interface TeacherDashboardViewProps {
   certificatesCount?: number;
   userRole: UserRole;
   userName: string;
+  authToken?: string | null;
   onPublishCustomLesson: (lessonObj: any) => void;
   onAssignmentsUpdated: (assignments: GroupAssignment[]) => void;
 }
@@ -58,19 +55,22 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
   certificatesCount = 0,
   userRole,
   userName,
+  authToken = null,
   onPublishCustomLesson,
   onAssignmentsUpdated,
 }) => {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<'groups' | 'builder' | 'pipeline' | 'moderation' | 'analytics'>('groups');
 
-  // Dashboard data (empty in production; sample data in Demo Mode per R1/R2)
-  const [groups, setGroups] = useState<TeacherGroup[]>(INITIAL_TEACHER_GROUPS);
-  const [selectedGroupId, setSelectedGroupId] = useState<string>(INITIAL_TEACHER_GROUPS[0]?.id || '');
-  const [assignments, setAssignments] = useState<GroupAssignment[]>(INITIAL_ASSIGNMENTS);
-  const [announcements, setAnnouncements] = useState<GroupAnnouncement[]>(INITIAL_ANNOUNCEMENTS);
-  const [reviewQueue, setReviewQueue] = useState<ReviewQueueItem[]>(INITIAL_REVIEW_QUEUE);
-  const [auditLog, setAuditLog] = useState<AuditLogEntry[]>(INITIAL_AUDIT_LOG);
+  // Dashboard data — real DB data in production (fetched from the
+  // /api/teacher/* router); honest empty states when the teacher has no
+  // groups/students yet. Demo Mode shows the DEMO_* datasets instead.
+  const [groups, setGroups] = useState<TeacherGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+  const [assignments, setAssignments] = useState<GroupAssignment[]>([]);
+  const [announcements, setAnnouncements] = useState<GroupAnnouncement[]>([]);
+  const [reviewQueue, setReviewQueue] = useState<ReviewQueueItem[]>([]);
+  const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
   const [reports, setReports] = useState<ContentReportItem[]>([]);
 
   // Group Creation & CSV Import state
@@ -143,38 +143,92 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
   const [approvalSourceUrl, setApprovalSourceUrl] = useState<string>('https://madi.ru/rki/materials');
   const [approvalConsentDocUrl, setApprovalConsentDocUrl] = useState<string>('https://madi.ru/rki/consent-signed.pdf');
 
-  const loadDashboard = () => {
-    fetch('/api/teacher/dashboard')
-      .then((r) => r.json())
-      .then((data) => {
-        if (demoMode && (!data.groups || data.groups.length === 0)) {
-          setGroups(DEMO_TEACHER_GROUPS);
-          setSelectedGroupId(DEMO_TEACHER_GROUPS[0]?.id || '');
-          setAssignments(DEMO_ASSIGNMENTS);
-          setAnnouncements(DEMO_ANNOUNCEMENTS);
-        } else {
-          if (Array.isArray(data.groups)) {
-            setGroups(data.groups);
-            if (data.groups.length > 0 && !selectedGroupId) {
-              setSelectedGroupId(data.groups[0].id);
-            }
-          }
-          if (Array.isArray(data.assignments)) {
-            setAssignments(data.assignments);
-            onAssignmentsUpdated(data.assignments);
-          }
-          if (Array.isArray(data.announcements)) setAnnouncements(data.announcements);
+  const authHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
+    return headers;
+  };
+
+  const loadDashboard = async () => {
+    if (demoMode) {
+      setGroups(DEMO_TEACHER_GROUPS);
+      setSelectedGroupId(DEMO_TEACHER_GROUPS[0]?.id || '');
+      setAssignments(DEMO_ASSIGNMENTS);
+      setAnnouncements(DEMO_ANNOUNCEMENTS);
+      // Demo Mode keeps the single seeded review example; production loads
+      // the real queue from Postgres below.
+      setReviewQueue(INITIAL_REVIEW_QUEUE);
+      return;
+    }
+    try {
+      const groupsRes = await fetch('/api/teacher/groups', { headers: authHeaders() });
+      if (groupsRes.ok) {
+        const data = await groupsRes.json();
+        if (Array.isArray(data.groups)) {
+          setGroups(data.groups);
+          setSelectedGroupId((prev) => prev || data.groups[0]?.id || '');
         }
+      }
+      const queueRes = await fetch('/api/teacher/review-queue', { headers: authHeaders() });
+      if (queueRes.ok) {
+        const data = await queueRes.json();
         if (Array.isArray(data.reviewQueue)) setReviewQueue(data.reviewQueue);
         if (Array.isArray(data.auditLog)) setAuditLog(data.auditLog);
-        if (Array.isArray(data.reports)) setReports(data.reports);
-      })
-      .catch(() => {});
+      }
+    } catch {
+      // Offline tolerance — honest empty states stay visible.
+    }
   };
 
   useEffect(() => {
     loadDashboard();
-  }, [demoMode]);
+  }, [demoMode, authToken]);
+
+  // Per-group data for the selected group: real members (with live progress),
+  // assignments and announcements for that group only.
+  useEffect(() => {
+    if (demoMode || !selectedGroupId) return;
+    let cancelled = false;
+    const headers: Record<string, string> = {};
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
+    const loadGroupData = async () => {
+      try {
+        const [membersRes, asgnRes, annRes] = await Promise.all([
+          fetch(`/api/teacher/groups/${selectedGroupId}/members`, { headers }),
+          fetch(`/api/teacher/groups/${selectedGroupId}/assignments`, { headers }),
+          fetch(`/api/teacher/groups/${selectedGroupId}/announcements`, { headers }),
+        ]);
+        if (cancelled) return;
+        if (membersRes.ok) {
+          const data = await membersRes.json();
+          if (Array.isArray(data.students)) {
+            setGroups((prev) =>
+              prev.map((g) =>
+                g.id === selectedGroupId ? { ...g, students: data.students } : g
+              )
+            );
+          }
+        }
+        if (asgnRes.ok) {
+          const data = await asgnRes.json();
+          if (Array.isArray(data.assignments)) {
+            setAssignments(data.assignments);
+            onAssignmentsUpdated(data.assignments);
+          }
+        }
+        if (annRes.ok) {
+          const data = await annRes.json();
+          if (Array.isArray(data.announcements)) setAnnouncements(data.announcements);
+        }
+      } catch {
+        // Offline tolerance.
+      }
+    };
+    loadGroupData();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGroupId, demoMode, authToken]);
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) || groups[0] || null;
 
@@ -223,7 +277,7 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
     if (!newGroupName.trim()) return;
     const resp = await fetch('/api/teacher/groups', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
         name: newGroupName.trim(),
         level: 'A1',
@@ -240,10 +294,10 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
 
   const handleImportCsvStudents = async () => {
     if (!csvImportText.trim() || !selectedGroup) return;
-    const resp = await fetch(`/api/teacher/groups/${selectedGroup.id}/import-csv`, {
+    const resp = await fetch('/api/teacher/import-csv', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ csvText: csvImportText }),
+      headers: authHeaders(),
+      body: JSON.stringify({ groupId: selectedGroup.id, csvText: csvImportText }),
     });
     const data = await resp.json();
     if (resp.ok && data.groups) {
@@ -255,11 +309,10 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
 
   const handleCreateAssignment = async () => {
     if (!newAsgnTitle.trim() || !selectedGroup) return;
-    const resp = await fetch('/api/teacher/assignments', {
+    const resp = await fetch(`/api/teacher/groups/${selectedGroup.id}/assignments`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
-        groupId: selectedGroup.id,
         targetType: 'lesson',
         targetId: newAsgnTargetId,
         title: newAsgnTitle.trim(),
@@ -276,11 +329,10 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
 
   const handlePostAnnouncement = async () => {
     if (!newAnnouncementText.trim() || !selectedGroup) return;
-    const resp = await fetch('/api/teacher/announcements', {
+    const resp = await fetch(`/api/teacher/groups/${selectedGroup.id}/announcements`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
-        groupId: selectedGroup.id,
         authorName: userName || 'Teacher',
         message: newAnnouncementText.trim(),
       }),
@@ -405,14 +457,14 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
     decision: 'approved' | 'rejected'
   ) => {
     setPipelineError(null);
-    const resp = await fetch(`/api/review-queue/${item.id}/decision`, {
+    const resp = await fetch(`/api/teacher/review-queue/${item.id}/resolve`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
         decision,
+        feedback: reviewCommentInput || `${decision} after teacher verification`,
         reviewerName: userName || 'Reviewer',
         reviewerRole: userRole === 'student' ? 'teacher' : userRole,
-        comments: reviewCommentInput || `${decision} after teacher verification`,
         updatedTitle: editingQueueId === item.id && editingTitle ? editingTitle : item.title,
         license: approvalLicense,
         sourceUrl: approvalSourceUrl,

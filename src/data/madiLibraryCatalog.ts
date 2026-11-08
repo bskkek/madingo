@@ -1941,7 +1941,7 @@ export const OFFICIAL_LIBRARY_CATALOG: LibraryItem[] = RAW_OFFICIAL_BOOKS.map((b
   ...book,
   coverImageUrl:
     book.origin === 'madi_official'
-      ? `/covers/${book.id}.jpg`
+      ? `${import.meta.env.BASE_URL}covers/${book.id}.jpg`
       : generateBookCoverSvgDataUrl({
           titleRu: book.title.ru,
           author: book.author,

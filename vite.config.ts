@@ -5,7 +5,12 @@ import {defineConfig} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
+  // GitHub Pages serves the project site under /madingo/ — build with the
+  // sub-path base only when PAGES=1 (the Pages workflow sets it). Default
+  // builds (Netlify, local) keep the root base '/'.
+  const pagesBase = process.env.PAGES ? '/madingo/' : '/';
   return {
+    base: pagesBase,
     plugins: [
       react(),
       tailwindcss(),
@@ -13,30 +18,27 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'brand/madi-logo.svg'],
         manifest: {
-          id: '/',
           name: 'madingo — Learn Russian on the MADI Road',
           short_name: 'madingo',
           description: 'Free Russian-learning PWA for students of MADI (Moscow Automobile and Road Construction State Technical University).',
           theme_color: '#0B3D91',
           background_color: '#F7F9FC',
           display: 'standalone',
-          start_url: '/',
-          scope: '/',
           icons: [
             {
-              src: '/pwa-192x192.png',
+              src: 'pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/pwa-512x512.png',
+              src: 'pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/pwa-maskable-512x512.png',
+              src: 'pwa-maskable-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',

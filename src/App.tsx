@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Map,
   BookOpen,
@@ -72,8 +72,12 @@ import {
   cacheCompletedLessonOffline,
   cacheCurrentUnitOffline,
   cacheGarageItemsOffline,
+  clearDashboardSnapshot,
   getCachedGarageItemsOffline,
+  loadDashboardSnapshot,
   queueOfflineGarageReview,
+  saveDashboardSnapshot,
+  DashboardSnapshot,
 } from './lib/offlineCache';
 import { DriverAvatarIcon, MadingoWordmark } from './components/BrandVisuals';
 import { FlagPickerModal } from './components/FlagPickerModal';
@@ -92,6 +96,15 @@ import { audioService, AudioServiceState } from './lib/audio';
 import { OfflineIndicator } from './components/PWAInstallButton';
 import { Phase4LeaguesAndBadgesView } from './components/Phase4LeaguesAndBadgesView';
 import { AIClassroomArenaView } from './components/AIClassroomArenaView';
+import { ReviewQueueView } from './components/ReviewQueueView';
+import {
+  PlacementTestView,
+  PlacementTestResult,
+} from './components/PlacementTestView';
+import {
+  SpeakingPracticeView,
+  SpeakingPracticeResult,
+} from './components/SpeakingPracticeView';
 import {
   DEMO_NOTIFICATIONS,
   InAppNotificationItem,
@@ -126,7 +139,10 @@ type AppTab =
   | 'leagues'
   | 'library'
   | 'teacher'
-  | 'profile';
+  | 'profile'
+  | 'garage'
+  | 'placement'
+  | 'speaking';
 
 const DEFAULT_PROFILE: UserProfileState = {
   id: 'demo-student',
@@ -139,6 +155,32 @@ const DEFAULT_PROFILE: UserProfileState = {
   notificationsEnabled: true,
   theme: 'light',
 };
+
+const MADINGO_AUTH_TOKEN_KEY = 'madingo_auth_token';
+
+function loadStoredAuthToken(): string | null {
+  try {
+    return window.localStorage.getItem(MADINGO_AUTH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function storeAuthToken(token: string): void {
+  try {
+    window.localStorage.setItem(MADINGO_AUTH_TOKEN_KEY, token);
+  } catch {
+    // Private mode / quota: session-only fallback, progress still syncs while open.
+  }
+}
+
+function clearStoredAuthToken(): void {
+  try {
+    window.localStorage.removeItem(MADINGO_AUTH_TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 const MadingoAppInner: React.FC = () => {
   const { lang, setLang, t, hasChosenInitialLang, confirmInitialLang } = useI18n();
@@ -240,6 +282,14 @@ const MadingoAppInner: React.FC = () => {
     SEED_CLASS_CHALLENGES
   );
   const [friends, setFriends] = useState<FriendConnection[]>(SEED_FRIENDS);
+  // Best Repeat-After-Me score this session (feeds badges + leagues view).
+  const [bestSpeakingScore, setBestSpeakingScore] = useState<number>(0);
+  // Real per-user invite code from GET /api/me/invite (unique per student).
+  const [ownFriendCode, setOwnFriendCode] = useState<string>('');
+  // Feedback for the add-by-code action, shown in the leagues friends tab.
+  const [friendActionMessage, setFriendActionMessage] = useState<string | null>(
+    null
+  );
   const [optedOutOfLeaderboard, setOptedOutOfLeaderboard] = useState<boolean>(false);
   const [equippedCarSkin, setEquippedCarSkin] = useState<string>('car-madi-blue');
   const [equippedMascotOutfit, setEquippedMascotOutfit] =
@@ -330,7 +380,7 @@ const MadingoAppInner: React.FC = () => {
       speakingClipsCompleted: 0,
       threeStarSpeakingClips: 0,
       roleplaysCompleted: 0,
-      bestSpeakingScore: 0,
+      bestSpeakingScore,
       typingTextsCompleted: 0,
       bestTypingCpm: 0,
       wordsLearnedCount: userWords.length,
@@ -355,6 +405,7 @@ const MadingoAppInner: React.FC = () => {
     friends,
     totalFuel,
     certificates,
+    bestSpeakingScore,
   ]);
 
   const learnerQuests = useMemo(() => {
@@ -588,14 +639,281 @@ const MadingoAppInner: React.FC = () => {
       setReviewItems(dashboard.reviewItems);
       cacheGarageItemsOffline(dashboard.reviewItems);
     }
+    // Unread friend nudges arrive as in-app notifications (no push).
+    if (Array.isArray(dashboard.pendingNudges)) {
+      const nudgeNotes: InAppNotificationItem[] = dashboard.pendingNudges.map(
+        (n: {
+          id: number;
+          fromUserId: string;
+          fromNickname: string;
+          createdAt: string;
+        }) => ({
+          id: `nudge-${n.id}`,
+          type: 'friend_nudge',
+          title: {
+            ru: `${n.fromNickname} подбадривает вас!`,
+            en: `${n.fromNickname} sent you a nudge!`,
+            ar: `${n.fromNickname} أرسل لك تذكيراً!`,
+            fr: `${n.fromNickname} vous a encouragé !`,
+          },
+          body: {
+            ru: 'Ваш друг по учёбе напоминает: пора заниматься русским.',
+            en: 'Your study friend says: time to practice Russian.',
+            ar: 'صديقك في الدراسة يقول: حان وقت ممارسة الروسية.',
+            fr: 'Votre ami d’étude vous rappelle : c’est le moment de pratiquer le russe.',
+          },
+          createdAt: n.createdAt,
+          isRead: false,
+        })
+      );
+      if (nudgeNotes.length > 0) {
+        setNotifications((prev) => {
+          const known = new Set(prev.map((p) => p.id));
+          const fresh = nudgeNotes.filter((n) => !known.has(n.id));
+          return fresh.length > 0 ? [...fresh, ...prev] : prev;
+        });
+      }
+    }
   };
 
   const handleAuthenticated = (token: string, dashboard: any) => {
+    // PHASE 1 FIX: persist the session token so a reload resumes the SAME
+    // student instead of quick-entry creating a brand-new account.
+    storeAuthToken(token);
     setAuthToken(token);
     applyServerDashboard(dashboard);
     setScreen('app');
     setActiveTab('map');
   };
+
+  // --- Phase 2 features: SRS review, placement test, speaking -------------
+  const handleGarageReview = async (
+    outcomes: { itemRef: string; wasCorrect: boolean }[]
+  ) => {
+    if (authToken) {
+      try {
+        const res = await fetch('/api/me/garage/review', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ outcomes }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          applyServerDashboard(data);
+        }
+      } catch {
+        // Offline: queue for later sync; the local snapshot keeps progress.
+        queueOfflineGarageReview(
+          outcomes.map((o) => ({ itemId: o.itemRef, isCorrect: o.wasCorrect }))
+        );
+      }
+    } else {
+      queueOfflineGarageReview(
+        outcomes.map((o) => ({ itemId: o.itemRef, isCorrect: o.wasCorrect }))
+      );
+    }
+  };
+
+  // Placement test-out: the user proved the earlier material in the test,
+  // so those lessons are marked complete at the test score (no fuel — fuel
+  // is earned by doing lessons, not by skipping them).
+  const handlePlacementFinish = async (result: PlacementTestResult) => {
+    const scorePct =
+      result.total > 0 ? Math.round((result.score / result.total) * 100) : 0;
+    const toComplete = result.unlockLessonIds.filter(
+      (id) => !completedLessonIds.includes(id)
+    );
+    if (authToken) {
+      for (const lessonId of toComplete) {
+        try {
+          const res = await fetch('/api/me/lesson-complete', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              lessonId,
+              accuracy: scorePct,
+              fuelEarned: 0,
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            applyServerDashboard(data);
+          }
+        } catch {
+          // Keep going — the local fallback below still unlocks the map.
+        }
+      }
+    }
+    setCompletedLessonIds((prev) => [
+      ...new Set([...prev, ...result.unlockLessonIds]),
+    ]);
+    setAccuracyByLesson((prev) => {
+      const next = { ...prev };
+      for (const id of result.unlockLessonIds) {
+        if (!(id in next)) next[id] = scorePct;
+      }
+      return next;
+    });
+    const unit = CURRICULUM_UNITS.find(
+      (u) => u.id === result.recommendedUnitId
+    );
+    if (unit) {
+      // The map derives "current" from completed lessons, so marking the
+      // earlier lessons complete already moves the pointer to this unit.
+      cacheCurrentUnitOffline(unit);
+    }
+    setActiveTab('map');
+  };
+
+  const handleSpeakingAttempt = (result: SpeakingPracticeResult) => {
+    setBestSpeakingScore((prev) => Math.max(prev, result.scorePct));
+  };
+
+  // --- Phase 3 (minimal, real): friends / invite / nudges / challenges ---
+  const loadFriendsAndInvite = async () => {
+    if (!authToken) return;
+    try {
+      const [friendsRes, inviteRes, overviewRes] = await Promise.all([
+        fetch('/api/me/friends', {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }),
+        fetch('/api/me/invite', {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }),
+        fetch('/api/phase4/overview'),
+      ]);
+      if (friendsRes.ok) {
+        const data = await friendsRes.json();
+        if (Array.isArray(data.friends)) setFriends(data.friends);
+      }
+      if (inviteRes.ok) {
+        const data = await inviteRes.json();
+        if (data.code) setOwnFriendCode(data.code);
+      }
+      if (overviewRes.ok) {
+        const data = await overviewRes.json();
+        if (Array.isArray(data.classChallenges)) {
+          setClassChallenges(data.classChallenges);
+        }
+        if (Array.isArray(data.leagueParticipants)) {
+          setLeagueParticipants(data.leagueParticipants);
+        }
+      }
+    } catch {
+      // Offline: keep whatever is already in state.
+    }
+  };
+
+  const handleAddFriendByCode = async (code: string) => {
+    if (!authToken) {
+      setFriendActionMessage('Sign in to add friends.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/friends/add-by-code', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFriendActionMessage(
+          data.error || 'Could not add that friend — check the code.'
+        );
+        return;
+      }
+      if (data.friend) {
+        setFriends((prev) =>
+          prev.some((f) => f.id === data.friend.id)
+            ? prev
+            : [...prev, data.friend]
+        );
+        setFriendActionMessage(
+          `Added ${data.friend.nickname} as a study friend.`
+        );
+      }
+    } catch {
+      setFriendActionMessage('Could not reach the server — try again.');
+    }
+  };
+
+  const handleSendNudge = async (friendId: string) => {
+    if (!authToken) {
+      return { allowed: false, message: 'Sign in to send nudges.' };
+    }
+    try {
+      const res = await fetch(`/api/friends/${friendId}/nudge`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.allowed) {
+        setFriends((prev) =>
+          prev.map((f) =>
+            f.id === friendId
+              ? { ...f, lastNudgedAt: new Date().toISOString() }
+              : f
+          )
+        );
+      }
+      return {
+        allowed: Boolean(data.allowed),
+        message: String(data.message || ''),
+      };
+    } catch {
+      return { allowed: false, message: 'Could not reach the server.' };
+    }
+  };
+
+  const handleCreateClassChallenge = async (
+    title: string,
+    groupName: string,
+    targetFuel: number
+  ) => {
+    if (!authToken) return;
+    try {
+      const res = await fetch('/api/phase4/class-challenges', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, groupName, targetFuel }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.challenges)) {
+          setClassChallenges(data.challenges);
+        }
+      }
+    } catch {
+      // Teacher-only action; failure leaves the list unchanged.
+    }
+  };
+
+  const handleEquipCosmetic = (item: CosmeticItem) => {
+    if (item.type === 'car_skin') setEquippedCarSkin(item.id);
+    else if (item.type === 'mascot_outfit') setEquippedMascotOutfit(item.id);
+    else if (item.type === 'map_theme') setEquippedMapTheme(item.id);
+  };
+
+  // Load real friends / invite code / challenges when the leagues tab opens.
+  useEffect(() => {
+    if (activeTab === 'leagues' && authToken) {
+      setFriendActionMessage(null);
+      loadFriendsAndInvite();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, authToken]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -615,6 +933,7 @@ const MadingoAppInner: React.FC = () => {
         });
         if (res.ok) {
           const data = await res.json();
+          storeAuthToken(data.token || idToken);
           setAuthToken(data.token || idToken);
           applyServerDashboard(data.dashboard);
           setScreen((prev) =>
@@ -629,6 +948,87 @@ const MadingoAppInner: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  // PHASE 1 FIX — session restore: on reload, resume the SAME student.
+  // 1) Paint the local dashboard snapshot instantly (works offline).
+  // 2) If a session token was saved, validate it against /api/me and apply
+  //    the authoritative server dashboard. A dead token is cleared so the
+  //    user lands on onboarding instead of an empty account.
+  useEffect(() => {
+    const snapshot = loadDashboardSnapshot();
+    if (snapshot) {
+      setProfile((prev) => ({
+        ...prev,
+        displayName: snapshot.profile.displayName || prev.displayName,
+        uiLang: (snapshot.profile.uiLang || prev.uiLang) as SupportedLang,
+        goalMinutes: snapshot.profile.goalMinutes || prev.goalMinutes,
+      }));
+      setCompletedLessonIds(snapshot.completedLessonIds);
+      setAccuracyByLesson(snapshot.accuracyByLesson || {});
+      setTotalFuel(snapshot.totalFuel);
+      setStreak(snapshot.streak);
+      setTodayMinutesCompleted(snapshot.todayMinutesCompleted || 0);
+      if (['ru', 'en', 'ar', 'fr'].includes(snapshot.profile.uiLang)) {
+        setLang(snapshot.profile.uiLang as SupportedLang);
+      }
+    }
+    const storedToken = loadStoredAuthToken();
+    if (!storedToken) return;
+    (async () => {
+      try {
+        const res = await fetch('/api/me', {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+        if (!res.ok) throw new Error('session restore failed');
+        const data = await res.json();
+        setAuthToken(storedToken);
+        applyServerDashboard(data);
+        setScreen((prev) =>
+          prev === 'landing' || prev === 'login' || prev === 'onboarding'
+            ? 'app'
+            : prev
+        );
+        setActiveTab('map');
+      } catch {
+        clearStoredAuthToken();
+        clearDashboardSnapshot();
+      }
+    })();
+  }, []);
+
+  // PHASE 1 FIX — persist a local progress snapshot whenever progress
+  // changes, so progress survives even if the server is unreachable.
+  // The first run is skipped so the mount-time restore above is never
+  // overwritten by the initial (empty) state.
+  const snapshotPersistReadyRef = useRef(false);
+  useEffect(() => {
+    if (!snapshotPersistReadyRef.current) {
+      snapshotPersistReadyRef.current = true;
+      return;
+    }
+    saveDashboardSnapshot({
+      profile: {
+        displayName: profile.displayName,
+        uiLang: profile.uiLang,
+        goalMinutes: profile.goalMinutes,
+      },
+      completedLessonIds,
+      accuracyByLesson,
+      totalFuel,
+      streak,
+      todayMinutesCompleted,
+      savedAt: new Date().toISOString(),
+    });
+  }, [
+    completedLessonIds,
+    accuracyByLesson,
+    totalFuel,
+    streak,
+    todayMinutesCompleted,
+    profile.displayName,
+    profile.uiLang,
+    profile.goalMinutes,
+  ]);
 
   const handleStartLesson = (lesson: CurriculumLesson) => {
     const unit = CURRICULUM_UNITS.find((u) => u.id === lesson.unitId);
@@ -996,6 +1396,8 @@ const MadingoAppInner: React.FC = () => {
 
   const handleLogout = () => {
     signOut(auth).catch(() => {});
+    clearStoredAuthToken();
+    clearDashboardSnapshot();
     setAuthToken(null);
     setScreen('landing');
   };
@@ -1012,6 +1414,8 @@ const MadingoAppInner: React.FC = () => {
       }
     }
     setAuthToken(null);
+    clearStoredAuthToken();
+    clearDashboardSnapshot();
     setCompletedLessonIds([]);
     setAccuracyByLesson({});
     setTotalFuel(0);
@@ -1199,11 +1603,12 @@ const MadingoAppInner: React.FC = () => {
                 equippedCarSkin={equippedCarSkin}
                 equippedMapTheme={equippedMapTheme}
                 onStartLesson={handleStartLesson}
-                onOpenGarage={() => setActiveTab('typing_lab')}
+                onOpenGarage={() => setActiveTab('garage')}
                 onOpenDictionary={() => setActiveTab('dictionary')}
                 onOpenDevExercises={() => setScreen('dev_exercises')}
-                onOpenExamsAndPlacement={() => setActiveTab('arena')}
-                onOpenLeaguesAndBadges={() => setActiveTab('arena')}
+                onOpenExamsAndPlacement={() => setActiveTab('placement')}
+                onOpenLeaguesAndBadges={() => setActiveTab('leagues')}
+                onOpenSpeaking={() => setActiveTab('speaking')}
               />
             )}
 
@@ -1226,13 +1631,70 @@ const MadingoAppInner: React.FC = () => {
               />
             )}
 
-            {(activeTab === 'arena' || activeTab === 'leagues') && (
+            {activeTab === 'arena' && (
               <AIClassroomArenaView
                 currentUserId={profile.id}
                 currentUserName={profile.displayName}
                 currentUserAvatar={profile.avatarId}
                 userRole={userRole}
                 soundEnabled={profile.soundEnabled}
+              />
+            )}
+
+            {activeTab === 'leagues' && (
+              <Phase4LeaguesAndBadgesView
+                userId={profile.id}
+                userNickname={profile.displayName}
+                userAvatarId={profile.avatarId}
+                userRole={userRole}
+                weeklyFuel={totalFuel}
+                streakDays={streak.current}
+                wordsLearnedCount={userWords.length}
+                bestSpeakingScore={bestSpeakingScore}
+                soundEnabled={profile.soundEnabled}
+                leagueParticipants={leagueParticipants}
+                facultyBoard={facultyBoard}
+                classChallenges={classChallenges}
+                friends={friends}
+                unlockedBadgeIds={badgeEvaluation.unlockedBadgeIds}
+                unlockedCosmeticIds={badgeEvaluation.unlockedCosmeticIds}
+                equippedCarSkin={equippedCarSkin}
+                equippedMascotOutfit={equippedMascotOutfit}
+                equippedMapTheme={equippedMapTheme}
+                quests={learnerQuests}
+                optedOutOfLeaderboard={optedOutOfLeaderboard}
+                onToggleLeaderboardOptOut={setOptedOutOfLeaderboard}
+                onAddFriendByCode={handleAddFriendByCode}
+                onSendNudge={handleSendNudge}
+                onCreateClassChallenge={handleCreateClassChallenge}
+                onEquipCosmetic={handleEquipCosmetic}
+                ownFriendCode={ownFriendCode}
+                friendActionMessage={friendActionMessage}
+              />
+            )}
+
+            {activeTab === 'garage' && (
+              <ReviewQueueView
+                items={reviewItems}
+                soundEnabled={profile.soundEnabled}
+                onCompleteReview={handleGarageReview}
+                onExit={() => setActiveTab('map')}
+              />
+            )}
+
+            {activeTab === 'placement' && (
+              <PlacementTestView
+                soundEnabled={profile.soundEnabled}
+                onFinish={handlePlacementFinish}
+                onExit={() => setActiveTab('map')}
+              />
+            )}
+
+            {activeTab === 'speaking' && (
+              <SpeakingPracticeView
+                soundEnabled={profile.soundEnabled}
+                onExit={() => setActiveTab('map')}
+                onSaveAttempt={handleSpeakingAttempt}
               />
             )}
 
@@ -1272,6 +1734,7 @@ const MadingoAppInner: React.FC = () => {
                 </div>
               ) : (
                 <TeacherDashboardView
+                  authToken={authToken}
                   soundEnabled={profile.soundEnabled}
                   userRole={userRole}
                   userName={profile.displayName}
@@ -1350,9 +1813,16 @@ const MadingoAppInner: React.FC = () => {
         isOpen={showNotificationsDrawer}
         onClose={() => setShowNotificationsDrawer(false)}
         notifications={notifications}
-        onMarkAllRead={() =>
-          setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
-        }
+        onMarkAllRead={() => {
+          setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+          // Friend nudges are stored rows — mark them read server-side too.
+          if (authToken) {
+            fetch('/api/me/nudges/read-all', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${authToken}` },
+            }).catch(() => {});
+          }
+        }}
       />
 
       <LegalAndGdprModal

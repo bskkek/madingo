@@ -4,35 +4,35 @@ import { useI18n } from '../lib/i18n';
 const CHARACTER_CONFIGS = [
   {
     id: 'girl',
-    sprite: '/assets/madi-crew/sprites/girl.png',
+    sprite: import.meta.env.BASE_URL + 'assets/madi-crew/sprites/girl.png',
     style: { left: '0.000%', top: '25.764%', width: '21.381%', '--i': 0 },
     idleClass: 'wave',
     dur: '2.2s',
   },
   {
     id: 'professor',
-    sprite: '/assets/madi-crew/sprites/professor.png',
+    sprite: import.meta.env.BASE_URL + 'assets/madi-crew/sprites/professor.png',
     style: { left: '20.977%', top: '0.000%', width: '22.143%', '--i': 1 },
     idleClass: 'breathe',
     dur: '4.2s',
   },
   {
     id: 'kid',
-    sprite: '/assets/madi-crew/sprites/kid.png',
+    sprite: import.meta.env.BASE_URL + 'assets/madi-crew/sprites/kid.png',
     style: { left: '41.112%', top: '30.120%', width: '18.450%', '--i': 2 },
     idleClass: 'hop',
     dur: '2.6s',
   },
   {
     id: 'builder',
-    sprite: '/assets/madi-crew/sprites/builder.png',
+    sprite: import.meta.env.BASE_URL + 'assets/madi-crew/sprites/builder.png',
     style: { left: '57.234%', top: '19.450%', width: '22.890%', '--i': 3 },
     idleClass: 'sway',
     dur: '3.4s',
   },
   {
     id: 'engineer',
-    sprite: '/assets/madi-crew/sprites/engineer.png',
+    sprite: import.meta.env.BASE_URL + 'assets/madi-crew/sprites/engineer.png',
     style: { left: '78.500%', top: '21.200%', width: '21.500%', '--i': 4 },
     idleClass: 'lean',
     dur: '3.8s',
@@ -87,7 +87,7 @@ export const MadiCrewSection: React.FC = () => {
           <div className="absolute inset-[2%_14%_0_14%] rounded-full bg-[#EFE9DF] opacity-90 dark:bg-[#16213A]" />
 
           <div className="car absolute top-[28%] left-[32%] w-[18%] z-10 animate-drive">
-            <img src="/assets/madi-crew/sprites/car.png" alt="Car" className="w-full h-auto select-none" draggable={false} />
+            <img src={import.meta.env.BASE_URL + "madi-crew/sprites/car.png"} alt="Car" className="w-full h-auto select-none" draggable={false} />
           </div>
 
           {CHARACTER_CONFIGS.map((char) => {

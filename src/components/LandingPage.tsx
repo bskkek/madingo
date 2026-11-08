@@ -23,23 +23,23 @@ interface MadiLiveStoryItem {
 
 const KNOWN_LOCAL_STORY_ASSETS: Record<string, string> = {
   'https://www.madi.ru/uploads/images/2026/10/23/1792763352_sayit31.10.png':
-    '/assets/madi-stories/story-1.webp',
+    import.meta.env.BASE_URL + 'assets/madi-stories/story-1.webp',
   'https://www.madi.ru/uploads/images/2026/09/14/1789381155_madi-banner-universal.png':
-    '/assets/madi-stories/story-2.webp',
+    import.meta.env.BASE_URL + 'assets/madi-stories/story-2.webp',
   'https://www.madi.ru/uploads/images/2025/04/24/1745486917_SayitKnigaPamyati.png':
-    '/assets/madi-stories/story-3.webp',
+    import.meta.env.BASE_URL + 'assets/madi-stories/story-3.webp',
   'https://www.madi.ru/uploads/images/2026/09/15/1789480019_image.png':
-    '/assets/madi-stories/story-4.webp',
+    import.meta.env.BASE_URL + 'assets/madi-stories/story-4.webp',
   'https://www.madi.ru/uploads/images/2022/03/25/1648201524_Slayidersocseti-min.png':
-    '/assets/madi-stories/story-5.webp',
+    import.meta.env.BASE_URL + 'assets/madi-stories/story-5.webp',
 };
 
 const INITIAL_MADI_STORIES: MadiLiveStoryItem[] = [
   {
     id: 'madi-story-1',
     imageUrl: 'https://www.madi.ru/uploads/images/2026/10/23/1792763352_sayit31.10.png',
-    localImageUrl: '/assets/madi-stories/story-1.webp',
-    proxyImageUrl: '/assets/madi-stories/story-1.webp',
+    localImageUrl: import.meta.env.BASE_URL + 'assets/madi-stories/story-1.webp',
+    proxyImageUrl: import.meta.env.BASE_URL + 'assets/madi-stories/story-1.webp',
     title: '',
     subtitle: '',
     href: 'https://forms.cloud.microsoft/e/pBHtH0wVPA/',
@@ -47,8 +47,8 @@ const INITIAL_MADI_STORIES: MadiLiveStoryItem[] = [
   {
     id: 'madi-story-2',
     imageUrl: 'https://www.madi.ru/uploads/images/2026/09/14/1789381155_madi-banner-universal.png',
-    localImageUrl: '/assets/madi-stories/story-2.webp',
-    proxyImageUrl: '/assets/madi-stories/story-2.webp',
+    localImageUrl: import.meta.env.BASE_URL + 'assets/madi-stories/story-2.webp',
+    proxyImageUrl: import.meta.env.BASE_URL + 'assets/madi-stories/story-2.webp',
     title: '',
     subtitle: '',
     href: 'https://olimpiada.madi.ru/',
@@ -56,8 +56,8 @@ const INITIAL_MADI_STORIES: MadiLiveStoryItem[] = [
   {
     id: 'madi-story-3',
     imageUrl: 'https://www.madi.ru/uploads/images/2025/04/24/1745486917_SayitKnigaPamyati.png',
-    localImageUrl: '/assets/madi-stories/story-3.webp',
-    proxyImageUrl: '/assets/madi-stories/story-3.webp',
+    localImageUrl: import.meta.env.BASE_URL + 'assets/madi-stories/story-3.webp',
+    proxyImageUrl: import.meta.env.BASE_URL + 'assets/madi-stories/story-3.webp',
     title: 'Книга памяти МАДИ',
     subtitle: '',
     href: 'https://madi.ru/8596-kniga-pamyati-madi.html',
@@ -65,8 +65,8 @@ const INITIAL_MADI_STORIES: MadiLiveStoryItem[] = [
   {
     id: 'madi-story-4',
     imageUrl: 'https://www.madi.ru/uploads/images/2026/09/15/1789480019_image.png',
-    localImageUrl: '/assets/madi-stories/story-4.webp',
-    proxyImageUrl: '/assets/madi-stories/story-4.webp',
+    localImageUrl: import.meta.env.BASE_URL + 'assets/madi-stories/story-4.webp',
+    proxyImageUrl: import.meta.env.BASE_URL + 'assets/madi-stories/story-4.webp',
     title: 'МАДИ в топ-100 лучших вузов России',
     subtitle: 'Первая лига Национального агрегированного рейтинга',
     href: 'https://www.madi.ru/7481-madi-voshel-v-pervuyu-ligu-nacionalnogo-agregirovannogo-reyt.html',
@@ -74,8 +74,8 @@ const INITIAL_MADI_STORIES: MadiLiveStoryItem[] = [
   {
     id: 'madi-story-5',
     imageUrl: 'https://www.madi.ru/uploads/images/2022/03/25/1648201524_Slayidersocseti-min.png',
-    localImageUrl: '/assets/madi-stories/story-5.webp',
-    proxyImageUrl: '/assets/madi-stories/story-5.webp',
+    localImageUrl: import.meta.env.BASE_URL + 'assets/madi-stories/story-5.webp',
+    proxyImageUrl: import.meta.env.BASE_URL + 'assets/madi-stories/story-5.webp',
     title: 'МАДИ в социальных сетях',
     subtitle: 'Подписывайтесь на официальные аккаунты университета',
     href: 'https://taplink.cc/madiuniversity',
@@ -125,7 +125,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             const localMatch =
               st.localImageUrl ||
               KNOWN_LOCAL_STORY_ASSETS[st.imageUrl] ||
-              `/assets/madi-stories/story-${(idx % 5) + 1}.webp`;
+              `${import.meta.env.BASE_URL}assets/madi-stories/story-${(idx % 5) + 1}.webp`;
             return {
               ...st,
               localImageUrl: localMatch,
@@ -283,7 +283,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {/* Rotating Story Images from madi.ru (served via local pre-cache / proxy for instant load) */}
             {madiStories.map((story, idx) => {
               const isActive = idx === activeStoryIndex;
-              const fallbackLocalSrc = `/assets/madi-stories/story-${(idx % 5) + 1}.webp`;
+              const fallbackLocalSrc = `${import.meta.env.BASE_URL}assets/madi-stories/story-${(idx % 5) + 1}.webp`;
               const primarySrc =
                 story.localImageUrl ||
                 KNOWN_LOCAL_STORY_ASSETS[story.imageUrl] ||
@@ -421,7 +421,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="w-full lg:w-1/2 flex flex-col items-start space-y-6 pt-2">
               <div className="w-full relative overflow-hidden border-0 shadow-none ring-0 bg-transparent">
                 <img
-                  src="/assets/aistudio/1793061139335_b556fd67.jpg"
+                  src={import.meta.env.BASE_URL + "aistudio/1793061139335_b556fd67.jpg"}
                   alt="Misha Character"
                   className="w-full h-auto object-contain border-0 shadow-none bg-transparent"
                   referrerPolicy="no-referrer"
@@ -578,7 +578,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <div className="shrink-0 w-28 h-24 sm:w-32 sm:h-28 bg-white flex items-center justify-center overflow-hidden">
               <video
-                src="/assets/aistudio/gemini_generated_video_d8d0f419_ba9d5bac.mp4"
+                src={import.meta.env.BASE_URL + "aistudio/gemini_generated_video_d8d0f419_ba9d5bac.mp4"}
                 data-testid="landing-about-us-video"
                 autoPlay
                 loop

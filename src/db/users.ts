@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, isNull } from 'drizzle-orm';
 import { db } from './index.ts';
 import {
   users,
@@ -21,6 +21,7 @@ import {
   typingTexts,
   typingResults,
   analyticsEvents,
+  nudges,
 } from './schema.ts';
 import { CURRICULUM_UNITS } from '../data/curriculum.ts';
 import { DICTIONARY_WORDS, TYPING_TEXTS } from '../data/dictionarySeed.ts';
@@ -352,6 +353,45 @@ async function syncMistakesToReviewItems(uid: string) {
   }
 }
 
+export interface PendingNudge {
+  id: number;
+  fromUserId: string;
+  fromNickname: string;
+  fromAvatarId: string;
+  createdAt: string;
+}
+
+/** Unread friend nudges for the in-app notifications drawer (no push). */
+export async function loadPendingNudges(uid: string): Promise<PendingNudge[]> {
+  try {
+    const rows = await db
+      .select()
+      .from(nudges)
+      .where(and(eq(nudges.toUserId, uid), isNull(nudges.readAt)))
+      .orderBy(desc(nudges.createdAt))
+      .limit(20);
+    const out: PendingNudge[] = [];
+    for (const row of rows) {
+      const sender = await db
+        .select()
+        .from(profiles)
+        .where(eq(profiles.id, row.fromUserId));
+      out.push({
+        id: row.id,
+        fromUserId: row.fromUserId,
+        fromNickname: sender[0]?.displayName || 'A friend',
+        fromAvatarId: sender[0]?.avatarId || 'misha-cap',
+        createdAt: (row.createdAt || new Date()).toISOString(),
+      });
+    }
+    return out;
+  } catch (error) {
+    // Nudges table may not exist yet on older local DBs — fail soft.
+    console.error('loadPendingNudges failed:', error);
+    return [];
+  }
+}
+
 export async function getUserDashboardData(uid: string) {
   try {
     await seedCurriculumIfNeeded();
@@ -467,6 +507,8 @@ export async function getUserDashboardData(uid: string) {
       garageStats,
       userWords: savedUserWords,
       typingResults: userTypingResults,
+      // Unread friend nudges, surfaced as in-app notifications (no push).
+      pendingNudges: await loadPendingNudges(uid),
     };
   } catch (error) {
     console.error('Database getUserDashboardData failed:', error);
@@ -562,7 +604,14 @@ export async function upsertUserWordInDb(
   action: 'add_garage' | 'mark_known' | 'toggle_favorite' | 'favorite' | 'known' | 'garage'
 ) {
   try {
-    const wordEntry = DICTIONARY_WORDS.find((w) => w.id === wordId);
+    // NOTE: DICTIONARY_WORDS (the TS seed) is intentionally empty — the real
+    // 628-word dictionary lives in content/dictionary.json and is mirrored
+    // into the `words` table at server startup (see src/db/seedWords.ts).
+    // Look the word up in the DB so the Leitner review-item insert below
+    // actually runs; the old DICTIONARY_WORDS.find() always returned
+    // undefined, so garage saves never created a server-side review item.
+    const wordRows = await db.select().from(words).where(eq(words.id, wordId));
+    const wordEntry = wordRows[0];
     const existingRows = await db
       .select()
       .from(userWords)
@@ -620,9 +669,9 @@ export async function upsertUserWordInDb(
           userId: uid,
           itemType: 'word',
           itemRef: wordEntry.id,
-          promptPreview: `${wordEntry.translations.en} (${wordEntry.pos})`,
+          promptPreview: `${wordEntry.russian} (${wordEntry.pos})`,
           correctAnswer: wordEntry.stressed,
-          categoryTag: wordEntry.topic || 'vocabulary',
+          categoryTag: 'vocabulary',
           box: 1,
           dueAt: new Date(),
           streak: 0,

@@ -7,6 +7,7 @@ import {
   requireAuth,
   AuthRequest,
   createSessionToken,
+  verifySessionToken,
 } from './src/middleware/auth.ts';
 import {
   ArenaRoom,
@@ -40,6 +41,8 @@ import {
   DEV_SAMPLE_EXERCISES,
 } from './src/data/curriculum.ts';
 import { DICTIONARY_WORDS, TYPING_TEXTS } from './src/data/dictionarySeed.ts';
+import teacherRoutes from './src/server/teacherRoutes.ts';
+import { ensureWordsSeeded } from './src/db/seedWords.ts';
 import {
   SPEAKING_CLIPS,
   CONVERSATION_SCENARIOS,
@@ -73,14 +76,25 @@ import {
   UserRole,
 } from './src/lib/phase3Engine.ts';
 import { sttProvider, ttsProvider, llmProvider } from './src/lib/providers.ts';
+import { and, desc, eq, gte, isNull, or, sql } from 'drizzle-orm';
+import { db } from './src/db/index.ts';
+import {
+  classChallenges,
+  friendships,
+  fuelLog,
+  groupMembers,
+  nudges,
+  profiles,
+  streaks,
+} from './src/db/schema.ts';
 import {
   DEFAULT_CERTIFICATE_DISCLAIMER,
   PHASE4_BADGES,
   PHASE4_COSMETICS,
-  SEED_CLASS_CHALLENGES,
   SEED_FACULTY_BOARD,
-  SEED_FRIENDS,
-  SEED_LEAGUE_PARTICIPANTS,
+  ClassChallenge,
+  FriendConnection,
+  LeagueParticipant,
 } from './src/data/phase4Data.ts';
 import {
   CertificateRecord,
@@ -126,6 +140,12 @@ async function startServer() {
   (globalThis as any).__madiApiApp = app;
 
   app.use(express.json({ limit: '10mb' }));
+  // Real DB-backed teacher routes (mounted before the legacy in-memory
+  // teacher handlers below, so e.g. POST /api/teacher/groups hits the DB).
+  app.use('/api/teacher', teacherRoutes);
+  // Seed the `words` table from content/dictionary.json on first boot so
+  // "Save to Garage" (user_words.word_id -> words.id FK) can persist.
+  await ensureWordsSeeded();
 
   interface MadiLiveStory {
     id: string;
@@ -464,6 +484,26 @@ async function startServer() {
       }
 
       const fullName = lName ? `${fName} ${lName}` : fName;
+
+      // PHASE 1 FIX (defense in depth): if the caller already holds a valid
+      // session token (retried/replayed quick-entry after a reload), resume
+      // that student instead of minting a brand-new account. The client
+      // also persists the token in localStorage, so a reload normally never
+      // reaches quick-entry again.
+      const authHeader = req.headers.authorization || '';
+      if (authHeader.startsWith('Bearer ')) {
+        const existing = verifySessionToken(authHeader.slice(7));
+        if (existing) {
+          const existingDashboard = await getUserDashboardData(existing.uid);
+          if (existingDashboard) {
+            return res.json({
+              token: authHeader.slice(7),
+              dashboard: existingDashboard,
+            });
+          }
+        }
+      }
+
       const uid = `usr_quick_${crypto.randomBytes(8).toString('hex')}`;
       const email = `student_${Date.now()}_${crypto.randomBytes(3).toString('hex')}@madi.student`;
 
@@ -673,6 +713,354 @@ async function startServer() {
       res.json({ ok: false });
     }
   });
+
+  // --- Friends / invite (real, DB-backed) ----------------------------------
+  // Referral codes are unique per user (MADI-XXXX). Friends are mutual rows
+  // in `friendships`. Nudges are stored rows surfaced as in-app notifications
+  // (no push delivery — the RuStore listing states the app sends none).
+  const ensureReferralCode = async (uid: string): Promise<string> => {
+    const rows = await db.select().from(profiles).where(eq(profiles.id, uid));
+    const existing = rows[0]?.referralCode;
+    if (existing) return existing;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const code = `MADI-${Math.floor(1000 + Math.random() * 9000)}`;
+      const clash = await db
+        .select()
+        .from(profiles)
+        .where(eq(profiles.referralCode, code));
+      if (clash.length === 0) {
+        await db
+          .update(profiles)
+          .set({ referralCode: code })
+          .where(eq(profiles.id, uid));
+        return code;
+      }
+    }
+    // Extremely unlikely fallback: derive from uid.
+    const fallback = `MADI-${uid.slice(-4).toUpperCase()}`;
+    await db
+      .update(profiles)
+      .set({ referralCode: fallback })
+      .where(eq(profiles.id, uid));
+    return fallback;
+  };
+
+  const buildFriendConnection = async (
+    meUid: string,
+    friendProfile: typeof profiles.$inferSelect
+  ): Promise<FriendConnection> => {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+    const fuelRows = await db
+      .select({ amount: fuelLog.amount })
+      .from(fuelLog)
+      .where(
+        and(
+          eq(fuelLog.userId, friendProfile.id),
+          gte(fuelLog.createdAt, weekAgo)
+        )
+      );
+    const weeklyFuel = fuelRows.reduce((s, r) => s + r.amount, 0);
+    const streakRows = await db
+      .select()
+      .from(streaks)
+      .where(eq(streaks.userId, friendProfile.id));
+    const lastNudgeRows = await db
+      .select()
+      .from(nudges)
+      .where(
+        and(
+          eq(nudges.fromUserId, meUid),
+          eq(nudges.toUserId, friendProfile.id)
+        )
+      )
+      .orderBy(desc(nudges.createdAt))
+      .limit(1);
+    return {
+      id: friendProfile.id,
+      friendCode: friendProfile.referralCode || '',
+      nickname: friendProfile.displayName || 'Student',
+      avatarId: friendProfile.avatarId || 'misha-cap',
+      sharedStreakDays: streakRows[0]?.current || 0,
+      weeklyFuel,
+      lastActiveText: {
+        ru: 'Активен недавно',
+        en: 'Active recently',
+        ar: 'نشط مؤخراً',
+        fr: 'Actif récemment',
+      },
+      lastNudgedAt: lastNudgeRows[0]?.createdAt
+        ? lastNudgeRows[0].createdAt.toISOString()
+        : null,
+      allowNudges: true,
+    };
+  };
+
+  app.get('/api/me/invite', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const code = await ensureReferralCode(req.user!.uid);
+      res.json({ code });
+    } catch (error: any) {
+      console.error('Invite code failed:', error);
+      res.status(500).json({ error: 'Failed to load invite code' });
+    }
+  });
+
+  app.get('/api/me/friends', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const meUid = req.user!.uid;
+      const rows = await db
+        .select()
+        .from(friendships)
+        .where(eq(friendships.userId, meUid));
+      const friends: FriendConnection[] = [];
+      for (const row of rows) {
+        const prof = await db
+          .select()
+          .from(profiles)
+          .where(eq(profiles.id, row.friendId));
+        if (prof[0]) friends.push(await buildFriendConnection(meUid, prof[0]));
+      }
+      res.json({ friends });
+    } catch (error: any) {
+      console.error('Friends list failed:', error);
+      res.status(500).json({ error: 'Failed to load friends' });
+    }
+  });
+
+  app.post(
+    '/api/friends/add-by-code',
+    requireAuth,
+    async (req: AuthRequest, res) => {
+      try {
+        const meUid = req.user!.uid;
+        const { code } = req.body || {};
+        const clean = String(code || '').trim().toUpperCase();
+        if (!clean) {
+          return res.status(400).json({ error: 'code is required' });
+        }
+        const target = await db
+          .select()
+          .from(profiles)
+          .where(eq(profiles.referralCode, clean));
+        if (!target[0]) {
+          return res
+            .status(404)
+            .json({ error: 'No student found with that code' });
+        }
+        if (target[0].id === meUid) {
+          return res
+            .status(400)
+            .json({ error: 'That is your own code' });
+        }
+        const existing = await db
+          .select()
+          .from(friendships)
+          .where(
+            and(
+              eq(friendships.userId, meUid),
+              eq(friendships.friendId, target[0].id)
+            )
+          );
+        if (existing.length > 0) {
+          return res.status(409).json({
+            error: 'Already friends',
+            friend: await buildFriendConnection(meUid, target[0]),
+          });
+        }
+        await db.insert(friendships).values([
+          { userId: meUid, friendId: target[0].id },
+          { userId: target[0].id, friendId: meUid },
+        ]);
+        res.json({ friend: await buildFriendConnection(meUid, target[0]) });
+      } catch (error: any) {
+        console.error('Add friend failed:', error);
+        res.status(500).json({ error: 'Failed to add friend' });
+      }
+    }
+  );
+
+  const NUDGE_MESSAGES: Record<string, Record<string, string>> = {
+    sent: {
+      ru: 'Напоминание отправлено — друг увидит его при следующем открытии приложения.',
+      en: 'Nudge sent — your friend will see it next time they open the app.',
+      ar: 'تم إرسال التذكير — سيراه صديقك عند فتحه التطبيق.',
+      fr: 'Coup de pouce envoyé — votre ami le verra à sa prochaine ouverture.',
+    },
+    tooSoon: {
+      ru: 'Вы уже отправляли напоминание этому другу — подождите 12 часов.',
+      en: 'You already nudged this friend — please wait 12 hours.',
+      ar: 'لقد أرسلت تذكيراً لهذا الصديق — انتظر 12 ساعة.',
+      fr: 'Vous avez déjà encouragé cet ami — attendez 12 heures.',
+    },
+    notFriends: {
+      ru: 'Этот студент не в списке ваших друзей.',
+      en: 'That student is not in your friends list.',
+      ar: 'هذا الطالب ليس في قائمة أصدقائك.',
+      fr: 'Cet élève ne fait pas partie de vos amis.',
+    },
+  };
+
+  app.post(
+    '/api/friends/:id/nudge',
+    requireAuth,
+    async (req: AuthRequest, res) => {
+      try {
+        const meUid = req.user!.uid;
+        const friendId = String(req.params.id);
+        const meRows = await db
+          .select()
+          .from(profiles)
+          .where(eq(profiles.id, meUid));
+        const uiLang = (meRows[0]?.uiLang as string) || 'en';
+        const lang = ['ru', 'en', 'ar', 'fr'].includes(uiLang) ? uiLang : 'en';
+        const friendship = await db
+          .select()
+          .from(friendships)
+          .where(
+            and(
+              eq(friendships.userId, meUid),
+              eq(friendships.friendId, friendId)
+            )
+          );
+        if (friendship.length === 0) {
+          return res.json({ allowed: false, message: NUDGE_MESSAGES.notFriends[lang] });
+        }
+        const twelveHoursAgo = new Date(Date.now() - 12 * 3600 * 1000);
+        const recent = await db
+          .select()
+          .from(nudges)
+          .where(
+            and(
+              eq(nudges.fromUserId, meUid),
+              eq(nudges.toUserId, friendId),
+              gte(nudges.createdAt, twelveHoursAgo)
+            )
+          );
+        if (recent.length > 0) {
+          return res.json({ allowed: false, message: NUDGE_MESSAGES.tooSoon[lang] });
+        }
+        await db.insert(nudges).values({ fromUserId: meUid, toUserId: friendId });
+        res.json({ allowed: true, message: NUDGE_MESSAGES.sent[lang] });
+      } catch (error: any) {
+        console.error('Nudge failed:', error);
+        res.status(500).json({ allowed: false, message: 'Failed to send nudge' });
+      }
+    }
+  );
+
+  app.post(
+    '/api/me/nudges/read-all',
+    requireAuth,
+    async (req: AuthRequest, res) => {
+      try {
+        const uid = req.user!.uid;
+        await db
+          .update(nudges)
+          .set({ readAt: new Date() })
+          .where(and(eq(nudges.toUserId, uid), isNull(nudges.readAt)));
+        res.json({ ok: true });
+      } catch (error: any) {
+        res.status(500).json({ error: 'Failed to mark nudges read' });
+      }
+    }
+  );
+
+  // --- Teacher class challenges (real persistence; fuel aggregation is
+  // --- the teacher-dashboard work — currentFuel sums group members' weekly
+  // --- fuel when the challenge names a real group id, else 0.)
+  const loadClassChallenges = async (): Promise<ClassChallenge[]> => {
+    try {
+      const rows = await db
+        .select()
+        .from(classChallenges)
+        .orderBy(desc(classChallenges.createdAt));
+      const weekAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+      const out: ClassChallenge[] = [];
+      for (const row of rows) {
+        let currentFuel = 0;
+        let participantsCount = 0;
+        if (row.groupId) {
+          const members = await db
+            .select()
+            .from(groupMembers)
+            .where(eq(groupMembers.groupId, row.groupId));
+          participantsCount = members.length;
+          for (const m of members) {
+            const fuelRows = await db
+              .select({ amount: fuelLog.amount })
+              .from(fuelLog)
+              .where(
+                and(
+                  eq(fuelLog.userId, m.studentId),
+                  gte(fuelLog.createdAt, weekAgo)
+                )
+              );
+            currentFuel += fuelRows.reduce((s, r) => s + r.amount, 0);
+          }
+        }
+        out.push({
+          id: `cc-${row.id}`,
+          groupId: row.groupId,
+          groupName: row.groupName,
+          teacherName: row.teacherName,
+          title: {
+            ru: row.title,
+            en: row.title,
+            ar: row.title,
+            fr: row.title,
+          },
+          targetFuel: row.targetFuel,
+          currentFuel,
+          endsAt: new Date(
+            new Date(row.createdAt || new Date()).getTime() + 7 * 24 * 3600 * 1000
+          ).toISOString(),
+          participantsCount,
+        });
+      }
+      return out;
+    } catch (error) {
+      console.error('Load class challenges failed:', error);
+      return [];
+    }
+  };
+
+  app.post(
+    '/api/phase4/class-challenges',
+    requireAuth,
+    async (req: AuthRequest, res) => {
+      try {
+        const uid = req.user!.uid;
+        const { title, groupName, targetFuel } = req.body || {};
+        const meRows = await db
+          .select()
+          .from(profiles)
+          .where(eq(profiles.id, uid));
+        const role = meRows[0]?.role || 'student';
+        if (role !== 'teacher' && role !== 'admin') {
+          return res
+            .status(403)
+            .json({ error: 'Only teachers can create class challenges' });
+        }
+        const cleanTitle = String(title || '').trim();
+        if (!cleanTitle) {
+          return res.status(400).json({ error: 'title is required' });
+        }
+        await db.insert(classChallenges).values({
+          groupId: String(groupName || '').trim(),
+          groupName: String(groupName || '').trim(),
+          teacherId: uid,
+          teacherName: meRows[0]?.displayName || 'Teacher',
+          title: cleanTitle,
+          targetFuel: Number(targetFuel) || 500,
+        });
+        const all = await loadClassChallenges();
+        res.json({ challenges: all });
+      } catch (error: any) {
+        console.error('Create class challenge failed:', error);
+        res.status(500).json({ error: 'Failed to create challenge' });
+      }
+    }
+  );
 
   app.post('/api/me/lesson-complete', requireAuth, async (req: AuthRequest, res) => {
     try {
@@ -1666,16 +2054,56 @@ async function startServer() {
     });
   });
 
-  app.get('/api/phase4/overview', (_req, res) => {
+  app.get('/api/phase4/overview', async (_req, res) => {
+    // PHASE 1 FIX (honest numbers): the weekly league is computed from REAL
+    // fuel earned in the last 7 days (fuel_log joined to profiles). With no
+    // real users yet it is an empty list — never fake participants.
+    let leagueParticipants: LeagueParticipant[] = [];
+    try {
+      const weekAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+      const rows = await db
+        .select({
+          userId: fuelLog.userId,
+          weeklyFuel: sql<number>`sum(${fuelLog.amount})`.mapWith(Number),
+          displayName: profiles.displayName,
+          avatarId: profiles.avatarId,
+          streakDays: streaks.current,
+        })
+        .from(fuelLog)
+        .innerJoin(profiles, eq(fuelLog.userId, profiles.id))
+        .leftJoin(streaks, eq(streaks.userId, profiles.id))
+        .where(gte(fuelLog.createdAt, weekAgo))
+        .groupBy(
+          fuelLog.userId,
+          profiles.displayName,
+          profiles.avatarId,
+          streaks.current
+        )
+        .orderBy(desc(sql`sum(${fuelLog.amount})`))
+        .limit(10);
+      leagueParticipants = rows.map((r) => ({
+        userId: r.userId,
+        nickname: r.displayName || 'Student',
+        avatarId: r.avatarId || 'misha-cap',
+        facultyCode: '',
+        weeklyFuel: r.weeklyFuel || 0,
+        streakDays: r.streakDays || 0,
+      }));
+    } catch (error) {
+      console.error('Real league query failed, returning empty league:', error);
+      leagueParticipants = [];
+    }
     res.json({
       certificates: runtimeCertificates,
       disclaimerText: runtimeCertificateDisclaimer,
       badges: PHASE4_BADGES,
       cosmetics: PHASE4_COSMETICS,
-      leagueParticipants: SEED_LEAGUE_PARTICIPANTS,
+      leagueParticipants,
       facultyBoard: SEED_FACULTY_BOARD,
-      classChallenges: SEED_CLASS_CHALLENGES,
-      friends: SEED_FRIENDS,
+      // Real challenges from the DB (empty until a teacher creates one).
+      classChallenges: await loadClassChallenges(),
+      // Friends are per-user and load from /api/me/friends — never faked here.
+      friends: [],
     });
   });
 
@@ -1970,36 +2398,7 @@ async function startServer() {
       ],
       currentQuestionIndex: 0,
       questionTimeLimitSeconds: 30,
-      participants: {
-        'stud-demo-1': {
-          id: 'stud-demo-1',
-          name: 'Yassine B.',
-          avatar: 'car-madi-blue',
-          role: 'student',
-          score: 0,
-          correctCount: 0,
-          totalAnswered: 0,
-          currentStreak: 0,
-          bestStreak: 0,
-          answers: {},
-          isOnline: true,
-          joinedAt: new Date().toISOString(),
-        },
-        'stud-demo-2': {
-          id: 'stud-demo-2',
-          name: 'Amina K.',
-          avatar: 'misha-cap',
-          role: 'student',
-          score: 0,
-          correctCount: 0,
-          totalAnswered: 0,
-          currentStreak: 0,
-          bestStreak: 0,
-          answers: {},
-          isOnline: true,
-          joinedAt: new Date().toISOString(),
-        },
-      },
+      participants: {},
       createdAt: new Date().toISOString(),
     };
 
@@ -2406,49 +2805,6 @@ async function startServer() {
       pointsEarned,
       answeredAt: new Date().toISOString(),
     };
-
-    // Simulate demo classmates in the preset training room (room-madi-101)
-    if (room.id === 'room-madi-101') {
-      const demoProfiles: Array<{ id: string; accuracyProb: number; avgTime: number }> = [
-        { id: 'stud-demo-1', accuracyProb: 0.8, avgTime: 7 },
-        { id: 'stud-demo-2', accuracyProb: 0.65, avgTime: 11 },
-        { id: 'stud-demo-3', accuracyProb: 0.5, avgTime: 14 },
-      ];
-      for (const dp of demoProfiles) {
-        const bot = room.participants[dp.id];
-        if (bot && !bot.answers[question.id]) {
-          // Deterministic pseudo-random based on question id + bot id
-          const seedChar = (question.id.charCodeAt(question.id.length - 1) || 1) + dp.id.charCodeAt(dp.id.length - 1);
-          const botCorrect = (seedChar % 10) / 10 < dp.accuracyProb;
-          const botOption = botCorrect
-            ? question.correctIndex
-            : (question.correctIndex + 1) % Math.max(2, question.options.length);
-          if (botCorrect) {
-            bot.currentStreak += 1;
-            bot.bestStreak = Math.max(bot.bestStreak, bot.currentStreak);
-            bot.correctCount += 1;
-          } else {
-            bot.currentStreak = 0;
-          }
-          bot.totalAnswered += 1;
-          const botPoints = calculateAnswerScore({
-            isCorrect: botCorrect,
-            timeSpentSeconds: dp.avgTime,
-            timeLimitSeconds: room.questionTimeLimitSeconds || 30,
-            streak: bot.currentStreak,
-            basePoints: question.points || 10,
-          });
-          bot.score += botPoints;
-          bot.answers[question.id] = {
-            optionIndex: botOption,
-            isCorrect: botCorrect,
-            timeSeconds: dp.avgTime,
-            pointsEarned: botPoints,
-            answeredAt: new Date().toISOString(),
-          };
-        }
-      }
-    }
 
     const rankings = computeRankings(room.participants, room.questions.length);
 
