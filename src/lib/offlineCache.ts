@@ -41,6 +41,23 @@ export function saveDashboardSnapshot(snapshot: DashboardSnapshot): void {
   }
 }
 
+/**
+ * Parse a fetch response as JSON, but return null instead of throwing when
+ * the server is absent. On static hosting (GitHub Pages) every /api/* URL
+ * returns the app's HTML fallback with HTTP 200, so a bare res.json()
+ * throws "Unexpected token '<', "<html>..." — that error must never reach
+ * the user. Callers treat null as "no server" and fall back to local mode.
+ */
+export async function readJsonSafe(res: Response): Promise<any | null> {
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) return null;
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 export function loadDashboardSnapshot(): DashboardSnapshot | null {
   try {
     const raw = window.localStorage.getItem(DASHBOARD_SNAPSHOT_KEY);

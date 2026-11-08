@@ -13,8 +13,71 @@ import {
 import { SupportedLang } from '../data/curriculum';
 import { useI18n } from '../lib/i18n';
 import { signInWithGooglePopup } from '../lib/firebase';
+import { readJsonSafe } from '../lib/offlineCache';
 import { LANGUAGE_OPTIONS } from './FlagPickerModal';
 import { LanguageFlagIcon, MadingoWordmark, MishaMascot } from './BrandVisuals';
+
+/**
+ * Offline session for static hosting (GitHub Pages): there is no /api, so
+ * the quick-entry request returns the app's HTML fallback instead of JSON.
+ * Instead of showing the raw "Unexpected token '<' ... is not valid JSON"
+ * error, mint a local-only session. The token starts with "local-" so the
+ * app boot never tries to validate it against /api/me, and the local
+ * progress snapshot becomes the source of truth (friends / teacher
+ * dashboard / server sync stay unavailable until a real server is used).
+ */
+function buildLocalSession(opts: {
+  firstName: string;
+  lastName: string;
+  uiLang: SupportedLang;
+  goalMinutes: number;
+  learningReason: string | null;
+}): { token: string; dashboard: any } {
+  const uid =
+    'local_' +
+    (typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '')
+      : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+  const fullName = opts.lastName ? `${opts.firstName} ${opts.lastName}` : opts.firstName;
+  return {
+    token: `local-${uid}`,
+    dashboard: {
+      profile: {
+        id: uid,
+        email: `${uid}@madi.local`,
+        displayName: fullName,
+        uiLang: opts.uiLang,
+        goalMinutes: opts.goalMinutes || 10,
+        avatarId: 'misha-cap',
+        soundEnabled: true,
+        notificationsEnabled: true,
+        theme: 'light',
+      },
+      progress: [],
+      streak: {
+        current: 0,
+        best: 0,
+        lastActiveDate: null,
+        spareTireAvailable: true,
+        spareTireUsedDate: null,
+      },
+      totalFuel: 0,
+      todayMinutesCompleted: 0,
+      mistakes: [],
+      userWords: [],
+      reviewItems: [],
+      pendingNudges: [],
+    },
+  };
+}
+
+function serverUnavailableMessage(lang: SupportedLang): string {
+  return lang === 'ar'
+    ? 'الخادم غير متوفر في هذه النسخة — استخدم الدخول السريع بالاسم، التطبيق يعمل بدون خادم.'
+    : lang === 'ru'
+      ? 'Сервер недоступен в этой версии — используйте быстрый вход по имени, приложение работает без сервера.'
+      : 'The server is unavailable in this version — use quick entry by name; the app works without a server.';
+}
 
 interface OnboardingFlowProps {
   initialMode?: 'onboarding' | 'login';
@@ -75,19 +138,42 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/auth/quick-entry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      let res: Response | null = null;
+      try {
+        res = await fetch('/api/auth/quick-entry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: fName,
+            lastName: lastName.trim(),
+            uiLang: lang,
+            goalMinutes,
+            learningReason: reason,
+          }),
+        });
+      } catch {
+        res = null; // network down: fall through to the local session below
+      }
+      const data = res ? await readJsonSafe(res) : null;
+      if (!data) {
+        // No server (static hosting): log in locally instead of showing a
+        // raw JSON-parse error. Progress is saved on this device.
+        const local = buildLocalSession({
           firstName: fName,
           lastName: lastName.trim(),
           uiLang: lang,
           goalMinutes,
           learningReason: reason,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
+        });
+        if (isLoginMode) {
+          onAuthenticated(local.token, local.dashboard);
+        } else {
+          setPendingAuthResult({ token: local.token, dashboard: local.dashboard });
+          setStep(5);
+        }
+        return;
+      }
+      if (!res!.ok) {
         setErrorMsg(data.error || 'Quick entry failed');
         setIsSubmitting(false);
         return;
@@ -131,23 +217,35 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     setIsSubmitting(true);
     try {
       const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/signup';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: trimmedEmail,
-          password,
-          displayName: displayName.trim() || trimmedEmail.split('@')[0],
-          uiLang: lang,
-          goalMinutes,
-          learningReason: reason,
-          consentAccepted: isLoginMode ? true : consentAccepted,
-          micPermissionAcknowledged,
-          optionalRecordingStorageConsent,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
+      let res: Response | null = null;
+      try {
+        res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: trimmedEmail,
+            password,
+            displayName: displayName.trim() || trimmedEmail.split('@')[0],
+            uiLang: lang,
+            goalMinutes,
+            learningReason: reason,
+            consentAccepted: isLoginMode ? true : consentAccepted,
+            micPermissionAcknowledged,
+            optionalRecordingStorageConsent,
+          }),
+        });
+      } catch {
+        res = null; // network down
+      }
+      const data = res ? await readJsonSafe(res) : null;
+      if (!data) {
+        // No server (static hosting): email + password cannot be verified
+        // offline, so say so plainly instead of showing a raw JSON error.
+        setErrorMsg(serverUnavailableMessage(lang));
+        setIsSubmitting(false);
+        return;
+      }
+      if (!res!.ok) {
         setErrorMsg(data.error || 'Authentication failed');
         setIsSubmitting(false);
         return;
@@ -185,7 +283,14 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           learningReason: reason,
         }),
       });
-      const data = await res.json();
+      const data = await readJsonSafe(res);
+      if (!data) {
+        // No server (static hosting): the Google account cannot be synced
+        // without the backend — say so plainly instead of a raw JSON error.
+        setErrorMsg(serverUnavailableMessage(lang));
+        setIsSubmitting(false);
+        return;
+      }
       if (!res.ok) {
         setErrorMsg(data.error || 'Google authentication sync failed');
         setIsSubmitting(false);

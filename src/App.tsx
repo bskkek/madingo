@@ -76,6 +76,7 @@ import {
   getCachedGarageItemsOffline,
   loadDashboardSnapshot,
   queueOfflineGarageReview,
+  readJsonSafe,
   saveDashboardSnapshot,
   DashboardSnapshot,
 } from './lib/offlineCache';
@@ -974,24 +975,51 @@ const MadingoAppInner: React.FC = () => {
     }
     const storedToken = loadStoredAuthToken();
     if (!storedToken) return;
+    // Local-only sessions (token "local-...") are created on static hosting
+    // without a server: never validate them against /api/me — the local
+    // snapshot (already applied above) is their source of truth.
+    if (storedToken.startsWith('local-')) {
+      setAuthToken(storedToken);
+      setScreen((prev) =>
+        prev === 'landing' || prev === 'login' || prev === 'onboarding'
+          ? 'app'
+          : prev
+      );
+      setActiveTab('map');
+      return;
+    }
     (async () => {
-      try {
-        const res = await fetch('/api/me', {
-          headers: { Authorization: `Bearer ${storedToken}` },
-        });
-        if (!res.ok) throw new Error('session restore failed');
-        const data = await res.json();
+      const enterApp = () => {
         setAuthToken(storedToken);
-        applyServerDashboard(data);
         setScreen((prev) =>
           prev === 'landing' || prev === 'login' || prev === 'onboarding'
             ? 'app'
             : prev
         );
         setActiveTab('map');
+      };
+      try {
+        const res = await fetch('/api/me', {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+        // Only a real server rejecting the token (401/403) means a dead
+        // session. Any other failure (server down, or static hosting
+        // returning the app HTML instead of JSON) must NOT wipe the token
+        // or the saved progress — keep the local session and the snapshot.
+        if (res.status === 401 || res.status === 403) {
+          clearStoredAuthToken();
+          clearDashboardSnapshot();
+          return;
+        }
+        const data = await readJsonSafe(res);
+        if (!data) {
+          enterApp();
+          return;
+        }
+        applyServerDashboard(data);
+        enterApp();
       } catch {
-        clearStoredAuthToken();
-        clearDashboardSnapshot();
+        enterApp();
       }
     })();
   }, []);
