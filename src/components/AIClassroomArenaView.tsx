@@ -40,11 +40,22 @@ import {
   getArenaQuestionInstruction,
   getArenaQuestionExplanation,
   getArenaQuestionHint,
+  calculateAnswerScore,
   realParticipants,
   realRankingsForRoom,
   realAnalyticsForRoom,
   filterRankingsToReal,
 } from '../lib/arenaEngine';
+import { readJsonSafe } from '../lib/offlineCache';
+import {
+  deleteLocalRoom,
+  ensureLocalParticipant,
+  findLocalRoom,
+  loadLocalRooms,
+  newLocalRoom,
+  recordLocalAnswer,
+  upsertLocalRoom,
+} from '../lib/localArena';
 import { speakRussian, playSoundEffect } from '../lib/audio';
 import { useI18n } from '../lib/i18n';
 
@@ -97,6 +108,25 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     setAnalytics(realAnalyticsForRoom(realRoom));
     return realRoom;
   };
+
+  // OFFLINE MODE (static hosting): the first arena request that returns
+  // HTML instead of JSON means there is no /api server. From then on every
+  // arena action runs locally (rooms in localStorage, quiz on the client)
+  // instead of failing silently or showing a raw JSON error.
+  const localModeRef = useRef(false);
+  const [isLocalArena, setIsLocalArena] = useState(false);
+  const markLocalMode = () => {
+    if (!localModeRef.current) {
+      localModeRef.current = true;
+      setIsLocalArena(true);
+    }
+  };
+  const aiOfflineMessage =
+    lang === 'ar'
+      ? 'استخراج الأسئلة بالذكاء الاصطناعي يحتاج الخادم — أضف الأسئلة يدوياً بالأسفل، وهي تعمل دون اتصال.'
+      : lang === 'ru'
+        ? 'Извлечение вопросов с помощью ИИ требует сервера — добавьте вопросы вручную ниже, они работают без подключения.'
+        : 'AI question extraction needs the server — add questions manually below; they work offline.';
 
   // Mode: 'lobby' | 'create' | 'room' | 'active_quiz' | 'podium'
   const [viewMode, setViewMode] = useState<'lobby' | 'create' | 'room' | 'active_quiz' | 'podium'>('lobby');
@@ -193,12 +223,17 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     setIsLoadingRooms(true);
     try {
       const resp = await fetch('/api/arena/rooms');
-      if (resp.ok) {
-        const data = await resp.json();
+      const data = await readJsonSafe(resp);
+      if (data) {
         setRooms(data.rooms || []);
+        return;
       }
+      // No server (static hosting): rooms live on this device.
+      markLocalMode();
+      setRooms(loadLocalRooms());
     } catch (err) {
-      console.error('Failed to load arena rooms:', err);
+      markLocalMode();
+      setRooms(loadLocalRooms());
     } finally {
       setIsLoadingRooms(false);
     }
@@ -221,21 +256,39 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     if (viewMode === 'lobby') confetti.reset();
   }, [viewMode]);
 
-  // Helper to re-fetch room state from backend
+  // Helper to re-fetch room state from backend (or from the local store
+  // when there is no server)
   const refreshRoomDetails = async (roomIdOrCode: string, callback?: (loadedRoom: ArenaRoom) => void) => {
-    try {
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(roomIdOrCode)}`);
-      if (resp.ok) {
-        const data = await resp.json();
-        const realRoom = applyRoomData(data.room, data.rankings || []);
+    if (localModeRef.current) {
+      const local = findLocalRoom(loadLocalRooms(), roomIdOrCode);
+      if (local) {
+        const realRoom = applyRoomData(local);
         setIsRoomOwner(
-          data.room.teacherId === currentUserId ||
+          local.teacherId === currentUserId ||
             userRole === 'teacher' ||
             userRole === 'admin' ||
-            data.room.id === 'room-madi-101'
+            local.id === 'room-madi-101'
         );
         if (callback) callback(realRoom);
       }
+      return;
+    }
+    try {
+      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(roomIdOrCode)}`);
+      const data = await readJsonSafe(resp);
+      if (!data) {
+        markLocalMode();
+        await refreshRoomDetails(roomIdOrCode, callback);
+        return;
+      }
+      const realRoom = applyRoomData(data.room, data.rankings || []);
+      setIsRoomOwner(
+        data.room.teacherId === currentUserId ||
+          userRole === 'teacher' ||
+          userRole === 'admin' ||
+          data.room.id === 'room-madi-101'
+      );
+      if (callback) callback(realRoom);
     } catch (err) {
       console.error('Error refreshing room details:', err);
     }
@@ -248,6 +301,12 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         wsRef.current.close();
         wsRef.current = null;
       }
+      return;
+    }
+
+    // Offline: no WebSocket server and no /api to poll — the quiz runs
+    // entirely on the client, so there is nothing to sync.
+    if (localModeRef.current) {
       return;
     }
 
@@ -402,6 +461,8 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         explanationAr: currQ.explanationAr,
         explanationEn: currQ.explanationEn,
       });
+      // Offline: nothing to report to the server (0 points either way).
+      if (localModeRef.current) return;
       try {
         const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/answer`, {
           method: 'POST',
@@ -433,6 +494,53 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       return;
     }
     setJoinError(null);
+
+    // Offline join: find the room on this device and enter it directly.
+    const joinLocalRoom = (room: ArenaRoom) => {
+      const withMe = ensureLocalParticipant(room, {
+        id: currentUserId,
+        name: currentUserName,
+        avatar: currentUserAvatar,
+        role: userRole === 'teacher' ? 'teacher' : 'student',
+      });
+      upsertLocalRoom(withMe);
+      const realRoom = applyRoomData(withMe);
+      setShowTeacherAnswersPreview(false);
+      setIsRoomOwner(
+        withMe.teacherId === currentUserId ||
+          userRole === 'teacher' ||
+          userRole === 'admin' ||
+          withMe.id === 'room-madi-101'
+      );
+      if (withMe.status === 'active') {
+        setViewMode('active_quiz');
+        setSelectedOption(null);
+        setHasAnsweredCurrent(false);
+        setLastAnswerOutcome(null);
+        setTimeLeft(withMe.questionTimeLimitSeconds || 30);
+      } else if (withMe.status === 'finished') {
+        setViewMode('podium');
+      } else if (realRoom.questions && realRoom.questions.length === 0) {
+        setNewTitle(withMe.title || L.defaultRoomTitle);
+        setNewTopic(withMe.exerciseTopic || L.defaultTopic);
+        setNewInstructions(withMe.teacherInstructions || L.defaultInstructions);
+        setNewTimeLimit(withMe.questionTimeLimitSeconds || 30);
+        setViewMode('create');
+      } else {
+        setViewMode('room');
+      }
+    };
+
+    if (localModeRef.current) {
+      const local = findLocalRoom(loadLocalRooms(), cleanCode);
+      if (!local) {
+        setJoinError(L.errJoinFailed);
+        return;
+      }
+      joinLocalRoom(local);
+      return;
+    }
+
     try {
       const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(cleanCode)}/join`, {
         method: 'POST',
@@ -445,13 +553,23 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         }),
       });
 
+      const data = await readJsonSafe(resp);
+      if (!data) {
+        // No server: join the local room instead.
+        markLocalMode();
+        const local = findLocalRoom(loadLocalRooms(), cleanCode);
+        if (!local) {
+          setJoinError(L.errJoinFailed);
+          return;
+        }
+        joinLocalRoom(local);
+        return;
+      }
       if (!resp.ok) {
-        await resp.json().catch(() => ({}));
-        setJoinError(L.errJoinFailed);
+        setJoinError(data.error || L.errJoinFailed);
         return;
       }
 
-      const data = await resp.json();
       const realRoom = applyRoomData(data.room, data.rankings || []);
       setShowTeacherAnswersPreview(false);
       setIsRoomOwner(
@@ -480,7 +598,11 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         setViewMode('room');
       }
     } catch (err: any) {
-      setJoinError(err?.message || L.errServerConn);
+      // Network down: fall back to the local room too.
+      markLocalMode();
+      const local = findLocalRoom(loadLocalRooms(), cleanCode);
+      if (local) joinLocalRoom(local);
+      else setJoinError(err?.message || L.errServerConn);
     }
   };
 
@@ -492,6 +614,28 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       L.defaultCreatedRoomTitle;
     setNewTitle(resolvedTitle);
     setExtractError(null);
+
+    // Offline: create the room on this device (manual questions work here;
+    // AI extraction still needs the server, see handleExtractExercises).
+    const createLocalRoom = () => {
+      const room = newLocalRoom({
+        title: resolvedTitle,
+        teacherId: currentUserId,
+        teacherName: currentUserName,
+        exerciseTopic: newTopic,
+        teacherInstructions: newInstructions,
+        timeLimitSeconds: newTimeLimit,
+      });
+      upsertLocalRoom(room);
+      setActiveRoom(sanitizeRoom(room));
+      setIsRoomOwner(true);
+      setViewMode('create');
+    };
+
+    if (localModeRef.current) {
+      createLocalRoom();
+      return;
+    }
 
     try {
       const resp = await fetch('/api/arena/rooms', {
@@ -507,26 +651,36 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         }),
       });
 
+      const createdRoom = await readJsonSafe(resp);
+      if (!createdRoom) {
+        markLocalMode();
+        createLocalRoom();
+        return;
+      }
       if (resp.ok) {
-        const createdRoom = await resp.json();
         setActiveRoom(sanitizeRoom(createdRoom));
         setIsRoomOwner(true);
         setViewMode('create');
       }
     } catch (err) {
-      console.error('Failed to create room:', err);
+      markLocalMode();
+      createLocalRoom();
     }
   };
 
   // Cancel / Back from Creation Studio (cleans up empty 0-question room so lobby stays clean)
   const handleCancelCreationStudio = async () => {
     if (activeRoom && activeRoom.questions.length === 0 && activeRoom.id !== 'room-madi-101') {
-      try {
-        await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}`, {
-          method: 'DELETE',
-        });
-      } catch {
-        // ignore
+      if (localModeRef.current) {
+        deleteLocalRoom(activeRoom.id);
+      } else {
+        try {
+          await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}`, {
+            method: 'DELETE',
+          });
+        } catch {
+          // ignore
+        }
       }
       setActiveRoom(null);
       await fetchRooms();
@@ -553,6 +707,16 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     setRooms((prev) => prev.filter((r) => r.id !== roomIdOrCode && r.code !== roomIdOrCode));
     setDeleteNotice(L.deleteNoticeTemplate(roomTitle || roomIdOrCode));
     setTimeout(() => setDeleteNotice(null), 3500);
+
+    if (localModeRef.current) {
+      deleteLocalRoom(roomIdOrCode);
+      if (activeRoom && (activeRoom.id === roomIdOrCode || activeRoom.code === roomIdOrCode)) {
+        setActiveRoom(null);
+        setViewMode('lobby');
+      }
+      await fetchRooms();
+      return;
+    }
 
     try {
       const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(roomIdOrCode)}`, {
@@ -587,6 +751,14 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     setIsExtracting(true);
     setExtractError(null);
 
+    // AI extraction runs on the server — without it, use the manual
+    // question builder below (it works offline).
+    if (localModeRef.current) {
+      setExtractError(aiOfflineMessage);
+      setIsExtracting(false);
+      return;
+    }
+
     try {
       let targetRoom = activeRoom;
       if (!targetRoom) {
@@ -602,11 +774,17 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             timeLimitSeconds: newTimeLimit,
           }),
         });
+        const createdRoom = await readJsonSafe(createResp);
+        if (!createdRoom) {
+          markLocalMode();
+          setExtractError(aiOfflineMessage);
+          return;
+        }
         if (!createResp.ok) {
           setExtractError(L.errCreateRoom);
           return;
         }
-        targetRoom = await createResp.json();
+        targetRoom = createdRoom;
         setActiveRoom(targetRoom ? sanitizeRoom(targetRoom) : targetRoom);
         setIsRoomOwner(true);
       }
@@ -630,7 +808,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       });
 
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
+        const err = (await readJsonSafe(resp)) || {};
         setExtractError(err.error || L.errExtractPage);
         return;
       }
@@ -667,20 +845,38 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     };
 
     const updatedQuestions = [...activeRoom.questions, newQ];
+    const clearManualForm = () => {
+      setManualPromptRu('');
+      setManualOptions(['', '', '', '']);
+      setManualCorrectIndex(0);
+      setManualExplanationAr('');
+      setShowAddQuestionForm(false);
+    };
+    if (localModeRef.current) {
+      const updatedRoom = { ...activeRoom, questions: updatedQuestions };
+      upsertLocalRoom(updatedRoom);
+      setActiveRoom(sanitizeRoom(updatedRoom));
+      clearManualForm();
+      return;
+    }
     try {
       const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/questions`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questions: updatedQuestions }),
       });
+      const data = await readJsonSafe(resp);
+      if (!data) {
+        markLocalMode();
+        const updatedRoom = { ...activeRoom, questions: updatedQuestions };
+        upsertLocalRoom(updatedRoom);
+        setActiveRoom(sanitizeRoom(updatedRoom));
+        clearManualForm();
+        return;
+      }
       if (resp.ok) {
-        const data = await resp.json();
         setActiveRoom(sanitizeRoom(data.room));
-        setManualPromptRu('');
-        setManualOptions(['', '', '', '']);
-        setManualCorrectIndex(0);
-        setManualExplanationAr('');
-        setShowAddQuestionForm(false);
+        clearManualForm();
       }
     } catch (err) {
       console.error('Failed to add manual question:', err);
@@ -691,14 +887,27 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   const handleDeleteQuestion = async (questionId: string) => {
     if (!activeRoom || activeRoom.questions.length <= 1) return;
     const updatedQuestions = activeRoom.questions.filter((q) => q.id !== questionId);
+    if (localModeRef.current) {
+      const updatedRoom = { ...activeRoom, questions: updatedQuestions };
+      upsertLocalRoom(updatedRoom);
+      setActiveRoom(sanitizeRoom(updatedRoom));
+      return;
+    }
     try {
       const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/questions`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questions: updatedQuestions }),
       });
+      const data = await readJsonSafe(resp);
+      if (!data) {
+        markLocalMode();
+        const updatedRoom = { ...activeRoom, questions: updatedQuestions };
+        upsertLocalRoom(updatedRoom);
+        setActiveRoom(sanitizeRoom(updatedRoom));
+        return;
+      }
       if (resp.ok) {
-        const data = await resp.json();
         setActiveRoom(sanitizeRoom(data.room));
       }
     } catch (err) {
@@ -709,6 +918,27 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   // Start Live Quiz
   const handleStartQuiz = async () => {
     if (!activeRoom) return;
+    const beginQuiz = (room: ArenaRoom) => {
+      applyRoomData(room);
+      setViewMode('active_quiz');
+      setSelectedOption(null);
+      setHasAnsweredCurrent(false);
+      setLastAnswerOutcome(null);
+      setMyStreak(0);
+      setTimeLeft(room.questionTimeLimitSeconds || 30);
+      startTimeRef.current = Date.now();
+    };
+    if (localModeRef.current) {
+      const startedRoom: ArenaRoom = {
+        ...activeRoom,
+        status: 'active',
+        currentQuestionIndex: 0,
+        startedAt: new Date().toISOString(),
+      };
+      upsertLocalRoom(startedRoom);
+      beginQuiz(startedRoom);
+      return;
+    }
     try {
       const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/start`, {
         method: 'POST',
@@ -719,8 +949,20 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           participantAvatar: currentUserAvatar,
         }),
       });
+      const data = await readJsonSafe(resp);
+      if (!data) {
+        markLocalMode();
+        const startedRoom: ArenaRoom = {
+          ...activeRoom,
+          status: 'active',
+          currentQuestionIndex: 0,
+          startedAt: new Date().toISOString(),
+        };
+        upsertLocalRoom(startedRoom);
+        beginQuiz(startedRoom);
+        return;
+      }
       if (resp.ok) {
-        const data = await resp.json();
         applyRoomData(data.room, data.rankings || []);
         setViewMode('active_quiz');
         setSelectedOption(null);
@@ -752,6 +994,50 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       )
     );
 
+    // Offline evaluation: score locally, save it on the room, recompute
+    // the ranking from the real participants (just me in solo practice).
+    const evaluateLocally = () => {
+      const isCorrect = optionIdx === currentQ.correctIndex;
+      const points = calculateAnswerScore({
+        isCorrect,
+        timeSpentSeconds: timeSpent,
+        timeLimitSeconds: activeRoom.questionTimeLimitSeconds || 30,
+        streak: myStreak,
+        basePoints: currentQ.points || 10,
+      });
+      const updatedRoom = recordLocalAnswer(
+        activeRoom,
+        currentUserId,
+        currentQ.id,
+        optionIdx,
+        timeSpent,
+        points,
+        isCorrect
+      );
+      upsertLocalRoom(updatedRoom);
+      applyRoomData(updatedRoom);
+      setLastAnswerOutcome({
+        isCorrect,
+        pointsEarned: points,
+        explanationRu: currentQ.explanationRu,
+        explanationAr: currentQ.explanationAr,
+        explanationEn: currentQ.explanationEn,
+      });
+      if (isCorrect) {
+        setMyStreak((s) => s + 1);
+        playSoundEffect('correct', soundEnabled);
+        confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
+      } else {
+        setMyStreak(0);
+        playSoundEffect('wrong', soundEnabled);
+      }
+    };
+
+    if (localModeRef.current) {
+      evaluateLocally();
+      return;
+    }
+
     try {
       const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/answer`, {
         method: 'POST',
@@ -766,8 +1052,13 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         }),
       });
 
+      const result = await readJsonSafe(resp);
+      if (!result) {
+        markLocalMode();
+        evaluateLocally();
+        return;
+      }
       if (resp.ok) {
-        const result = await resp.json();
         setLastAnswerOutcome({
           isCorrect: result.isCorrect,
           pointsEarned: result.pointsEarned,
@@ -785,38 +1076,60 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           playSoundEffect('wrong', soundEnabled);
         }
       } else {
-        // Fallback local evaluation if offline/network issue
-        const isLocalCorrect = optionIdx === currentQ.correctIndex;
-        setLastAnswerOutcome({
-          isCorrect: isLocalCorrect,
-          pointsEarned: isLocalCorrect ? 10 : 0,
-          explanationRu: currentQ.explanationRu,
-          explanationAr: currentQ.explanationAr,
-          explanationEn: currentQ.explanationEn,
-        });
+        evaluateLocally();
       }
     } catch (err) {
       console.error('Failed to submit answer:', err);
-      const isLocalCorrect = optionIdx === currentQ.correctIndex;
-      setLastAnswerOutcome({
-        isCorrect: isLocalCorrect,
-        pointsEarned: isLocalCorrect ? 10 : 0,
-        explanationRu: currentQ.explanationRu,
-        explanationAr: currentQ.explanationAr,
-        explanationEn: currentQ.explanationEn,
-      });
+      evaluateLocally();
     }
   };
 
   // Next Question
   const handleNextQuestion = async () => {
     if (!activeRoom) return;
+    // Offline: advance on this device.
+    const advanceLocally = () => {
+      const isLast =
+        activeRoom.currentQuestionIndex >= activeRoom.questions.length - 1;
+      if (isLast) {
+        const finishedRoom: ArenaRoom = {
+          ...activeRoom,
+          status: 'finished',
+          finishedAt: new Date().toISOString(),
+        };
+        upsertLocalRoom(finishedRoom);
+        applyRoomData(finishedRoom);
+        setViewMode('podium');
+        confetti({ particleCount: 80, spread: 80 });
+      } else {
+        const nextRoom: ArenaRoom = {
+          ...activeRoom,
+          currentQuestionIndex: activeRoom.currentQuestionIndex + 1,
+        };
+        upsertLocalRoom(nextRoom);
+        applyRoomData(nextRoom);
+        setSelectedOption(null);
+        setHasAnsweredCurrent(false);
+        setLastAnswerOutcome(null);
+        setTimeLeft(nextRoom.questionTimeLimitSeconds || 30);
+        startTimeRef.current = Date.now();
+      }
+    };
+    if (localModeRef.current) {
+      advanceLocally();
+      return;
+    }
     try {
       const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/next-question`, {
         method: 'POST',
       });
+      const data = await readJsonSafe(resp);
+      if (!data) {
+        markLocalMode();
+        advanceLocally();
+        return;
+      }
       if (resp.ok) {
-        const data = await resp.json();
         if (data.finished) {
           applyRoomData(data.room, data.rankings || []);
           setViewMode('podium');
@@ -838,12 +1151,37 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   // Finish Quiz
   const handleFinishQuiz = async () => {
     if (!activeRoom) return;
+    if (localModeRef.current) {
+      const finishedRoom: ArenaRoom = {
+        ...activeRoom,
+        status: 'finished',
+        finishedAt: new Date().toISOString(),
+      };
+      upsertLocalRoom(finishedRoom);
+      applyRoomData(finishedRoom);
+      setViewMode('podium');
+      confetti({ particleCount: 80, spread: 80 });
+      return;
+    }
     try {
       const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/finish`, {
         method: 'POST',
       });
+      const data = await readJsonSafe(resp);
+      if (!data) {
+        markLocalMode();
+        const finishedRoom: ArenaRoom = {
+          ...activeRoom,
+          status: 'finished',
+          finishedAt: new Date().toISOString(),
+        };
+        upsertLocalRoom(finishedRoom);
+        applyRoomData(finishedRoom);
+        setViewMode('podium');
+        confetti({ particleCount: 80, spread: 80 });
+        return;
+      }
       if (resp.ok) {
-        const data = await resp.json();
         applyRoomData(data.room, data.rankings || []);
         setViewMode('podium');
         confetti({ particleCount: 80, spread: 80 });
@@ -1202,6 +1540,16 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            {isLocalArena && (
+              <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                {lang === 'ar'
+                  ? 'وضع دون اتصال: الغرف والنتائج محفوظة على هذا الجهاز فقط.'
+                  : lang === 'ru'
+                    ? 'Офлайн-режим: комнаты и результаты хранятся только на этом устройстве.'
+                    : 'Offline mode: rooms and results are saved on this device only.'}
+              </p>
+            )}
 
             {isLoadingRooms ? (
               <div className="py-10 text-center text-slate-400 space-y-2">
