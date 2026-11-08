@@ -56,6 +56,13 @@ import {
   recordLocalAnswer,
   upsertLocalRoom,
 } from '../lib/localArena';
+import {
+  GeminiExtractError,
+  clearGeminiApiKey,
+  extractQuestionsViaGemini,
+  getGeminiApiKey,
+  saveGeminiApiKey,
+} from '../lib/geminiClient';
 import { speakRussian, playSoundEffect } from '../lib/audio';
 import { useI18n } from '../lib/i18n';
 
@@ -121,12 +128,42 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       setIsLocalArena(true);
     }
   };
-  const aiOfflineMessage =
+  // Gemini key (client-side AI extraction on static hosting): the key lives
+  // only in this browser's localStorage, never in the code.
+  const [geminiKeyInput, setGeminiKeyInput] = useState('');
+  const [geminiKeySaved, setGeminiKeySaved] = useState<boolean>(() => !!getGeminiApiKey());
+  const geminiKeyNeededMessage =
     lang === 'ar'
-      ? 'استخراج الأسئلة بالذكاء الاصطناعي يحتاج الخادم — أضف الأسئلة يدوياً بالأسفل، وهي تعمل دون اتصال.'
+      ? 'استخراج الأسئلة بالذكاء الاصطناعي يحتاج مفتاح Gemini مجاني — الصقه بالأسفل مرة واحدة، وسيعمل الاستخراج دون خادم.'
       : lang === 'ru'
-        ? 'Извлечение вопросов с помощью ИИ требует сервера — добавьте вопросы вручную ниже, они работают без подключения.'
-        : 'AI question extraction needs the server — add questions manually below; they work offline.';
+        ? 'Извлечение вопросов с помощью ИИ требует бесплатный ключ Gemini — вставьте его ниже один раз, и извлечение будет работать без сервера.'
+        : 'AI question extraction needs a free Gemini key — paste it below once, and extraction will work without a server.';
+  const localizeGeminiError = (err: any): string => {
+    const code = err instanceof GeminiExtractError ? err.code : 'unknown';
+    if (code === 'invalid_key')
+      return lang === 'ar'
+        ? 'مفتاح Gemini غير صحيح — تحقق من المفتاح والصقه من جديد.'
+        : lang === 'ru'
+          ? 'Неверный ключ Gemini — проверьте ключ и вставьте его заново.'
+          : 'Invalid Gemini key — check the key and paste it again.';
+    if (code === 'quota')
+      return lang === 'ar'
+        ? 'وصلت لحد الاستخدام المجاني لـ Gemini — انتظر قليلاً أو استخدم مفتاحاً آخر.'
+        : lang === 'ru'
+          ? 'Достигнут бесплатный лимит Gemini — подождите немного или используйте другой ключ.'
+          : 'Gemini free quota reached — wait a bit or use another key.';
+    if (code === 'no_questions')
+      return lang === 'ar'
+        ? 'لم يستخرج Gemini أي سؤال من هذه الصفحة — جرب صفحة أو نصاً أوضح.'
+        : lang === 'ru'
+          ? 'Gemini не извлёк ни одного вопроса с этой страницы — попробуйте более чёткую страницу или текст.'
+          : 'Gemini extracted no questions from this page — try a clearer page or text.';
+    return lang === 'ar'
+      ? 'تعذر الاتصال بـ Gemini — تحقق من الإنترنت وحاول من جديد.'
+      : lang === 'ru'
+        ? 'Не удалось связаться с Gemini — проверьте интернет и попробуйте снова.'
+        : 'Could not reach Gemini — check the connection and try again.';
+  };
 
   // Mode: 'lobby' | 'create' | 'room' | 'active_quiz' | 'podium'
   const [viewMode, setViewMode] = useState<'lobby' | 'create' | 'room' | 'active_quiz' | 'podium'>('lobby');
@@ -746,16 +783,85 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     reader.readAsDataURL(file);
   };
 
+  // Client-side AI extraction (offline mode): the user's own free Gemini
+  // key turns the uploaded page image / pasted text into quiz questions,
+  // saved to the local room — the same prompt and parsing the server used.
+  const handleLocalExtract = async () => {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+      setExtractError(geminiKeyNeededMessage);
+      return;
+    }
+    let targetRoom = activeRoom;
+    if (!targetRoom) {
+      targetRoom = newLocalRoom({
+        title: newTitle.trim() || L.defaultCreatedRoomTitle,
+        teacherId: currentUserId,
+        teacherName: currentUserName,
+        exerciseTopic: newTopic,
+        teacherInstructions: newInstructions,
+        timeLimitSeconds: newTimeLimit,
+      });
+      upsertLocalRoom(targetRoom);
+      setActiveRoom(sanitizeRoom(targetRoom));
+      setIsRoomOwner(true);
+    }
+    if (newTitle.trim()) targetRoom = { ...targetRoom, title: newTitle.trim() };
+    targetRoom = {
+      ...targetRoom,
+      questionTimeLimitSeconds: Math.max(10, Math.min(60, Number(newTimeLimit) || 30)),
+    };
+    try {
+      const result = await extractQuestionsViaGemini({
+        apiKey,
+        pageText: customText.trim(),
+        pageImageBase64: customImageBase64,
+        teacherInstructions: newInstructions || targetRoom.teacherInstructions,
+        topic: newTopic || targetRoom.exerciseTopic,
+        questionCount: newQuestionCount || 5,
+      });
+      const pageRecord = {
+        id: `p-${Date.now()}`,
+        title: customImageName
+          ? `${customImageName} — ص 1`
+          : `صفحة مرفوعة #${targetRoom.pages.length + 1}`,
+        bookTitle: customImageName || undefined,
+        pageNumber: 1,
+        imageUrl: customImageBase64 ? customImageBase64.slice(0, 500) : undefined,
+        rawText: customText ? customText.trim().slice(0, 2000) : undefined,
+      };
+      const updatedRoom: ArenaRoom = {
+        ...targetRoom,
+        questions: result.questions,
+        exerciseTopic: result.extractedTopic || targetRoom.exerciseTopic,
+        teacherInstructions: newInstructions || targetRoom.teacherInstructions,
+        status: 'waiting',
+        pages: [...targetRoom.pages, pageRecord],
+      };
+      upsertLocalRoom(updatedRoom);
+      setActiveRoom(sanitizeRoom(updatedRoom));
+      await fetchRooms();
+      setShowTeacherAnswersPreview(false);
+      setViewMode('room');
+      confetti({ particleCount: 40, spread: 60 });
+    } catch (err: any) {
+      setExtractError(localizeGeminiError(err));
+    }
+  };
+
   // Trigger AI Page Extraction
   const handleExtractExercises = async () => {
     setIsExtracting(true);
     setExtractError(null);
 
-    // AI extraction runs on the server — without it, use the manual
-    // question builder below (it works offline).
+    // Static hosting: no server — extract with the user's own free Gemini
+    // key, straight from the browser (see src/lib/geminiClient.ts).
     if (localModeRef.current) {
-      setExtractError(aiOfflineMessage);
-      setIsExtracting(false);
+      try {
+        await handleLocalExtract();
+      } finally {
+        setIsExtracting(false);
+      }
       return;
     }
 
@@ -777,7 +883,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         const createdRoom = await readJsonSafe(createResp);
         if (!createdRoom) {
           markLocalMode();
-          setExtractError(aiOfflineMessage);
+          await handleLocalExtract();
           return;
         }
         if (!createResp.ok) {
@@ -1808,6 +1914,82 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             </select>
             <p className="text-[11px] text-slate-500 pt-1">{L.extractNote}</p>
           </div>
+
+          {/* Gemini key setup (offline mode): AI extraction needs the user's
+              own free key — stored only in this browser. */}
+          {isLocalArena && !geminiKeySaved && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-start">
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
+                {lang === 'ar'
+                  ? 'لاستخراج الأسئلة بالذكاء الاصطناعي: الصق مفتاح Gemini المجاني مرة واحدة.'
+                  : lang === 'ru'
+                    ? 'Чтобы извлекать вопросы с помощью ИИ: вставьте бесплатный ключ Gemini один раз.'
+                    : 'To extract questions with AI: paste a free Gemini key once.'}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {lang === 'ar' ? 'مفتاح مجاني من ' : lang === 'ru' ? 'Бесплатный ключ: ' : 'Free key: '}
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline font-bold text-brand-blue"
+                >
+                  Google AI Studio
+                </a>
+                {lang === 'ar'
+                  ? ' — المفتاح يبقى على هذا الجهاز فقط ولا يرسل لأحد.'
+                  : lang === 'ru'
+                    ? ' — ключ хранится только на этом устройстве и никому не отправляется.'
+                    : ' — the key stays on this device only and is sent to nobody.'}
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={geminiKeyInput}
+                  onChange={(e) => setGeminiKeyInput(e.target.value)}
+                  placeholder="AIza..."
+                  autoComplete="off"
+                  className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const key = geminiKeyInput.trim();
+                    if (key.length < 8) return;
+                    saveGeminiApiKey(key);
+                    setGeminiKeySaved(true);
+                    setGeminiKeyInput('');
+                    setExtractError(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[#0B3D91] text-white text-xs font-bold shrink-0 cursor-pointer"
+                >
+                  {lang === 'ar' ? 'حفظ' : lang === 'ru' ? 'Сохранить' : 'Save'}
+                </button>
+              </div>
+            </div>
+          )}
+          {isLocalArena && geminiKeySaved && (
+            <div className="flex items-center justify-between gap-2 text-start">
+              <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                {lang === 'ar'
+                  ? 'مفتاح Gemini محفوظ على هذا الجهاز — الاستخراج يعمل.'
+                  : lang === 'ru'
+                    ? 'Ключ Gemini сохранён на этом устройстве — извлечение работает.'
+                    : 'Gemini key saved on this device — extraction works.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  clearGeminiApiKey();
+                  setGeminiKeySaved(false);
+                  setGeminiKeyInput('');
+                }}
+                className="text-[11px] font-bold text-slate-500 underline shrink-0 cursor-pointer"
+              >
+                {lang === 'ar' ? 'تغيير' : lang === 'ru' ? 'Изменить' : 'Change'}
+              </button>
+            </div>
+          )}
 
           {extractError && (
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold flex items-center gap-2">
