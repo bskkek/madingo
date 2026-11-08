@@ -421,7 +421,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="w-full lg:w-1/2 flex flex-col items-start space-y-6 pt-2">
               <div className="w-full relative overflow-hidden border-0 shadow-none ring-0 bg-transparent">
                 <img
-                  src={import.meta.env.BASE_URL + "aistudio/1793061139335_b556fd67.jpg"}
+                  src={import.meta.env.BASE_URL + "assets/aistudio/1793061139335_b556fd67.jpg"}
                   alt="Misha Character"
                   className="w-full h-auto object-contain border-0 shadow-none bg-transparent"
                   referrerPolicy="no-referrer"
@@ -578,7 +578,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <div className="shrink-0 w-28 h-24 sm:w-32 sm:h-28 bg-white flex items-center justify-center overflow-hidden">
               <video
-                src={import.meta.env.BASE_URL + "aistudio/gemini_generated_video_d8d0f419_ba9d5bac.mp4"}
+                src={import.meta.env.BASE_URL + "assets/aistudio/gemini_generated_video_d8d0f419_ba9d5bac.mp4"}
                 data-testid="landing-about-us-video"
                 autoPlay
                 loop

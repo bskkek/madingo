@@ -940,7 +940,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         <div className="relative -mx-3 sm:-mx-4 h-[235px] sm:h-[265px] overflow-hidden select-none">
           {/* Cropped Image 3 so the full orange car, winding road, green hills & Moscow towers appear cleanly without the bottom grey/tan strips */}
           <img
-            src={import.meta.env.BASE_URL + "aistudio/1793153092003_48d96bde.jpg"}
+            src={import.meta.env.BASE_URL + "assets/aistudio/1793153092003_48d96bde.jpg"}
             alt={L.heroAlt}
             className="w-full h-[170%] object-cover object-[center_28%] pointer-events-none"
           />
@@ -1119,7 +1119,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                   aria-hidden="true"
                 />
                 <img
-                  src={import.meta.env.BASE_URL + "aistudio/1793153163292_a75dd14c.jpg"}
+                  src={import.meta.env.BASE_URL + "assets/aistudio/1793153163292_a75dd14c.jpg"}
                   alt={L.studentsImgAlt}
                   className="relative z-10 w-full h-full object-contain object-top mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none"
                 />

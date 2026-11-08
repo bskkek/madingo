@@ -408,7 +408,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       >
         {/* Background Illustration: MADI University Building + 3 Crew Characters with Books */}
         <img
-          src={import.meta.env.BASE_URL + "aistudio/library-hero-illustration.png"}
+          src={import.meta.env.BASE_URL + "assets/aistudio/library-hero-illustration.png"}
           alt="MADI Library Illustration"
           className="absolute right-[-4px] sm:right-2 lg:right-6 bottom-[105px] sm:bottom-4 lg:bottom-3 w-[53%] max-w-[330px] sm:max-w-[370px] lg:max-w-[430px] object-contain pointer-events-none select-none z-0"
         />
@@ -418,7 +418,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             <GraduationCap className="w-7 h-7 text-amber-400 shrink-0" />
             <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full p-0.5 bg-white/10 ring-1 ring-white/25 shadow-lg shadow-black/30 shrink-0">
               <img
-                src={import.meta.env.BASE_URL + "aistudio/madi-emblem-circle.png"}
+                src={import.meta.env.BASE_URL + "assets/aistudio/madi-emblem-circle.png"}
                 alt="MADI Official Emblem"
                 className="w-full h-full rounded-full object-contain"
               />

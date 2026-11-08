@@ -87,7 +87,7 @@ export const MadiCrewSection: React.FC = () => {
           <div className="absolute inset-[2%_14%_0_14%] rounded-full bg-[#EFE9DF] opacity-90 dark:bg-[#16213A]" />
 
           <div className="car absolute top-[28%] left-[32%] w-[18%] z-10 animate-drive">
-            <img src={import.meta.env.BASE_URL + "madi-crew/sprites/car.png"} alt="Car" className="w-full h-auto select-none" draggable={false} />
+            <img src={import.meta.env.BASE_URL + "assets/madi-crew/sprites/car.png"} alt="Car" className="w-full h-auto select-none" draggable={false} />
           </div>
 
           {CHARACTER_CONFIGS.map((char) => {

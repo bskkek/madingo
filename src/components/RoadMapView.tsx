@@ -952,7 +952,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
               className="pointer-events-none absolute inset-y-0 right-0 w-6 sm:w-10 z-10 bg-gradient-to-l from-white via-white/40 to-transparent dark:from-slate-900 dark:via-slate-900/40 dark:to-transparent"
             />
             <img
-              src={import.meta.env.BASE_URL + "aistudio/1793067979920_f1e14560.jpg"}
+              src={import.meta.env.BASE_URL + "assets/aistudio/1793067979920_f1e14560.jpg"}
               alt="MADI Crew Family in Moscow"
               className="w-full h-auto object-cover select-none"
               referrerPolicy="no-referrer"

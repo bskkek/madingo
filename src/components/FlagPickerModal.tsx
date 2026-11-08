@@ -35,7 +35,7 @@ export const FlagPickerModal: React.FC<FlagPickerModalProps> = ({
         <div className="flex items-center justify-between gap-4">
           <MadingoWordmark size="md" />
           <img
-            src={import.meta.env.BASE_URL + "madi-logo.svg"}
+            src={import.meta.env.BASE_URL + "brand/madi-logo.svg"}
             alt="MADI University Logo"
             className="h-9 w-auto rounded-lg"
             referrerPolicy="no-referrer"
