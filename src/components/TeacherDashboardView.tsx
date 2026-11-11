@@ -34,6 +34,7 @@ import {
 } from '../data/phase3Seed';
 import { UserRole, canApproveContent } from '../lib/phase3Engine';
 import { speakRussian as rawSpeakRussian } from '../lib/audio';
+import { instantTranslateClient } from '../lib/clientTranslate';
 
 const speakRussian = (text: string, soundEnabled = true, rate = 0.9) =>
   rawSpeakRussian(text, undefined, soundEnabled, rate);
@@ -350,24 +351,21 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
     setAutoTranslating(true);
     setTranslateError(null);
     try {
-      const resp = await fetch('/api/ai/translate-step', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ russianText: newStepRu.trim() }),
+      // Client-side translation (MyMemory, no server): the /api route only
+      // exists on the Node server, so on static hosting it returned
+      // index.html instead of JSON.
+      const data = await instantTranslateClient({
+        text: newStepRu.trim(),
+        sourceLang: 'ru',
+        targetLang: 'ar',
       });
-      const data = await resp.json();
-      if (resp.ok) {
-        if (data.ru) setNewStepRu(data.ru);
-        if (data.en) setNewStepEn(data.en);
-        if (data.ar) setNewStepAr(data.ar);
-        if (data.fr) setNewStepFr(data.fr);
-      } else {
-        console.error('[TeacherDashboardView] Auto-translate failed:', data);
-        setTranslateError(data.error || 'AI translation failed. Check GEMINI_API_KEY and retry.');
-      }
+      if (data.translations.ruStressed) setNewStepRu(data.translations.ruStressed);
+      if (data.translations.en) setNewStepEn(data.translations.en);
+      if (data.translations.ar) setNewStepAr(data.translations.ar);
+      if (data.translations.fr) setNewStepFr(data.translations.fr);
     } catch (err: any) {
       console.error('[TeacherDashboardView] Auto-translate error:', err);
-      setTranslateError(err?.message || 'Network error during AI translation.');
+      setTranslateError('Translation service is unreachable. Check your connection and retry.');
     }
     setAutoTranslating(false);
   };

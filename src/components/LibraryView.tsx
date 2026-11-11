@@ -22,6 +22,10 @@ import {
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import {
+  searchLibrary,
+  type LibrarySearchResult,
+} from '../lib/libraryClient';
+import {
   LIBRARY_SEED_ITEMS,
   LibraryItem,
   LibrarySection,
@@ -29,6 +33,7 @@ import {
 } from '../data/phase3Seed';
 import { UserRole, canModerateLibrary, stripStress } from '../lib/phase3Engine';
 import { speakRussian as rawSpeakRussian } from '../lib/audio';
+import { instantTranslateClient } from '../lib/clientTranslate';
 
 const speakRussian = (text: string, soundEnabled = true, rate = 0.9) =>
   rawSpeakRussian(text, undefined, soundEnabled, rate);
@@ -108,6 +113,25 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   const [originFilter, setOriginFilter] = useState<'ALL' | 'madi_official' | 'rki_classic'>('ALL');
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // MADI university library (НТБ МАДИ) — full-text book search via the
+  // proxy POST /library (live catalog first, curated offline index as
+  // fallback). Results always show their source + deep links.
+  const [madiQuery, setMadiQuery] = useState('');
+  const [madiResults, setMadiResults] = useState<LibrarySearchResult | null>(null);
+  const [madiSearching, setMadiSearching] = useState(false);
+
+  const runMadiSearch = async (query: string) => {
+    const q = query.trim();
+    if (!q) return;
+    setMadiSearching(true);
+    try {
+      const result = await searchLibrary(q, lang);
+      setMadiResults(result);
+    } finally {
+      setMadiSearching(false);
+    }
+  };
 
   // Reader & PDF Preview Modal state
   const [activeReaderItem, setActiveReaderItem] = useState<LibraryItem | null>(null);
@@ -261,28 +285,24 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
     });
 
     try {
-      const resp = await fetch('/api/ai/instant-translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: clean,
-          sourceLang: 'ru',
-          targetLang: lang === 'ru' ? 'en' : lang,
-        }),
+      // Client-side translation (MyMemory, no server): the /api route only
+      // exists on the Node server, so on static hosting it returned
+      // index.html instead of JSON.
+      const data = await instantTranslateClient({
+        text: clean,
+        sourceLang: 'ru',
+        targetLang: lang === 'ru' ? 'en' : lang,
       });
-      if (resp.ok) {
-        const data = await resp.json();
-        setInspectedWord({
-          rawWord: data.translations?.ruStressed || rawTrimmed,
-          cleanWord: clean,
-          translation:
-            data.translations?.[lang === 'ru' ? 'en' : lang] ||
-            data.primaryTranslation ||
-            clean,
-          pos: data.pos || 'word',
-          level: data.cefrLevel || activeReaderItem?.level || 'A1',
-        });
-      }
+      setInspectedWord({
+        rawWord: data.translations?.ruStressed || rawTrimmed,
+        cleanWord: clean,
+        translation:
+          data.translations?.[lang === 'ru' ? 'en' : lang] ||
+          data.primaryTranslation ||
+          clean,
+        pos: data.pos || 'word',
+        level: data.cefrLevel || activeReaderItem?.level || 'A1',
+      });
     } catch {
       // Keep initial state if network error
     }
@@ -665,6 +685,121 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           />
         </div>
       </div>
+
+      {/* =====================================================================
+          MADI UNIVERSITY LIBRARY (НТБ МАДИ) — FULL-TEXT BOOK SEARCH
+          Live MADI catalog first (proxy POST /library), curated offline
+          index as fallback. Every result shows its source; the full
+          catalog is always one tap away.
+         ===================================================================== */}
+      <section className="rounded-3xl bg-gradient-to-br from-amber-50 via-orange-50 to-orange-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 border border-orange-200 dark:border-orange-900/50 p-4 sm:p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <GraduationCap className="w-5 h-5 text-accent-orange shrink-0" />
+          <h2 className="font-display font-extrabold text-base text-slate-900 dark:text-white">
+            {t('assistant.madiLibraryTitle')}
+          </h2>
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {t('assistant.madiLibraryHint')}
+        </p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void runMadiSearch(madiQuery);
+          }}
+          className="flex gap-2"
+        >
+          <input
+            type="text"
+            data-testid="madi-library-search-input"
+            value={madiQuery}
+            onChange={(e) => setMadiQuery(e.target.value)}
+            placeholder={t('assistant.bookPlaceholder')}
+            className="flex-1 min-w-0 min-h-[44px] px-3.5 rounded-2xl border border-orange-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-accent-orange/60"
+          />
+          <button
+            type="submit"
+            disabled={madiSearching || !madiQuery.trim()}
+            className="shrink-0 min-h-[44px] px-4 rounded-2xl bg-accent-orange text-white text-sm font-bold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+          >
+            <Search className="w-4 h-4" />
+            {t('assistant.findBook')}
+          </button>
+        </form>
+        {madiSearching && (
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {t('assistant.typing')}
+          </p>
+        )}
+        {madiResults && !madiSearching && madiResults.results.length === 0 && (
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {t('assistant.libraryNoResults')}
+          </p>
+        )}
+        {madiResults && madiResults.results.length > 0 && (
+          <div className="space-y-2">
+            {madiResults.results.map((book) => (
+              <div
+                key={book.id}
+                data-testid={`madi-book-${book.id}`}
+                className="rounded-2xl border border-orange-200 dark:border-orange-900/60 bg-white dark:bg-slate-900 p-3 shadow-sm"
+              >
+                <p className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                  {book.title}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {book.author}
+                  {book.year ? ` · ${book.year}` : ''}
+                  {book.pages ? ` · ${book.pages} с.` : ''}
+                </p>
+                <div className="flex items-center justify-between mt-2 gap-2">
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">
+                    {book.source === 'live-catalog' || book.source === 'live-fulltext'
+                      ? t('assistant.librarySourceLive')
+                      : t('assistant.librarySourceOffline')}
+                  </span>
+                  <a
+                    href={book.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-accent-orange"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {t('assistant.openBook')}
+                  </a>
+                </div>
+              </div>
+            ))}
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              {madiResults.source === 'live'
+                ? t('assistant.librarySourceLive')
+                : t('assistant.librarySourceOffline')}
+            </p>
+          </div>
+        )}
+        {madiResults && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <a
+              href={madiResults.links.catalog}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-accent-orange"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              {t('assistant.libraryOpenCatalog')}
+            </a>
+            <a
+              href={madiResults.links.fullText}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-accent-orange"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              {t('assistant.libraryOpenFullText')}
+            </a>
+          </div>
+        )}
+      </section>
 
       {/* =====================================================================
           BOOKS CATALOG GRID (32 BOOKS WITH 3:4 HARDCOVER COVERS & PDF LINKS)

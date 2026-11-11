@@ -30,6 +30,7 @@ import {
 } from '../data/curriculum';
 import { useI18n } from '../lib/i18n';
 import { speakRussian, speakText } from '../lib/audio';
+import { instantTranslateClient } from '../lib/clientTranslate';
 import { SupportedLang, stripStressMarks, type DictionaryWordRecord } from '../lib/phase2Engine';
 import browseDictionaryJson from '../../content/dictionary.json';
 
@@ -565,21 +566,15 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
     const t0 = performance.now();
 
     try {
-      const response = await fetch('/api/ai/instant-translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: clean,
-          sourceLang: srcLang,
-          targetLang: tgtLang,
-        }),
+      // Client-side translation (MyMemory, no server): the /api route only
+      // exists on the Node server, so on static hosting it returned
+      // index.html and broke with "Unexpected token '<' ... is not valid JSON".
+      const data = await instantTranslateClient({
+        text: clean,
+        sourceLang: srcLang,
+        targetLang: tgtLang,
         signal: controller.signal,
       });
-
-      const data: InstantTranslationResponse = await response.json();
-      if (!response.ok) {
-        throw new Error((data as any).error || 'Instant translation request failed.');
-      }
 
       const clientElapsed = Math.max(1, Math.round(performance.now() - t0));
       const enrichedData: InstantTranslationResponse = {
@@ -625,11 +620,12 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
       if (err?.name === 'AbortError') return;
       console.error('[AI Instant Translator Error]:', err);
       setIsTranslating(false);
+      // Never surface raw technical errors (e.g. JSON parse failures) to
+      // the user — always show the friendly localized message.
       setErrorMsg(
-        err?.message ||
-          (lang === 'ar'
-            ? 'تعذّر إتمام الترجمة الفورية. يرجى الضغط على إعادة المحاولة.'
-            : 'Instant translation failed. Please click Retry.')
+        lang === 'ar'
+          ? 'تعذّر إتمام الترجمة الفورية. يرجى الضغط على إعادة المحاولة.'
+          : 'Instant translation failed. Please click Retry.'
       );
     }
   };
@@ -846,12 +842,15 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-2xl self-start">
+        {/* Swipeable on phones: the four tabs together are wider than a
+            phone screen, so the strip scrolls inside the viewport instead
+            of widening the whole page (that forced pinch-zoom before). */}
+        <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-2xl self-start w-full max-w-full overflow-x-auto scrollbar-none sm:w-auto">
           <button
             type="button"
             data-testid="translator-tab-main"
             onClick={() => setSectionTab('translator')}
-            className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+            className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               sectionTab === 'translator'
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300'
@@ -865,7 +864,7 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
             type="button"
             data-testid="translator-tab-history"
             onClick={() => setSectionTab('history')}
-            className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+            className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               sectionTab === 'history'
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300'
@@ -881,7 +880,7 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
             type="button"
             data-testid="translator-tab-letters"
             onClick={() => setSectionTab('letters')}
-            className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+            className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               sectionTab === 'letters'
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300'
@@ -895,7 +894,7 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
             type="button"
             data-testid="translator-tab-browse"
             onClick={() => setSectionTab('browse')}
-            className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+            className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               sectionTab === 'browse'
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300'
