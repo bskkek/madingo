@@ -47,6 +47,12 @@ export default defineConfig(() => {
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+          // The storybook lives at /madingo/book/ (same Pages site) and is
+          // shown inside the Aniss bubble iframe. Without this, the SPA
+          // navigation fallback serves the app's own index.html for the
+          // /madingo/book/ navigation and the iframe shows the app itself
+          // instead of the book (seen live 2026-11-11).
+          navigateFallbackDenylist: [/\/madingo\/book\//],
           globPatterns: ['**/*.{js,css,html,ico,png,webp,svg,woff,woff2,json}'],
           runtimeCaching: [
             {
