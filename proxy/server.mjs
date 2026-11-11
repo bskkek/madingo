@@ -11,8 +11,8 @@
 //     The key lives only in the hosting platform's secret store
 //     (Replit Secrets / Cloudflare `wrangler secret put` / env var).
 //   * The proxy never returns the key, never logs request bodies, and
-//     only answers /extract + /chat + /library + /speak + /health +
-//     /api/generate-content. The last one is the exact contract the
+//     only answers /extract + /chat + /library + /speak + /transcribe +
+//     /health + /api/generate-content. The last one is the exact contract the
 //     Madingo storybook app (bskkek/Madingo-bio, UNCHANGED) expects from
 //     its own server: POST {model, contents, config} -> the raw Gemini
 //     response {candidates, promptFeedback, usageMetadata, ...}.
@@ -21,8 +21,9 @@
 //     API, exactly as its own server would serve it — no book code is
 //     changed, only this proxy gains the two things the book needs.
 //   * Abuse protection: per-IP hourly limit + a global daily cap, so one
-//     person cannot burn the whole free quota. /speak and /library have
-//     their own smaller caps so they never eat the /extract + /chat quota.
+//     person cannot burn the whole free quota. /speak, /library and
+//     /transcribe have their own smaller caps so they never eat the
+//     /extract + /chat quota.
 //     /api/generate-content has its own counters + a server-side TTS
 //     cache, so replaying the book's lines does not re-spend quota.
 //
@@ -50,6 +51,13 @@ const TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 const TTS_VOICES = { masha: 'Aoede', aniss: 'Charon' };
 const SPEAK_DAILY_CAP = Number(process.env.SPEAK_DAILY_CAP || 100);
 const SPEAK_HOURLY_PER_IP = Number(process.env.SPEAK_HOURLY_PER_IP || 10);
+// Voice transcription (voice-call bot demo) — its own caps so it never
+// eats the /extract + /chat quota. One clip is a short voice message
+// (MediaRecorder, max ~30 s), so 100/day and 20/hour per IP is plenty.
+const TRANSCRIBE_DAILY_CAP = Number(process.env.TRANSCRIBE_DAILY_CAP || 100);
+const TRANSCRIBE_HOURLY_PER_IP = Number(process.env.TRANSCRIBE_HOURLY_PER_IP || 20);
+const TRANSCRIBE_MAX_AUDIO_CHARS = 2_000_000; // ~1.5 MB base64 ≈ 60 s of Opus
+const transcribeState = { ipHits: new Map(), dailyCount: 0, dailyDate: new Date().toISOString().slice(0, 10) };
 // Book search — its own light cap (does not touch the AI quota).
 const LIBRARY_DAILY_CAP = Number(process.env.LIBRARY_DAILY_CAP || 500);
 const LIBRARY_HOURLY_PER_IP = Number(process.env.LIBRARY_HOURLY_PER_IP || 60);
@@ -191,6 +199,10 @@ function checkCounter(ip, state, dailyCap, hourlyCap) {
 
 function checkSpeakLimits(ip) {
   return checkCounter(ip, speakState, SPEAK_DAILY_CAP, SPEAK_HOURLY_PER_IP);
+}
+
+function checkTranscribeLimits(ip) {
+  return checkCounter(ip, transcribeState, TRANSCRIBE_DAILY_CAP, TRANSCRIBE_HOURLY_PER_IP);
 }
 
 function checkLibraryLimits(ip) {
@@ -683,6 +695,43 @@ async function speakViaGemini({ text, voice }) {
   }
 }
 
+// --- Gemini transcription (voice-call bot demo) --------------------------
+// POST /transcribe { audioBase64, mimeType } ->
+//   { ok, text, model }.
+// The caller (MediaRecorder in the browser) sends one short voice clip;
+// Gemini listens and returns the Arabic transcription as plain text.
+// Tries gemini-3-flash-preview first, then gemini-3.8-flash; a 429 on
+// one model falls through to the next (free-tier quota is per-model).
+const TRANSCRIBE_MODELS = ['gemini-3-flash-preview', 'gemini-3.8-flash'];
+async function transcribeViaGemini({ audioBase64, mimeType }) {
+  const prompt =
+    'Transcribe this speech to text exactly as spoken, in Arabic (Algerian dialect if present). ' +
+    'Return ONLY the transcription, no explanation, no added punctuation beyond what was said. ' +
+    'If there is no intelligible speech, return an empty string.';
+  let sawQuota = false;
+  for (const model of TRANSCRIBE_MODELS) {
+    const result = await callGemini(model, {
+      contents: [{
+        parts: [
+          { inlineData: { mimeType, data: audioBase64 } },
+          { text: prompt },
+        ],
+      }],
+      generationConfig: { temperature: 0 },
+    });
+    if (result.ok) return { ok: true, text: (result.text || '').trim(), model };
+    if (result.status === 400 || result.status === 401 || result.status === 403) {
+      return { ok: false, code: 'invalid_key', message: result.detail || 'Gemini rejected the API key.' };
+    }
+    if (result.status === 429) {
+      sawQuota = true;
+      continue;
+    }
+  }
+  if (sawQuota) return { ok: false, code: 'quota', message: 'Gemini quota / rate limit reached.' };
+  return { ok: false, code: 'unknown', message: 'Transcription failed.' };
+}
+
 // --- Madingo storybook hosting ------------------------------------------
 // The book's built frontend (bskkek/Madingo-bio, UNCHANGED — built from
 // its own repo) lives in ./book/dist next to this file on the host.
@@ -801,11 +850,13 @@ const server = http.createServer(async (req, res) => {
       service: 'madingo-gemini-proxy',
       models: MODELS,
       ttsModel: TTS_MODEL,
-      endpoints: ['/extract', '/chat', '/library', '/speak', '/api/generate-content', '/ (madingo storybook)'],
+      endpoints: ['/extract', '/chat', '/library', '/speak', '/transcribe', '/api/generate-content', '/ (madingo storybook)'],
       dailyUsed: dailyCount,
       dailyCap: DAILY_CAP,
       speakDailyUsed: speakState.dailyCount,
       speakDailyCap: SPEAK_DAILY_CAP,
+      transcribeDailyUsed: transcribeState.dailyCount,
+      transcribeDailyCap: TRANSCRIBE_DAILY_CAP,
       libraryDailyUsed: libraryState.dailyCount,
       libraryDailyCap: LIBRARY_DAILY_CAP,
     }, origin);
@@ -904,6 +955,62 @@ const server = http.createServer(async (req, res) => {
       voice: result.voice,
       model: result.model,
     }, origin);
+    log(200);
+    return;
+  }
+
+  // POST /transcribe — voice-call bot demo: one short voice clip in,
+  // Arabic transcription out. Follows the same shape as /speak above
+  // (origin check, own rate limits, same error codes).
+  if (req.method === 'POST' && url.pathname === '/transcribe') {
+    if (!isAllowedOrigin(origin)) {
+      sendJson(res, 403, { ok: false, error: { code: 'unknown', message: 'Origin not allowed.' } }, origin);
+      log(403);
+      return;
+    }
+    const limited = checkTranscribeLimits(ip);
+    if (limited === 'daily') {
+      sendJson(res, 429, { ok: false, error: { code: 'quota', message: 'Daily transcription limit reached — please try again tomorrow.' } }, origin);
+      log(429);
+      return;
+    }
+    if (limited === 'hourly') {
+      sendJson(res, 429, { ok: false, error: { code: 'quota', message: 'Too many transcriptions from this device this hour — please wait a bit.' } }, origin);
+      log(429);
+      return;
+    }
+    let body;
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      sendJson(res, 400, { ok: false, error: { code: 'unknown', message: 'Invalid JSON body.' } }, origin);
+      log(400);
+      return;
+    }
+    let audioBase64 = String(body.audioBase64 || '').trim();
+    const dataUrl = audioBase64.match(/^data:([^;]+);base64,([\s\S]*)$/);
+    if (dataUrl) audioBase64 = dataUrl[2];
+    let mimeType = String(body.mimeType || '').split(';')[0].trim().toLowerCase();
+    if (!mimeType.startsWith('audio/')) mimeType = 'audio/webm';
+    if (!audioBase64 || audioBase64.length < 100) {
+      sendJson(res, 400, { ok: false, error: { code: 'unknown', message: 'Send a voice clip to transcribe.' } }, origin);
+      log(400);
+      return;
+    }
+    if (audioBase64.length > TRANSCRIBE_MAX_AUDIO_CHARS) {
+      sendJson(res, 400, { ok: false, error: { code: 'unknown', message: 'Voice clip is too long — keep it under 30 seconds.' } }, origin);
+      log(400);
+      return;
+    }
+    transcribeState.dailyCount += 1;
+    const result = await transcribeViaGemini({ audioBase64, mimeType });
+    if (!result.ok) {
+      const status = result.code === 'quota' ? 429 : result.code === 'invalid_key' ? 500 : 502;
+      sendJson(res, status, { ok: false, error: { code: result.code, message: result.message } }, origin);
+      log(status);
+      return;
+    }
+    sendJson(res, 200, { ok: true, text: result.text, model: result.model }, origin);
     log(200);
     return;
   }
