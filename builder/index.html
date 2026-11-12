@@ -59,12 +59,8 @@
       .appbar .brand .win-name{ font-weight:700; font-size:1.02rem; color:#ffd9ad; white-space:nowrap; }
       .appbar .brand .win-sub{ font-size:.85rem; color:#bcd4f2; white-space:nowrap; }
       .appbar .spacer{ flex:1; }
-      .lang-switch{ display:flex; gap:3px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.35);
-        border-radius:999px; padding:3px; }
-      .lang-switch button{ border:none; background:transparent; color:#dbe9fa; border-radius:999px;
-        padding:6px 15px; font-size:.92rem; font-weight:600; min-height:38px; }
-      .lang-switch button:hover{ color:#fff; }
-      .lang-switch button.on{ background:#fff; color:#0b3d91; }
+      .lang-tag{ font-size:.9rem; font-weight:600; color:#bcd4f2; border:1px solid rgba(255,255,255,.3);
+        border-radius:999px; padding:6px 14px; white-space:nowrap; }
       [dir="ltr"] .back-btn svg{ transform:scaleX(-1); }
 
       .wrap{ max-width:1060px; margin:0 auto; padding:20px 16px 56px; }
@@ -244,11 +240,7 @@
           <span class="win-sub" id="win-sub">جامعة مادي — МАДИ</span>
         </div>
         <div class="spacer"></div>
-        <div class="lang-switch" role="group" aria-label="Language / اللغة / Язык">
-          <button type="button" data-lang="ar" class="on">العربية</button>
-          <button type="button" data-lang="en">English</button>
-          <button type="button" data-lang="ru">Русский</button>
-        </div>
+        <span class="lang-tag" id="lang-tag">العربية</span>
       </header>
 
     <div class="wrap">
@@ -3252,10 +3244,30 @@
     var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     /* ================= UI LANGUAGE =================
-       The interface follows the language the student picks (ar / en / ru).
+       This window has NO language switcher of its own, and its language
+       cannot be changed from inside it. The window's language is the one
+       the student picked in the Madingo app, and the app hands it over:
+       as ?lang= in the address when the window opens, or live from the
+       host app via postMessage { type:"madingo-lang", lang:"ar"|"en"|"ru" }.
        Only the learning content itself — Russian part names, model titles,
        transcription and pronunciation — always stays Russian. */
+    var SUPPORTED_LANGS = ["ar", "en", "ru"];
+    function normLang(v){
+      if(typeof v !== "string") return null;
+      v = v.toLowerCase().split("-")[0];
+      return SUPPORTED_LANGS.indexOf(v) >= 0 ? v : null;
+    }
     var lang = "ar";
+    try{
+      var qs = new URLSearchParams(window.location.search);
+      lang = normLang(qs.get("lang")) || normLang(qs.get("language")) || lang;
+    }catch(e){}
+    window.addEventListener("message", function(ev){
+      var d = ev && ev.data;
+      if(!d || typeof d !== "object") return;
+      var l = normLang(d.lang || d.language);
+      if(l && l !== lang){ lang = l; applyLang(); }
+    });
     var STR = {
       ar: {
         docTitle: "ابنِها بالروسية — MADI Builder",
@@ -3452,9 +3464,7 @@
       $("#gl-error").textContent = s.glError;
       $("#btn-cam").setAttribute("aria-label", s.camReset);
       $("#gl").setAttribute("aria-label", s.canvasLabel);
-      document.querySelectorAll(".lang-switch button").forEach(function(b){
-        b.classList.toggle("on", b.getAttribute("data-lang") === lang);
-      });
+      $("#lang-tag").textContent = { ar: "العربية", en: "English", ru: "Русский" }[lang];
       if(!$("#view-tracks").hidden) renderTrackCards();
       else if(!$("#view-models").hidden && curTrack) renderModels();
       else if(!$("#view-builder").hidden && cur){
@@ -3466,12 +3476,6 @@
       return fmt(S().builderSub, { fac: facName(curTrack), name: modelName(curTrack.models[cur.idx]) })
         + (curTrack.models.length > 1 ? fmt(S().builderIdx, { a: num(cur.idx + 1), b: num(curTrack.models.length) }) : "");
     }
-    document.querySelectorAll(".lang-switch button").forEach(function(b){
-      b.addEventListener("click", function(){
-        var l = b.getAttribute("data-lang");
-        if(l !== lang){ lang = l; applyLang(); }
-      });
-    });
 
     function speak(text){
       try{
@@ -3998,7 +4002,7 @@
     $("#btn-back-tracks").addEventListener("click", function(){ renderTrackCards(); show("view-tracks"); });
     $("#btn-cam").addEventListener("click", function(){ resetCamera(); });
 
-    renderTrackCards();
+    applyLang();
     </script>
 </body>
 </html>
