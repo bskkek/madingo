@@ -46,6 +46,21 @@ const HOURLY_PER_IP = Number(process.env.HOURLY_PER_IP || 20);
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 const MAX_PAGE_TEXT = 20000;
 const REQUEST_TIMEOUT_MS = 45_000;
+// Extract timeout (2026-11-13): gemini-3.8-flash HANGS at peak times, so a
+// 45s per-call timeout burned the client's whole 90s budget before the
+// fallback model was ever tried. Extract calls (/extract + arena
+// extract-page) get a tighter 25s timeout so a hang fails fast: worst
+// case is primary 25s timeout + fallback 503-retry (~4s + 25s) ≈ 54s,
+// still comfortably inside the client's 90s budget. The global 45s
+// timeout is UNCHANGED — /speak (TTS audio generation) legitimately
+// needs the longer budget, so it keeps REQUEST_TIMEOUT_MS.
+const EXTRACT_TIMEOUT_MS = 25_000;
+// Extract image guard (2026-11-13): the client downscales phone photos
+// to ~100–200 KB before sending; anything far above that is a bug (a
+// full-size 2–5 MB photo forwarded to Gemini = slow + wasteful). Base64
+// payload length, data-URL prefix excluded; 2,000,000 chars ≈ 1.5 MB
+// of image bytes.
+const MAX_EXTRACT_IMAGE_CHARS = 2_000_000;
 
 // Voice (Gemini TTS) — clear professional Russian voices:
 // Masha = female 'Aoede', Aniss = male 'Charon'.
@@ -143,7 +158,10 @@ if (!API_KEY) {
 // Primary model first, then the fallback that answers fast when the
 // primary is overloaded (verified 2026-11-09: gemini-3.8-flash hangs /
 // 503s at peak times, gemini-3-flash-preview answers in ~11s).
-const MODELS = ['gemini-3.8-flash', 'gemini-3-flash-preview'];
+// Order flipped 2026-11-13: preview FIRST (it answers), 3.8-flash only
+// as fallback — the old order burned 45s on a hanging primary before
+// the fallback was ever tried.
+const MODELS = ['gemini-3-flash-preview', 'gemini-3.8-flash'];
 
 // CORS allowlist: the live Pages site + local dev + the proxy's OWN
 // published origin (the storybook runs same-origin from this server, so
@@ -273,10 +291,21 @@ function splitDataUrl(dataUrl) {
   return { mimeType: m[1], data: m[2] };
 }
 
-async function callGemini(model, requestBody) {
+// True when an extract image payload is absurdly large (see
+// MAX_EXTRACT_IMAGE_CHARS). The data-URL prefix, if any, is excluded
+// from the measurement; raw base64 is measured as-is.
+function extractImageTooLarge(pageImageBase64) {
+  const raw = String(pageImageBase64 || '').trim();
+  if (raw.length <= 50) return false;
+  const split = splitDataUrl(raw);
+  const payload = split ? split.data : raw;
+  return payload.length > MAX_EXTRACT_IMAGE_CHARS;
+}
+
+async function callGemini(model, requestBody, timeoutMs = REQUEST_TIMEOUT_MS) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const resp = await fetch(endpoint, {
       method: 'POST',
@@ -364,7 +393,10 @@ async function extractViaGemini({ pageText, pageImageBase64, topic, instructions
   let lastDetail = '';
   for (const model of MODELS) {
     for (let attempt = 0; attempt < 2; attempt++) {
-      const res = await callGemini(model, requestBody);
+      // Tighter per-call timeout (EXTRACT_TIMEOUT_MS): a hung primary
+      // fails fast so the fallback is always reached well inside the
+      // client's 90s budget. Other callers keep the 45s default.
+      const res = await callGemini(model, requestBody, EXTRACT_TIMEOUT_MS);
       if (res.ok) return { ok: true, text: res.text, model };
       lastDetail = res.detail || '';
       // Bad key / bad request: retrying another model will not help.
@@ -758,9 +790,11 @@ const ARENA_READ_HOURLY_PER_IP = Number(process.env.ARENA_READ_HOURLY_PER_IP || 
 const ARENA_WRITE_DAILY_CAP = Number(process.env.ARENA_WRITE_DAILY_CAP || 20000);
 const ARENA_WRITE_HOURLY_PER_IP = Number(process.env.ARENA_WRITE_HOURLY_PER_IP || 120);
 // Arena page extraction shares the /extract Gemini counters (checkLimits)
-// so it can never eat the whole daily quota on its own, plus this small
-// separate daily cap for arena extracts specifically.
-const ARENA_EXTRACT_DAILY_CAP = Number(process.env.ARENA_EXTRACT_DAILY_CAP || 50);
+// so it can never eat the whole daily quota on its own, plus this separate
+// daily cap for arena extracts specifically (raised 50 → 200 on
+// 2026-11-13: the shared 500/day Gemini cap is the real guard; 50 was
+// hit during normal classroom use). Still env-overridable.
+const ARENA_EXTRACT_DAILY_CAP = Number(process.env.ARENA_EXTRACT_DAILY_CAP || 200);
 const arenaRooms = new Map(); // id -> ArenaRoom
 const arenaReadState = { ipHits: new Map(), dailyCount: 0, dailyDate: new Date().toISOString().slice(0, 10) };
 const arenaWriteState = { ipHits: new Map(), dailyCount: 0, dailyDate: new Date().toISOString().slice(0, 10) };
@@ -1195,6 +1229,8 @@ const server = http.createServer(async (req, res) => {
       ttsModel: TTS_MODEL,
       endpoints: ['/extract', '/chat', '/library', '/speak', '/transcribe', '/api/generate-content', '/api/arena/rooms', '/api/arena/rooms/:id', '/api/arena/rooms/:id/join', '/api/arena/rooms/:id/answer', '/api/arena/rooms/:id/questions', '/api/arena/rooms/:id/extract-page', '/api/arena/rooms/:id/start', '/api/arena/rooms/:id/next-question', '/api/arena/rooms/:id/finish', '/ (madingo storybook)'],
       arenaRooms: arenaRooms.size,
+      arenaExtractDailyUsed: arenaExtractState.dailyCount,
+      arenaExtractDailyCap: ARENA_EXTRACT_DAILY_CAP,
       dailyUsed: dailyCount,
       dailyCap: DAILY_CAP,
       speakDailyUsed: speakState.dailyCount,
@@ -1391,6 +1427,11 @@ const server = http.createServer(async (req, res) => {
     const questionCount = Math.max(2, Math.min(25, Number(body.questionCount) || 5));
     if (!pageText && pageImageBase64.trim().length <= 50) {
       sendJson(res, 400, { ok: false, error: { code: 'no_questions', message: 'Send a page text or a page image to extract from.' } }, origin);
+      log(400);
+      return;
+    }
+    if (extractImageTooLarge(pageImageBase64)) {
+      sendJson(res, 400, { ok: false, error: { code: 'image_too_large', message: 'Image is too large (over ~2 MB). Please send a smaller or compressed photo of the page.' } }, origin);
       log(400);
       return;
     }
@@ -1912,6 +1953,11 @@ const server = http.createServer(async (req, res) => {
       const pageImageBase64 = String(body.pageImageBase64 || '');
       if (!pageText && pageImageBase64.trim().length <= 50) {
         sendJson(res, 400, { error: 'Send a page text or a page image to extract from.' }, origin);
+        log(400);
+        return;
+      }
+      if (extractImageTooLarge(pageImageBase64)) {
+        sendJson(res, 400, { error: 'Image is too large (over ~2 MB). Please send a smaller or compressed photo of the page.' }, origin);
         log(400);
         return;
       }
