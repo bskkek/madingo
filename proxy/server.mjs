@@ -12,7 +12,9 @@
 //     (Replit Secrets / Cloudflare `wrangler secret put` / env var).
 //   * The proxy never returns the key, never logs request bodies, and
 //     only answers /extract + /chat + /library + /speak + /transcribe +
-//     /health + /api/generate-content. The last one is the exact contract the
+//     /health + /api/generate-content + /api/arena/* (live classroom
+//     challenge rooms: create / join / answer / start / finish, polling
+//     first — no WebSocket server, the app polls room state every 3.5s).
 //     Madingo storybook app (bskkek/Madingo-bio, UNCHANGED) expects from
 //     its own server: POST {model, contents, config} -> the raw Gemini
 //     response {candidates, promptFeedback, usageMetadata, ...}.
@@ -732,6 +734,347 @@ async function transcribeViaGemini({ audioBase64, mimeType }) {
   return { ok: false, code: 'unknown', message: 'Transcription failed.' };
 }
 
+// --- AI Classroom Challenge Arena (live rooms) ---------------------------
+// In-memory only: rooms are live sessions. If this proxy restarts, live
+// rooms disappear (acceptable — a class re-creates its room). The app
+// client (src/components/AIClassroomArenaView.tsx) polls
+// GET /api/arena/rooms/:id every 3.5s when the WebSocket is unavailable,
+// so there is NO `ws` package and no real-time push here — polling is the
+// design. A WS upgrade attempt is destroyed fast (see the 'upgrade'
+// handler below) so the client falls back to polling immediately.
+// NEVER seed or return simulated classmates (ids "stud-demo-*", e.g.
+// Yassine B. / Amina K.): only real participants who joined via
+// join/answer/start ever exist in this store. Rankings are computed from
+// real participants only (realRankingsForRoom, mirrored from
+// src/lib/arenaEngine.ts), and a "stud-demo-*" id is rejected on join.
+// Room shape mirrors src/lib/localArena.ts newLocalRoom, except the room
+// code here is a SHORT 6-character code (unambiguous chars only) while
+// the client's local rooms use a 4-digit code (arenaEngine
+// generateRoomCode). Participants is a Record keyed by participant id,
+// exactly like ArenaRoom in arenaEngine — NOT an array.
+const ARENA_MAX_ROOMS = Number(process.env.ARENA_MAX_ROOMS || 100);
+const ARENA_READ_DAILY_CAP = Number(process.env.ARENA_READ_DAILY_CAP || 100000);
+const ARENA_READ_HOURLY_PER_IP = Number(process.env.ARENA_READ_HOURLY_PER_IP || 600);
+const ARENA_WRITE_DAILY_CAP = Number(process.env.ARENA_WRITE_DAILY_CAP || 20000);
+const ARENA_WRITE_HOURLY_PER_IP = Number(process.env.ARENA_WRITE_HOURLY_PER_IP || 120);
+// Arena page extraction shares the /extract Gemini counters (checkLimits)
+// so it can never eat the whole daily quota on its own, plus this small
+// separate daily cap for arena extracts specifically.
+const ARENA_EXTRACT_DAILY_CAP = Number(process.env.ARENA_EXTRACT_DAILY_CAP || 50);
+const arenaRooms = new Map(); // id -> ArenaRoom
+const arenaReadState = { ipHits: new Map(), dailyCount: 0, dailyDate: new Date().toISOString().slice(0, 10) };
+const arenaWriteState = { ipHits: new Map(), dailyCount: 0, dailyDate: new Date().toISOString().slice(0, 10) };
+const arenaExtractState = { ipHits: new Map(), dailyCount: 0, dailyDate: new Date().toISOString().slice(0, 10) };
+
+function checkArenaReadLimits(ip) {
+  const limited = checkCounter(ip, arenaReadState, ARENA_READ_DAILY_CAP, ARENA_READ_HOURLY_PER_IP);
+  if (!limited) arenaReadState.dailyCount += 1;
+  return limited;
+}
+
+function checkArenaWriteLimits(ip) {
+  const limited = checkCounter(ip, arenaWriteState, ARENA_WRITE_DAILY_CAP, ARENA_WRITE_HOURLY_PER_IP);
+  if (!limited) arenaWriteState.dailyCount += 1;
+  return limited;
+}
+
+// Unambiguous chars only: no 0/O, no 1/I/L.
+const ARENA_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function generateArenaCode() {
+  let code;
+  do {
+    code = Array.from({ length: 6 }, () => ARENA_CODE_CHARS[crypto.randomInt(ARENA_CODE_CHARS.length)]).join('');
+  } while ([...arenaRooms.values()].some((r) => r.code === code));
+  return code;
+}
+
+function findArenaRoom(idOrCode) {
+  const clean = String(idOrCode || '').trim();
+  if (!clean) return null;
+  if (arenaRooms.has(clean)) return arenaRooms.get(clean);
+  const upper = clean.toUpperCase();
+  for (const room of arenaRooms.values()) {
+    if (room.code.toUpperCase() === upper) return room;
+  }
+  return null;
+}
+
+function clampArenaTimeLimit(value, fallback = 30) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.max(10, Math.min(60, n));
+}
+
+function isSimulatedParticipantId(participantId) {
+  return String(participantId || '').startsWith('stud-demo-');
+}
+
+// --- Scoring + rankings: EXACT ports of arenaEngine.ts -------------------
+// calculateAnswerScore: base 10 (or question.points) + speed bonus
+// (up to +5 for answering in the first half of the timer) + streak bonus
+// (+2 per streak item after 2 in a row, capped at +6). Wrong = 0.
+function calculateAnswerScore({ isCorrect, timeSpentSeconds, timeLimitSeconds, streak, basePoints }) {
+  if (!isCorrect) return 0;
+  const base = basePoints || 10;
+  const limit = Math.max(5, timeLimitSeconds);
+  const spent = Math.max(0.5, Math.min(timeSpentSeconds, limit));
+  const timeRatio = Math.max(0, 1 - spent / limit);
+  const speedBonus = Math.round(timeRatio * 5);
+  const streakBonus = streak >= 2 ? Math.min(6, (streak - 1) * 2) : 0;
+  return base + speedBonus + streakBonus;
+}
+
+const ARENA_TIER_LABELS = {
+  gold: {
+    ru: 'Отличный результат (Лидер)',
+    ar: 'متميز جداً (قوي)',
+    en: 'Outstanding (Top Driver)',
+    fr: 'Remarquable (Meneur)',
+  },
+  silver: {
+    ru: 'Хороший уровень (Уверенно)',
+    ar: 'مستوى جيد (قوي)',
+    en: 'Solid Performance',
+    fr: 'Bon niveau',
+  },
+  bronze: {
+    ru: 'Средний уровень (Нужна практика)',
+    ar: 'متوسط (يحتاج متابعة)',
+    en: 'Developing Skills',
+    fr: 'En progression',
+  },
+  needs_review: {
+    ru: 'Требуется повторение материала',
+    ar: 'يحتاج دعم ومراجعة القواعد',
+    en: 'Needs Review & Support',
+    fr: 'Nécessite une révision',
+  },
+};
+
+function computeArenaRankings(participants, totalQuestionsCount = 0) {
+  const studentList = Object.values(participants).filter(
+    (p) => p.role === 'student' || p.totalAnswered > 0
+  );
+  studentList.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const aAcc = a.totalAnswered > 0 ? a.correctCount / a.totalAnswered : 0;
+    const bAcc = b.totalAnswered > 0 ? b.correctCount / b.totalAnswered : 0;
+    if (bAcc !== aAcc) return bAcc - aAcc;
+    return a.name.localeCompare(b.name);
+  });
+  return studentList.map((st, idx) => {
+    const questionsTotal = totalQuestionsCount || Math.max(1, st.totalAnswered);
+    const accuracyPct =
+      questionsTotal > 0 ? Math.round((st.correctCount / questionsTotal) * 100) : 0;
+    let tier = 'needs_review';
+    if (accuracyPct >= 85) tier = 'gold';
+    else if (accuracyPct >= 70) tier = 'silver';
+    else if (accuracyPct >= 50) tier = 'bronze';
+    else tier = 'needs_review';
+    // Special promotion: rank 1 student with at least 60% gets gold.
+    if (idx === 0 && accuracyPct >= 60) tier = 'gold';
+    return {
+      rank: idx + 1,
+      id: st.id,
+      name: st.name,
+      avatar: st.avatar,
+      score: st.score,
+      accuracyPct,
+      correctCount: st.correctCount,
+      totalAnswered: st.totalAnswered,
+      bestStreak: st.bestStreak,
+      tier,
+      tierLabel: ARENA_TIER_LABELS[tier],
+    };
+  });
+}
+
+/** Rankings from real participants only (re-ranked 1..n). */
+function realRankingsForRoom(room) {
+  const real = Object.fromEntries(
+    Object.entries(room.participants).filter(([id]) => !isSimulatedParticipantId(id))
+  );
+  return computeArenaRankings(real, room.questions.length);
+}
+
+// List view: the full room plus the two counts the lobby renders.
+function publicArenaRoom(room) {
+  const realStudents = Object.values(room.participants).filter(
+    (p) => !isSimulatedParticipantId(p.id) && p.role === 'student'
+  ).length;
+  return { ...room, participantsCount: realStudents, questionsCount: room.questions.length };
+}
+
+// Add the participant if not already present (re-join never duplicates —
+// participants is a Record keyed by id); refresh name/avatar/online flag
+// and keep the score. Returns null for a simulated id (never stored).
+function ensureArenaParticipant(room, { id, name, avatar, role }) {
+  const pid = String(id || '').trim();
+  if (!pid || isSimulatedParticipantId(pid)) return null;
+  let p = room.participants[pid];
+  if (!p) {
+    p = {
+      id: pid,
+      name: String(name || 'Student').slice(0, 100),
+      avatar: String(avatar || ''),
+      role: role === 'teacher' ? 'teacher' : 'student',
+      score: 0,
+      correctCount: 0,
+      totalAnswered: 0,
+      currentStreak: 0,
+      bestStreak: 0,
+      answers: {},
+      isOnline: true,
+      joinedAt: new Date().toISOString(),
+    };
+    room.participants[pid] = p;
+  } else {
+    if (name) p.name = String(name).slice(0, 100);
+    if (avatar !== undefined) p.avatar = String(avatar);
+    p.isOnline = true;
+  }
+  return p;
+}
+
+// Mirror of localArena.ts recordLocalAnswer, including its re-answer
+// behaviour: a second answer to the same question OVERWRITES the stored
+// answers[questionId] entry, but score/correctCount/totalAnswered are
+// still incremented again (the client normally prevents this with its
+// hasAnsweredCurrent guard — one submit per question per player).
+function recordArenaAnswer(room, participant, question, optionIndex, timeSpentSeconds) {
+  const isCorrect = optionIndex === question.correctIndex;
+  const pointsEarned = calculateAnswerScore({
+    isCorrect,
+    timeSpentSeconds,
+    timeLimitSeconds: room.questionTimeLimitSeconds || 30,
+    streak: participant.currentStreak,
+    basePoints: question.points || 10,
+  });
+  const nextStreak = isCorrect ? participant.currentStreak + 1 : 0;
+  participant.score += pointsEarned;
+  participant.correctCount += isCorrect ? 1 : 0;
+  participant.totalAnswered += 1;
+  participant.currentStreak = nextStreak;
+  participant.bestStreak = Math.max(participant.bestStreak, nextStreak);
+  participant.answers[question.id] = {
+    optionIndex,
+    isCorrect,
+    timeSeconds: timeSpentSeconds,
+    pointsEarned,
+    answeredAt: new Date().toISOString(),
+  };
+  return { isCorrect, pointsEarned };
+}
+
+// --- Question normalisation + AI-text parsing: ports of arenaEngine.ts ---
+// parseExerciseFromAIText + normalize defaults (same fallbacks the client
+// uses), plus the Fisher-Yates option shuffle from geminiClient.ts
+// parseQuestionsFromRawText (extractQuestionsViaGemini shuffles options
+// after parsing, so the server does the same for extract-page).
+function normalizeArenaQuestion(item, idx) {
+  const options =
+    Array.isArray(item.options) && item.options.length >= 2
+      ? item.options.slice(0, 4).map(String)
+      : ['Ответ A', 'Ответ B', 'Ответ C', 'Ответ D'];
+  const correctIndex =
+    typeof item.correctIndex === 'number' && item.correctIndex >= 0 && item.correctIndex < options.length
+      ? item.correctIndex
+      : 0;
+  return {
+    id: item.id || `q-${idx + 1}`,
+    promptRu: item.promptRu || item.question || item.text || `Вопрос ${idx + 1}`,
+    promptTranslit: item.promptTranslit,
+    hintAr: item.hintAr || item.hint,
+    hintEn: item.hintEn,
+    instructionRu: item.instructionRu || 'Выберите правильный ответ',
+    instructionAr: item.instructionAr || 'اختر الإجابة الصحيحة',
+    instructionEn: item.instructionEn || 'Choose the correct answer',
+    options,
+    correctIndex,
+    explanationRu: item.explanationRu || 'Правильное грамматическое употребление.',
+    explanationAr: item.explanationAr || 'الاستخدام النحوي الصحيح وفقاً لقواعد اللغة الروسية.',
+    explanationEn: item.explanationEn || 'Correct grammatical usage in Russian.',
+    points: typeof item.points === 'number' ? item.points : 10,
+  };
+}
+
+function shuffleArenaQuestionOptions(question) {
+  const opts = [...question.options];
+  if (opts.length < 2) return question;
+  const currentCorrect = Math.max(0, Math.min(opts.length - 1, question.correctIndex));
+  const correctValue = opts[currentCorrect];
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  const newCorrectIndex = opts.indexOf(correctValue);
+  return { ...question, options: opts, correctIndex: newCorrectIndex >= 0 ? newCorrectIndex : 0 };
+}
+
+function parseArenaQuestionsFromAIText(aiText) {
+  if (!aiText || typeof aiText !== 'string') return [];
+  const cleanJson = aiText
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/, '')
+    .replace(/\s*```$/, '')
+    .trim();
+  try {
+    const parsed = JSON.parse(cleanJson);
+    const list = Array.isArray(parsed) ? parsed : parsed.questions || parsed.exercises;
+    if (Array.isArray(list) && list.length > 0) {
+      return list.map((item, idx) => normalizeArenaQuestion(item, idx));
+    }
+  } catch {
+    // Continue to regex fallback
+  }
+  const objMatches = aiText.match(/\{[\s\S]*?\}/g);
+  if (objMatches && objMatches.length > 0) {
+    const recovered = [];
+    for (let i = 0; i < objMatches.length; i++) {
+      try {
+        const item = JSON.parse(objMatches[i]);
+        if (item.promptRu && Array.isArray(item.options)) {
+          recovered.push(normalizeArenaQuestion(item, i));
+        }
+      } catch {
+        // skip malformed block
+      }
+    }
+    if (recovered.length > 0) return recovered;
+  }
+  return [];
+}
+
+// Strict validation for PUT /questions: every question must carry
+// id/promptRu/options/correctIndex. Returns { ok, questions } or { ok:false, error }.
+function validateArenaQuestions(input) {
+  if (!Array.isArray(input)) return { ok: false, error: 'Send a questions array.' };
+  const questions = [];
+  for (let i = 0; i < input.length; i++) {
+    const q = input[i] || {};
+    if (typeof q.id !== 'string' || !q.id.trim()) {
+      return { ok: false, error: `Question ${i + 1} is missing an id.` };
+    }
+    if (typeof q.promptRu !== 'string' || !q.promptRu.trim()) {
+      return { ok: false, error: `Question ${i + 1} is missing promptRu.` };
+    }
+    if (!Array.isArray(q.options) || q.options.length < 2) {
+      return { ok: false, error: `Question ${i + 1} needs at least 2 options.` };
+    }
+    if (typeof q.correctIndex !== 'number' || q.correctIndex < 0 || q.correctIndex >= q.options.length) {
+      return { ok: false, error: `Question ${i + 1} has an invalid correctIndex.` };
+    }
+    questions.push(normalizeArenaQuestion(q, i));
+  }
+  return { ok: true, questions };
+}
+
+async function readArenaJsonBody(req) {
+  const raw = await readBody(req);
+  if (!raw.trim()) return {};
+  return JSON.parse(raw);
+}
+
 // --- Madingo storybook hosting ------------------------------------------
 // The book's built frontend (bskkek/Madingo-bio, UNCHANGED — built from
 // its own repo) lives in ./book/dist next to this file on the host.
@@ -792,7 +1135,7 @@ function sendJson(res, status, obj, origin) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': origin || '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   });
   res.end(body);
@@ -835,7 +1178,7 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(204, {
       'Access-Control-Allow-Origin': origin || '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Max-Age': '86400',
     });
@@ -850,7 +1193,8 @@ const server = http.createServer(async (req, res) => {
       service: 'madingo-gemini-proxy',
       models: MODELS,
       ttsModel: TTS_MODEL,
-      endpoints: ['/extract', '/chat', '/library', '/speak', '/transcribe', '/api/generate-content', '/ (madingo storybook)'],
+      endpoints: ['/extract', '/chat', '/library', '/speak', '/transcribe', '/api/generate-content', '/api/arena/rooms', '/api/arena/rooms/:id', '/api/arena/rooms/:id/join', '/api/arena/rooms/:id/answer', '/api/arena/rooms/:id/questions', '/api/arena/rooms/:id/extract-page', '/api/arena/rooms/:id/start', '/api/arena/rooms/:id/next-question', '/api/arena/rooms/:id/finish', '/ (madingo storybook)'],
+      arenaRooms: arenaRooms.size,
       dailyUsed: dailyCount,
       dailyCap: DAILY_CAP,
       speakDailyUsed: speakState.dailyCount,
@@ -1297,11 +1641,421 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // --- Arena: live classroom challenge rooms ---------------------------
+  // Polling-first: the client polls GET /api/arena/rooms/:id every 3.5s.
+  // Every route looks the room up by EITHER id or 6-char code.
+  if (url.pathname === '/api/arena/rooms' || url.pathname.startsWith('/api/arena/rooms/')) {
+    const segments = url.pathname.split('/').filter(Boolean); // ['api','arena','rooms', id?, action?]
+    let idOrCode = null;
+    if (segments[3]) {
+      try { idOrCode = decodeURIComponent(segments[3]); } catch { idOrCode = segments[3]; }
+    }
+    const action = segments[4] || null;
+    const arenaRateError = (limited) =>
+      limited === 'daily'
+        ? 'Daily arena limit reached — please try again tomorrow.'
+        : 'Too many arena requests from this device this hour — please wait a bit.';
+
+    // GET /api/arena/rooms — all live rooms, newest first.
+    if (req.method === 'GET' && !idOrCode) {
+      const limited = checkArenaReadLimits(ip);
+      if (limited) {
+        sendJson(res, 429, { error: arenaRateError(limited) }, origin);
+        log(429);
+        return;
+      }
+      const rooms = [...arenaRooms.values()]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .map(publicArenaRoom);
+      sendJson(res, 200, { rooms }, origin);
+      log(200);
+      return;
+    }
+
+    // POST /api/arena/rooms — create a room, returned DIRECTLY (not wrapped).
+    if (req.method === 'POST' && !idOrCode) {
+      if (!isAllowedOrigin(origin)) {
+        sendJson(res, 403, { error: 'Origin not allowed.' }, origin);
+        log(403);
+        return;
+      }
+      const limited = checkArenaWriteLimits(ip);
+      if (limited) {
+        sendJson(res, 429, { error: arenaRateError(limited) }, origin);
+        log(429);
+        return;
+      }
+      let body;
+      try {
+        body = await readArenaJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'Invalid JSON body.' }, origin);
+        log(400);
+        return;
+      }
+      if (arenaRooms.size >= ARENA_MAX_ROOMS) {
+        sendJson(res, 429, { error: 'Too many live rooms right now — please try again later.' }, origin);
+        log(429);
+        return;
+      }
+      const room = {
+        id: `room-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`,
+        code: generateArenaCode(),
+        title: String(body.title || '').trim().slice(0, 200) || 'تحدي ورقة الأستاذ — غرفة جديدة',
+        teacherId: String(body.teacherId || '').trim().slice(0, 100),
+        teacherName: String(body.teacherName || '').trim().slice(0, 100) || 'Teacher',
+        status: 'waiting',
+        exerciseTopic: String(body.exerciseTopic || '').trim().slice(0, 200),
+        teacherInstructions: String(body.teacherInstructions || '').trim().slice(0, 1000),
+        pages: [],
+        questions: [],
+        currentQuestionIndex: 0,
+        questionTimeLimitSeconds: clampArenaTimeLimit(body.timeLimitSeconds, 30),
+        participants: {},
+        createdAt: new Date().toISOString(),
+        startedAt: null,
+        finishedAt: null,
+      };
+      arenaRooms.set(room.id, room);
+      sendJson(res, 200, room, origin);
+      log(200);
+      return;
+    }
+
+    // All routes below need an existing room.
+    const room = idOrCode ? findArenaRoom(idOrCode) : null;
+    if (!room) {
+      sendJson(res, 404, { error: 'Room not found.' }, origin);
+      log(404);
+      return;
+    }
+
+    // GET /api/arena/rooms/:idOrCode — { room, rankings }.
+    if (req.method === 'GET' && !action) {
+      const limited = checkArenaReadLimits(ip);
+      if (limited) {
+        sendJson(res, 429, { error: arenaRateError(limited) }, origin);
+        log(429);
+        return;
+      }
+      sendJson(res, 200, { room, rankings: realRankingsForRoom(room) }, origin);
+      log(200);
+      return;
+    }
+
+    // DELETE /api/arena/rooms/:idOrCode — { ok: true }.
+    if (req.method === 'DELETE' && !action) {
+      if (!isAllowedOrigin(origin)) {
+        sendJson(res, 403, { error: 'Origin not allowed.' }, origin);
+        log(403);
+        return;
+      }
+      const limited = checkArenaWriteLimits(ip);
+      if (limited) {
+        sendJson(res, 429, { error: arenaRateError(limited) }, origin);
+        log(429);
+        return;
+      }
+      arenaRooms.delete(room.id);
+      sendJson(res, 200, { ok: true }, origin);
+      log(200);
+      return;
+    }
+
+    // Mutating sub-routes below all share the origin + write-limit checks.
+    if (req.method === 'POST' || req.method === 'PUT') {
+      if (!isAllowedOrigin(origin)) {
+        sendJson(res, 403, { error: 'Origin not allowed.' }, origin);
+        log(403);
+        return;
+      }
+      const limited = checkArenaWriteLimits(ip);
+      if (limited) {
+        sendJson(res, 429, { error: arenaRateError(limited) }, origin);
+        log(429);
+        return;
+      }
+    }
+
+    // POST /api/arena/rooms/:id/join — { room, rankings }.
+    if (req.method === 'POST' && action === 'join') {
+      let body;
+      try {
+        body = await readArenaJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'Invalid JSON body.' }, origin);
+        log(400);
+        return;
+      }
+      const participantId = String(body.participantId || '').trim();
+      if (!participantId) {
+        sendJson(res, 400, { error: 'Send a participantId to join.' }, origin);
+        log(400);
+        return;
+      }
+      const participant = ensureArenaParticipant(room, {
+        id: participantId,
+        name: body.name,
+        avatar: body.avatar,
+        role: body.role,
+      });
+      if (!participant) {
+        sendJson(res, 400, { error: 'Invalid participant id.' }, origin);
+        log(400);
+        return;
+      }
+      sendJson(res, 200, { room, rankings: realRankingsForRoom(room) }, origin);
+      log(200);
+      return;
+    }
+
+    // POST /api/arena/rooms/:id/answer — { isCorrect, pointsEarned,
+    // explanationRu/Ar/En, rankings }.
+    if (req.method === 'POST' && action === 'answer') {
+      let body;
+      try {
+        body = await readArenaJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'Invalid JSON body.' }, origin);
+        log(400);
+        return;
+      }
+      const participantId = String(body.participantId || '').trim();
+      if (!participantId) {
+        sendJson(res, 400, { error: 'Send a participantId to answer.' }, origin);
+        log(400);
+        return;
+      }
+      const question = room.questions.find((q) => q.id === String(body.questionId || ''));
+      if (!question) {
+        sendJson(res, 404, { error: 'Question not found.' }, origin);
+        log(404);
+        return;
+      }
+      const optionIndex = Number(body.optionIndex);
+      if (!Number.isInteger(optionIndex) || optionIndex < -1 || optionIndex >= question.options.length) {
+        sendJson(res, 400, { error: 'Send a valid optionIndex for this question.' }, origin);
+        log(400);
+        return;
+      }
+      const timeSpent = Number(body.timeSpentSeconds);
+      const timeSpentSeconds = Number.isFinite(timeSpent) && timeSpent >= 0
+        ? timeSpent
+        : room.questionTimeLimitSeconds || 30;
+      // Defensive auto-add: a player answering without joining first
+      // still gets recorded (role student).
+      const participant = ensureArenaParticipant(room, {
+        id: participantId,
+        name: body.participantName,
+        avatar: body.participantAvatar,
+        role: 'student',
+      });
+      if (!participant) {
+        sendJson(res, 400, { error: 'Invalid participant id.' }, origin);
+        log(400);
+        return;
+      }
+      const { isCorrect, pointsEarned } = recordArenaAnswer(
+        room, participant, question, optionIndex, timeSpentSeconds
+      );
+      sendJson(res, 200, {
+        isCorrect,
+        pointsEarned,
+        explanationRu: question.explanationRu || '',
+        explanationAr: question.explanationAr || '',
+        explanationEn: question.explanationEn || '',
+        rankings: realRankingsForRoom(room),
+      }, origin);
+      log(200);
+      return;
+    }
+
+    // PUT /api/arena/rooms/:id/questions — replace the question list
+    // wholesale; returns { room }.
+    if (req.method === 'PUT' && action === 'questions') {
+      let body;
+      try {
+        body = await readArenaJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'Invalid JSON body.' }, origin);
+        log(400);
+        return;
+      }
+      const validated = validateArenaQuestions(body.questions);
+      if (!validated.ok) {
+        sendJson(res, 400, { error: validated.error }, origin);
+        log(400);
+        return;
+      }
+      room.questions = validated.questions;
+      if (room.currentQuestionIndex >= room.questions.length) {
+        room.currentQuestionIndex = Math.max(0, room.questions.length - 1);
+      }
+      sendJson(res, 200, { room }, origin);
+      log(200);
+      return;
+    }
+
+    // POST /api/arena/rooms/:id/extract-page — AI-extract questions from
+    // a lesson page into this room; returns { room }. Shares the /extract
+    // Gemini counters (checkLimits) plus a small arena-only daily cap.
+    if (req.method === 'POST' && action === 'extract-page') {
+      let body;
+      try {
+        body = await readArenaJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'Invalid JSON body.' }, origin);
+        log(400);
+        return;
+      }
+      const pageText = String(body.pageText || '').slice(0, MAX_PAGE_TEXT);
+      const pageImageBase64 = String(body.pageImageBase64 || '');
+      if (!pageText && pageImageBase64.trim().length <= 50) {
+        sendJson(res, 400, { error: 'Send a page text or a page image to extract from.' }, origin);
+        log(400);
+        return;
+      }
+      const sharedLimited = checkLimits(ip);
+      if (sharedLimited === 'daily') {
+        sendJson(res, 429, { error: 'Daily AI extraction limit reached — please try again tomorrow.' }, origin);
+        log(429);
+        return;
+      }
+      if (sharedLimited === 'hourly') {
+        sendJson(res, 429, { error: 'Too many extractions from this device this hour — please wait a bit.' }, origin);
+        log(429);
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      if (today !== arenaExtractState.dailyDate) {
+        arenaExtractState.dailyDate = today;
+        arenaExtractState.dailyCount = 0;
+      }
+      if (arenaExtractState.dailyCount >= ARENA_EXTRACT_DAILY_CAP) {
+        sendJson(res, 429, { error: 'Daily arena extraction limit reached — please try again tomorrow.' }, origin);
+        log(429);
+        return;
+      }
+      const questionCount = Math.max(2, Math.min(20, Number(body.questionCount) || 5));
+      const topic = String(body.topic || room.exerciseTopic || 'ورقة التمرين المستخرجة').slice(0, 200);
+      const instructions = String(
+        body.teacherInstructions || room.teacherInstructions ||
+        'استخرج جميع التمارين والأسئلة الموجودة في هذه الورقة بالكامل'
+      ).slice(0, 1000);
+      dailyCount += 1;
+      arenaExtractState.dailyCount += 1;
+      const result = await extractViaGemini({ pageText, pageImageBase64, topic, instructions });
+      if (!result.ok) {
+        const status = result.code === 'quota' ? 429 : result.code === 'invalid_key' ? 500 : 502;
+        sendJson(res, status, { error: result.message || 'AI extraction failed — please try again.' }, origin);
+        log(status);
+        return;
+      }
+      const questions = parseArenaQuestionsFromAIText(result.text)
+        .slice(0, questionCount)
+        .map(shuffleArenaQuestionOptions);
+      if (questions.length === 0) {
+        sendJson(res, 502, { error: 'Gemini returned no questions from this page — try a clearer page or text.' }, origin);
+        log(502);
+        return;
+      }
+      const pageNumber = Number(body.pageNumber);
+      room.questions = questions;
+      room.pages = [...room.pages, {
+        id: `p-${Date.now()}-${crypto.randomInt(1000)}`,
+        title: String(body.title || body.bookTitle || '').trim().slice(0, 200) ||
+          `صفحة مرفوعة #${room.pages.length + 1}`,
+        bookTitle: String(body.bookTitle || '').trim().slice(0, 200) || undefined,
+        pageNumber: Number.isFinite(pageNumber) && pageNumber > 0 ? pageNumber : undefined,
+        rawText: pageText ? pageText.slice(0, 2000) : undefined,
+      }];
+      if (body.title) room.title = String(body.title).trim().slice(0, 200);
+      if (body.topic) room.exerciseTopic = topic;
+      if (body.teacherInstructions) room.teacherInstructions = instructions;
+      if (body.timeLimitSeconds !== undefined && body.timeLimitSeconds !== null) {
+        room.questionTimeLimitSeconds = clampArenaTimeLimit(body.timeLimitSeconds, room.questionTimeLimitSeconds || 30);
+      }
+      room.status = 'waiting';
+      sendJson(res, 200, { room }, origin);
+      log(200);
+      return;
+    }
+
+    // POST /api/arena/rooms/:id/start — { room, rankings }.
+    if (req.method === 'POST' && action === 'start') {
+      let body = {};
+      try {
+        body = await readArenaJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'Invalid JSON body.' }, origin);
+        log(400);
+        return;
+      }
+      if (room.questions.length < 1) {
+        sendJson(res, 400, { error: 'Add at least one question before starting the challenge.' }, origin);
+        log(400);
+        return;
+      }
+      // The teacher starting the quiz joins the room too (as teacher —
+      // teachers with no answers never appear in the rankings).
+      if (body.participantId) {
+        ensureArenaParticipant(room, {
+          id: body.participantId,
+          name: body.participantName,
+          avatar: body.participantAvatar,
+          role: 'teacher',
+        });
+      }
+      room.status = 'active';
+      room.currentQuestionIndex = 0;
+      room.startedAt = new Date().toISOString();
+      room.finishedAt = null;
+      sendJson(res, 200, { room, rankings: realRankingsForRoom(room) }, origin);
+      log(200);
+      return;
+    }
+
+    // POST /api/arena/rooms/:id/next-question — { finished, room, rankings }.
+    if (req.method === 'POST' && action === 'next-question') {
+      let finished = false;
+      if (room.currentQuestionIndex >= room.questions.length - 1) {
+        room.status = 'finished';
+        room.finishedAt = new Date().toISOString();
+        finished = true;
+      } else {
+        room.currentQuestionIndex += 1;
+      }
+      sendJson(res, 200, { finished, room, rankings: realRankingsForRoom(room) }, origin);
+      log(200);
+      return;
+    }
+
+    // POST /api/arena/rooms/:id/finish — { room, rankings }.
+    if (req.method === 'POST' && action === 'finish') {
+      room.status = 'finished';
+      room.finishedAt = new Date().toISOString();
+      sendJson(res, 200, { room, rankings: realRankingsForRoom(room) }, origin);
+      log(200);
+      return;
+    }
+
+    sendJson(res, 404, { error: 'Arena route not found.' }, origin);
+    log(404);
+    return;
+  }
+
   // The book itself (GET / and /assets/* from ./book/dist).
   if (serveBookFile(req, res, log)) return;
 
   sendJson(res, 404, { ok: false, error: { code: 'unknown', message: 'Not found.' } }, origin);
   log(404);
+});
+
+// No WebSocket server: the arena client polls room state every 3.5s.
+// Fail a WS upgrade fast so the browser falls back to polling instead
+// of hanging on a half-open socket.
+server.on('upgrade', (_req, socket) => {
+  socket.destroy();
 });
 
 server.listen(PORT, () => {
