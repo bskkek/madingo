@@ -227,6 +227,108 @@
       .gl-error{ margin-top:14px; background:var(--bad-soft); border:1.5px solid var(--bad); color:var(--ink);
         border-radius:14px; padding:16px 18px; font-size:.98rem; }
       footer{ margin-top:40px; color:var(--muted); font-size:.88rem; text-align:center; }
+
+      /* ---------- compact phone layout (<=560px): every view fits one
+         phone screen with NO vertical scrolling. Layout/organisation
+         only: same colours, fonts, photos, content and behaviour —
+         the desktop layout above is untouched. ---------- */
+      @media (max-width:560px){
+        .appbar{ padding:6px 12px; gap:8px; }
+        .appbar .brand{ gap:8px; }
+        .appbar .brand .app-name{ font-size:1.05rem; }
+        .appbar .brand .win-name{ font-size:.92rem; }
+        .appbar .brand .win-sub{ display:none; }
+        .lang-tag{ font-size:.8rem; padding:4px 10px; }
+        .wrap{ padding:8px 12px; }
+
+        /* --- tracks view: compact hero + 4 specialisation chips in one row --- */
+        .hero{ padding:18px 16px 14px; }
+        .intro h1{ font-size:1.3rem; }
+        .intro p{ font-size:.9rem; margin-top:6px; }
+        .steps{ margin:12px 0 2px; gap:8px; }
+        .step{ font-size:.82rem; padding:5px 12px 5px 6px; }
+        .step b{ width:26px; height:26px; flex:0 0 26px; font-size:.85rem; }
+        .tracks-head{ margin:16px 0 10px; }
+        .tracks-head h2{ font-size:1.12rem; }
+        .tracks{ grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; }
+        .track-card{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:10px 4px; border-radius:12px; min-height:58px; }
+        .track-card .t-photo, .track-card .t-proj, .track-card .t-meta{ display:none; }
+        .track-card .t-body{ padding:0; gap:2px; align-items:center; }
+        .track-card .t-ru{ font-size:.76rem; line-height:1.3; }
+        .track-card .t-ar{ font-size:.82rem; line-height:1.35; }
+        .track-card:has(.t-ar) .t-ru{ display:none; }
+        footer{ margin-top:18px; }
+
+        /* --- models view: all 10 models at once, 2 x 5 grid --- */
+        /* One-line builder header: back button + title + progress dots.
+           The title lines are ellipsised and the dots' text label is
+           hidden, so the header stays a single row instead of wrapping
+           to two or three rows and pushing the models off-screen. */
+        .builder-top{ padding:6px 12px; margin:4px 0 10px; gap:8px; flex-wrap:nowrap; }
+        .back-btn{ min-height:38px; padding:6px 10px; font-size:.85rem; }
+        .builder-title{ min-width:0; }
+        .builder-title .ru{ font-size:1.05rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .builder-title .sub{ font-size:.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .dots{ gap:5px; }
+        .dots .dot{ width:11px; height:11px; }
+        #b-dots .dots-lbl{ display:none; }
+        .dots-lbl{ font-size:.8rem; }
+        /* Models header may wrap: the "x / 10" count drops to its own
+           line so the specialisation title keeps full width instead of
+           being crushed to a few letters. The title needs its 200px
+           min-width back, otherwise flex just shrinks it to nothing
+           and nothing wraps. */
+        #view-models .builder-top{ flex-wrap:wrap; }
+        #view-models .builder-title{ min-width:200px; }
+        /* minmax(0,1fr) — NOT 1fr: a plain 1fr track is minmax(auto,1fr)
+           and the unbreakable locked-state text forces the tracks wider
+           than the screen, pushing every second model off-screen left
+           (the old "models 05–10 hidden" bug). With minmax(0,…) the
+           grid is exactly two columns and all 10 models show. */
+        .models-list{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; }
+        .model-card{ padding:10px; gap:8px; }
+        .model-card .m-num{ width:32px; height:32px; flex:0 0 32px; font-size:.95rem; }
+        .model-card .m-ru{ font-size:.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .model-card .m-ar{ font-size:.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .model-card .m-meta{ display:none; }
+        .model-card .m-state{ font-size:.75rem; overflow:hidden; text-overflow:ellipsis; }
+        /* The locked-state sentence ("finish the previous model first")
+           is far too long for a half-width card; the greyed-out locked
+           styling already says locked, so the text is dropped here. */
+        .model-card.locked .m-state{ display:none; }
+
+        /* --- builder view: 3D stage + 6 part chips + panel/CTA at once --- */
+        #gl{ height:min(19vh, 160px); min-height:130px; }
+        .stage-hint{ font-size:.78rem; max-width:calc(100% - 64px); }
+        .target-banner .ru{ font-size:1.25rem; }
+        .chips{ gap:5px; margin:10px 0 0; }
+        .chip{ padding:2px 8px; font-size:.82rem; }
+        .chip .ru{ font-size:.85rem; }
+        .panel{ margin-top:12px; padding:8px 12px; }
+        .p-step{ margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .word-big{ font-size:1.9rem; }
+        .speak-btn{ flex-basis:44px; width:44px; height:44px; min-height:44px; }
+        .speak-btn svg{ width:20px; height:20px; }
+        .trans{ margin-top:0; }
+        .meaning{ font-size:1rem; margin-top:6px; padding:2px 14px; }
+        .panel .sub-note{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .cta{ margin-top:10px; padding:10px 24px; font-size:1rem; min-height:46px; }
+        .cta-row{ gap:8px; }
+        /* Two buttons per row: long Russian labels ("Следующая модель: …")
+           otherwise spill the row into a third line and push the CTA
+           below the fold. Short labels stay one line, so nothing changes
+           for them. */
+        .cta-row .cta{ flex:1 1 40%; min-width:0; margin-top:8px; padding:6px 10px; font-size:.85rem; line-height:1.35; min-height:44px; }
+        .panel .big-check{ width:44px; height:44px; margin-bottom:6px; }
+        .panel .big-check svg{ width:24px; height:24px; }
+        .panel h2{ font-size:1.2rem; }
+        .panel .sub-note{ margin-top:4px; }
+        .test-stats{ margin-top:10px; gap:8px; }
+        .test-stats .stat{ padding:4px 8px; }
+        .test-stats .stat span{ font-size:.72rem; white-space:nowrap; }
+        .test-stats .stat b{ font-size:1.1rem; }
+        .flash-msg{ margin-top:8px; }
+      }
     </style>
   </head>
   <body>
