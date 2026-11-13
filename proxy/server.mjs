@@ -49,12 +49,12 @@ const REQUEST_TIMEOUT_MS = 45_000;
 // Extract timeout (2026-11-13): gemini-3.8-flash HANGS at peak times, so a
 // 45s per-call timeout burned the client's whole 90s budget before the
 // fallback model was ever tried. Extract calls (/extract + arena
-// extract-page) get a tighter 25s timeout so a hang fails fast: worst
-// case is primary 25s timeout + fallback 503-retry (~4s + 25s) ≈ 54s,
-// still comfortably inside the client's 90s budget. The global 45s
+// extract-page) get a tighter timeout so a hang fails fast: worst
+// case is 35s + 35s (two models, no same-model retry) ≈ 70s + ~4s
+// overhead ≈ 74s, still inside the client's 90s budget. The global 45s
 // timeout is UNCHANGED — /speak (TTS audio generation) legitimately
 // needs the longer budget, so it keeps REQUEST_TIMEOUT_MS.
-const EXTRACT_TIMEOUT_MS = 25_000;
+const EXTRACT_TIMEOUT_MS = 35_000;
 // Extract image guard (2026-11-13): the client downscales phone photos
 // to ~100–200 KB before sending; anything far above that is a bug (a
 // full-size 2–5 MB photo forwarded to Gemini = slow + wasteful). Base64
@@ -162,6 +162,22 @@ if (!API_KEY) {
 // as fallback — the old order burned 45s on a hanging primary before
 // the fallback was ever tried.
 const MODELS = ['gemini-3-flash-preview', 'gemini-3.8-flash'];
+
+// Extraction-only models (2026-11-13): gemini-3-flash-preview thinks HIGH
+// by default (80–356s on image inputs) and gemini-3.8-flash is the most
+// congested model (repeated 503s) — both are dropped from extraction.
+// gemini-3.5-flash-lite (Stable, free tier, designed for extraction /
+// document processing, thinking default MINIMAL) is the primary;
+// gemini-3.6-flash (Stable, free tier, Google's official replacement
+// for gemini-3-flash-preview) is the fallback. Used ONLY by
+// extractViaGemini — /chat, /transcribe and /speak keep MODELS above.
+// Thinking is set per model in extractViaGemini via
+// generationConfig.thinkingConfig.thinkingLevel (v1beta REST form).
+const EXTRACT_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.6-flash'];
+const EXTRACT_THINKING_LEVEL = {
+  'gemini-3.5-flash-lite': 'minimal',
+  'gemini-3.6-flash': 'low',
+};
 
 // CORS allowlist: the live Pages site + local dev + the proxy's OWN
 // published origin (the storybook runs same-origin from this server, so
@@ -385,39 +401,52 @@ async function extractViaGemini({ pageText, pageImageBase64, topic, instructions
     });
   }
   parts.push({ text: buildExtractionPrompt({ topic, instructions, pageText }) });
-  const requestBody = {
-    contents: [{ parts }],
-    generationConfig: { responseMimeType: 'application/json' },
-  };
 
   let lastDetail = '';
-  for (const model of MODELS) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      // Tighter per-call timeout (EXTRACT_TIMEOUT_MS): a hung primary
-      // fails fast so the fallback is always reached well inside the
-      // client's 90s budget. Other callers keep the 45s default.
-      const res = await callGemini(model, requestBody, EXTRACT_TIMEOUT_MS);
-      if (res.ok) return { ok: true, text: res.text, model };
-      lastDetail = res.detail || '';
-      // Bad key / bad request: retrying another model will not help.
-      if (res.status === 400 || res.status === 401 || res.status === 403) {
-        return { ok: false, code: 'invalid_key', message: lastDetail || 'Gemini rejected the API key.' };
-      }
-      if (res.status === 429) {
-        return { ok: false, code: 'quota', message: lastDetail || 'Gemini quota / rate limit reached.' };
-      }
-      // 503: one quick retry of the same model. Timeout / network: the model
-      // is hung — retrying it just wastes a minute, move to the next model.
-      if (res.status === 503 && attempt === 0) {
-        await new Promise((r) => setTimeout(r, 4000));
-        continue;
-      }
-      break;
+  for (const model of EXTRACT_MODELS) {
+    // Thinking is set explicitly per model: 'minimal' keeps the lite
+    // model fast (it does not think by default), 'low' stops the
+    // 3.6-flash default-medium thinking from burning the timeout on a
+    // big JSON (5 questions x explanations in 3 languages).
+    const requestBody = {
+      contents: [{ parts }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        thinkingConfig: { thinkingLevel: EXTRACT_THINKING_LEVEL[model] || 'low' },
+      },
+    };
+    // One attempt per model, no same-model retry: on 503 the model is
+    // overloaded — retrying it just wastes the client's 90s budget,
+    // move to the next model immediately. Worst case 35s + 35s ≈ 74s.
+    const attemptStarted = Date.now();
+    const res = await callGemini(model, requestBody, EXTRACT_TIMEOUT_MS);
+    const attemptMs = Date.now() - attemptStarted;
+    const statusLabel = res.ok ? 200 : (res.status || res.detail || 'error');
+    const shortDetail = String(res.detail || '').replace(/\s+/g, ' ').slice(0, 120);
+    console.log(`[extract] attempt model=${model} status=${statusLabel} ms=${attemptMs}${shortDetail ? ` detail=${shortDetail}` : ''}`);
+    if (res.ok) return { ok: true, text: res.text, model };
+    lastDetail = res.detail || '';
+    // Bad key / bad request: retrying another model will not help.
+    if (res.status === 400 || res.status === 401 || res.status === 403) {
+      return { ok: false, code: 'invalid_key', message: lastDetail || 'Gemini rejected the API key.' };
     }
+    if (res.status === 429) {
+      return { ok: false, code: 'quota', message: lastDetail || 'Gemini quota / rate limit reached.' };
+    }
+    // 503 / timeout / network: fall through to the next model.
+  }
+  // Total failure: 'quota' ONLY on a real 429 (returned above).
+  // A timeout is a timeout — never report it as quota.
+  if (lastDetail === 'timeout') {
+    return {
+      ok: false,
+      code: 'timeout',
+      message: 'AI extraction timed out — Gemini took too long to answer. Please try again with a clearer page or shorter text.',
+    };
   }
   return {
     ok: false,
-    code: 'quota',
+    code: 'unknown',
     message: lastDetail || 'Gemini is temporarily overloaded — please try again in a minute.',
   };
 }
@@ -1438,7 +1467,7 @@ const server = http.createServer(async (req, res) => {
     dailyCount += 1;
     const result = await extractViaGemini({ pageText, pageImageBase64, topic, instructions });
     if (!result.ok) {
-      const status = result.code === 'quota' ? 429 : result.code === 'invalid_key' ? 500 : 502;
+      const status = result.code === 'quota' ? 429 : result.code === 'invalid_key' ? 500 : result.code === 'timeout' ? 504 : 502;
       sendJson(res, status, { ok: false, error: { code: result.code, message: result.message } }, origin);
       log(status);
       return;
@@ -1992,8 +2021,9 @@ const server = http.createServer(async (req, res) => {
       arenaExtractState.dailyCount += 1;
       const result = await extractViaGemini({ pageText, pageImageBase64, topic, instructions });
       if (!result.ok) {
-        const status = result.code === 'quota' ? 429 : result.code === 'invalid_key' ? 500 : 502;
-        sendJson(res, status, { error: result.message || 'AI extraction failed — please try again.' }, origin);
+        const status = result.code === 'quota' ? 429 : result.code === 'invalid_key' ? 500 : result.code === 'timeout' ? 504 : 502;
+        sendJson(res, status, { error: { code: result.code, message: result.message || 'AI extraction failed — please try again.' } }, origin);
+        console.log(`[extract] done room=${room.id} status=${status} ms=${Date.now() - started} questions=0 code=${result.code}`);
         log(status);
         return;
       }
@@ -2002,6 +2032,7 @@ const server = http.createServer(async (req, res) => {
         .map(shuffleArenaQuestionOptions);
       if (questions.length === 0) {
         sendJson(res, 502, { error: 'Gemini returned no questions from this page — try a clearer page or text.' }, origin);
+        console.log(`[extract] done room=${room.id} status=502 ms=${Date.now() - started} questions=0 code=no_questions`);
         log(502);
         return;
       }
@@ -2022,6 +2053,7 @@ const server = http.createServer(async (req, res) => {
         room.questionTimeLimitSeconds = clampArenaTimeLimit(body.timeLimitSeconds, room.questionTimeLimitSeconds || 30);
       }
       room.status = 'waiting';
+      console.log(`[extract] done room=${room.id} status=200 ms=${Date.now() - started} questions=${questions.length}`);
       sendJson(res, 200, { room }, origin);
       log(200);
       return;
