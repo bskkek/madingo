@@ -155,10 +155,6 @@
         box-shadow:var(--shadow); background:var(--panel-2); }
       #gl{ display:block; width:100%; height:min(58vh, 520px); min-height:320px; touch-action:none; }
       @media (max-width:560px){ #gl{ height:52vh; min-height:300px; } }
-      .stage-hint{ position:absolute; bottom:10px; inset-inline-start:10px; z-index:3; pointer-events:none;
-        max-width:calc(100% - 78px);
-        background:rgba(5,27,58,.78); color:#fff; font-size:.84rem; font-weight:600; line-height:1.5;
-        padding:5px 13px; border-radius:999px; }
       .cam-btn{ position:absolute; bottom:10px; inset-inline-end:10px; z-index:3; width:44px; height:44px; min-height:44px;
         border-radius:50%; border:1.5px solid rgba(255,255,255,.5); background:rgba(5,27,58,.78); color:#fff;
         display:grid; place-items:center; padding:0; }
@@ -169,13 +165,7 @@
       .part-toast.show{ opacity:1; }
       .part-toast .ru{ font-size:1.15rem; display:block; }
       .part-toast small{ color:#cfdff3; font-size:.88rem; }
-      .target-banner{ position:absolute; top:12px; inset-inline:12px; z-index:3; text-align:center; pointer-events:none;
-        background:rgba(5,27,58,.85); color:#fff; border-radius:14px; padding:10px 14px; line-height:1.5; }
-      .target-banner .tb-lbl{ font-size:.88rem; color:#cfdff3; }
-      .target-banner .ru{ font-size:1.5rem; display:block; line-height:1.25; }
-      @keyframes shakeX{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 75%{transform:translateX(6px);} }
-      .target-banner.shake{ animation:shakeX .3s; }
-      @media (prefers-reduced-motion: reduce){ .target-banner.shake{ animation:none; } .part-toast{ transition:none; } }
+      @media (prefers-reduced-motion: reduce){ .part-toast{ transition:none; } }
 
       /* ---------- part chips ---------- */
       .chips{ display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0; }
@@ -301,8 +291,6 @@
 
         /* --- builder view: 3D stage + 6 part chips + panel/CTA at once --- */
         #gl{ height:min(19vh, 160px); min-height:130px; }
-        .stage-hint{ font-size:.78rem; max-width:calc(100% - 64px); }
-        .target-banner .ru{ font-size:1.25rem; }
         .chips{ gap:5px; margin:10px 0 0; }
         .chip{ padding:2px 8px; font-size:.82rem; }
         .chip .ru{ font-size:.85rem; }
@@ -406,12 +394,7 @@
 
         <div class="stage3d" id="stage3d">
           <canvas id="gl" aria-label="مجسّم ثلاثي الأبعاد للمشروع — اسحب للتدوير وقرّب للتكبير"></canvas>
-          <div class="target-banner" id="target-banner" hidden>
-            <span class="tb-lbl" id="target-lbl">فكّك هذه القطعة — اضغطها داخل المجسّم</span>
-            <span class="ru" dir="ltr" id="target-word"></span>
-          </div>
           <div class="part-toast" id="part-toast"><span class="ru" dir="ltr" id="toast-ru"></span><small id="toast-ar"></small></div>
-          <div class="stage-hint" id="stage-hint">اسحب للتدوير · قرّب بإصبعين أو بعجلة الفأرة</div>
           <button class="cam-btn" id="btn-cam" type="button" aria-label="إعادة ضبط زاوية الكاميرا">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
           </button>
@@ -6878,8 +6861,6 @@
         tracksCount: "{a} تخصصات · {b} مجسّماً أساسياً",
         footer: "ابنِها بالروسية — جزء من تطبيق Madingo لتعلّم الروسية في مادي (МАДИ).",
         backTracks: "كل التخصصات", backModels: "كل المجسّمات",
-        stageHint: "اسحب للتدوير · قرّب بإصبعين أو بعجلة الفأرة",
-        targetLbl: "فكّك هذه القطعة — اضغطها داخل المجسّم",
         camReset: "إعادة ضبط زاوية الكاميرا",
         canvasLabel: "مجسّم ثلاثي الأبعاد للمشروع — اسحب للتدوير وقرّب للتكبير",
         glError: "تعذّر تشغيل العرض ثلاثي الأبعاد على هذا الجهاز أو المتصفح. جرّب متصفحاً أحدث، وبقية الصفحة تعمل كالمعتاد.",
@@ -6933,8 +6914,6 @@
         tracksCount: "{a} specializations · {b} core models",
         footer: "Build It in Russian — part of the Madingo app for learning Russian at MADI (МАДИ).",
         backTracks: "All specializations", backModels: "All models",
-        stageHint: "Drag to rotate · Pinch or scroll to zoom",
-        targetLbl: "Remove this part — tap it in the model",
         camReset: "Reset the camera angle",
         canvasLabel: "3D model of the project — drag to rotate, pinch to zoom",
         glError: "The 3D view could not start on this device or browser. Try a newer browser — the rest of the page works as usual.",
@@ -6988,8 +6967,6 @@
         tracksCount: "{a} специальности · {b} основных моделей",
         footer: "«Строй по-русски» — часть приложения Madingo для изучения русского языка в МАДИ.",
         backTracks: "Все специальности", backModels: "Все модели",
-        stageHint: "Тяни, чтобы вращать · Приближай пальцами или колесом мыши",
-        targetLbl: "Сними эту деталь — нажми на неё в модели",
         camReset: "Сбросить угол камеры",
         canvasLabel: "3D-модель проекта — тяни для вращения, приближай пальцами",
         glError: "Не удалось запустить 3D на этом устройстве или в этом браузере. Попробуй браузер новее — остальная страница работает как обычно.",
@@ -7058,8 +7035,6 @@
       $("#page-footer").textContent = s.footer;
       $("#back-tracks-lbl").textContent = s.backTracks;
       $("#back-models-lbl").textContent = s.backModels;
-      $("#stage-hint").textContent = s.stageHint;
-      $("#target-lbl").textContent = s.targetLbl;
       $("#gl-error").textContent = s.glError;
       $("#btn-cam").setAttribute("aria-label", s.camReset);
       $("#gl").setAttribute("aria-label", s.canvasLabel);
@@ -7419,7 +7394,6 @@
       for(var i = 0; i < st.built; i++) addPartToScene(i, false);
       mode = st.built >= NP() ? "ready" : "build";
       test = null;
-      $("#target-banner").hidden = true;
       resizeGL();
       renderAll();
     }
@@ -7538,7 +7512,6 @@
       st.built = 0;
       test = null;
       mode = "build";
-      $("#target-banner").hidden = true;
       buildWorld(curTrack);
       saveBuilderProgress();
       renderAll();
@@ -7551,21 +7524,11 @@
       for(var k = 0; k < n; k++) idxs.push(k);
       test = { queue: shuffle(idxs), mistakes:0, perfect:0, promptErr:false, removed:new Set() };
       mode = "test";
-      updateTargetBanner();
       renderAll();
-    }
-    function updateTargetBanner(){
-      if(mode === "test" && test && test.queue.length){
-        $("#target-word").textContent = cur.parts[test.queue[0]].word;
-        $("#target-banner").hidden = false;
-      } else {
-        $("#target-banner").hidden = true;
-      }
     }
     function exitTest(){
       mode = curState().built >= NP() ? "ready" : "build";
       test = null;
-      $("#target-banner").hidden = true;
       for(var i = 0; i < NP(); i++){ if(!partGroups[i]) addPartToScene(i, false); }
       renderAll();
     }
@@ -7588,9 +7551,6 @@
             curState().tested = true;
             saveBuilderProgress();
             mode = "result";
-            $("#target-banner").hidden = true;
-          } else {
-            updateTargetBanner();
           }
           renderAll();
           if(mode === "test") setFlash(fmt(S().flashOk, { w: cur.parts[i].word }), true);
@@ -7598,8 +7558,6 @@
           test.mistakes++;
           test.promptErr = true;
           flashRed(i);
-          var b = $("#target-banner");
-          b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");
           renderAll();
           setFlash(fmt(S().flashNo, { w: cur.parts[i].word }), false);
         }
