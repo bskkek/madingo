@@ -12,6 +12,7 @@
 //     (Replit Secrets / Cloudflare `wrangler secret put` / env var).
 //   * The proxy never returns the key, never logs request bodies, and
 //     only answers /extract + /chat + /library + /speak + /transcribe +
+//     /api/push/* (Web Push subscriptions + due scheduler) +
 //     /health + /api/generate-content + /api/arena/* (live classroom
 //     challenge rooms: create / join / answer / start / finish, polling
 //     first — no WebSocket server, the app polls room state every 3.5s).
@@ -35,6 +36,7 @@
 // ============================================================================
 
 import http from 'node:http';
+import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -1222,6 +1224,323 @@ function readBody(req) {
   });
 }
 
+// ============================================================================
+// WEB PUSH NOTIFICATIONS (2026-11-15) — real push to installed-app users.
+// User order 2026-11-15: every morning a notification (verb of the day +
+// level reminder) + 5 minutes after the user closes the app a "come back
+// and continue your level" notification. Content in the user's language
+// (ar/fr/en/ru). This REVERSES the old "no reminders" note — the user now
+// explicitly wants them.
+//
+// Design notes (read before touching):
+//   * Zero-dependency, like the rest of this file: VAPID signing (ES256
+//     JWT) + RFC 8291 aes128gcm payload encryption are implemented with
+//     node:crypto only — no web-push library (Replit runs `node server.mjs`
+//     with no npm install step, so a dependency would not be installed).
+//   * Secrets live ONLY as env vars (Replit Secrets): VAPID_PUBLIC_KEY +
+//     VAPID_PRIVATE_KEY (base64url, P-256), VAPID_SUBJECT (mailto),
+//     PUSH_DUE_TOKEN (optional; when set, /api/push/due requires it).
+//     NEVER put a key in this file, in a log, or in the app bundle.
+//     The public key reaches the client via GET /api/push/vapid-public-key.
+//   * Storage is a JSON file on disk (push-store.json) — subscriptions
+//     MUST survive proxy restarts/sleeps (unlike arena rooms, which are
+//     in-memory by design). Writes are serialised through a promise chain
+//     and done atomically (tmp file + rename).
+//   * The Replit Autoscale deployment SLEEPS when idle, so in-process
+//     timers are unreliable. Nothing here schedules itself: an EXTERNAL
+//     trigger (cron-job.org, every 5 min) calls GET /api/push/due, which
+//     sends whatever is due (5-min close reminders + the 09:00 MSK morning
+//     send, once per day per subscription). /due is idempotent: calling it
+//     extra times sends nothing extra.
+//   * Moscow time is UTC+3 year-round (no DST) — computed with a fixed
+//     +3h offset, never the server's local timezone.
+//   * Push services delete dead subscriptions with 410/404 — /due prunes
+//     them from the store on sight.
+// ============================================================================
+const PUSH_VAPID_PUBLIC_KEY = (process.env.VAPID_PUBLIC_KEY || '').trim();
+const PUSH_VAPID_PRIVATE_KEY = (process.env.VAPID_PRIVATE_KEY || '').trim();
+const PUSH_VAPID_SUBJECT = (process.env.VAPID_SUBJECT || 'mailto:billelaniss1@gmail.com').trim();
+const PUSH_DUE_TOKEN = (process.env.PUSH_DUE_TOKEN || '').trim();
+const PUSH_APP_URL = (process.env.PUSH_APP_URL || 'https://bskkek.github.io/madingo').replace(/\/$/, '');
+const PUSH_MORNING_HOUR_MS = Number(process.env.PUSH_MORNING_HOUR_MS || 9); // 09:00 Moscow
+const PUSH_CLOSE_DELAY_MS = Number(process.env.PUSH_CLOSE_DELAY_MS || 5 * 60 * 1000); // 5 min
+const PUSH_STORE_FILE = path.resolve(process.env.PUSH_STORE_FILE || 'push-store.json');
+const PUSH_DAILY_CAP = Number(process.env.PUSH_DAILY_CAP || 1000);
+const PUSH_HOURLY_PER_IP = Number(process.env.PUSH_HOURLY_PER_IP || 60);
+const PUSH_DUE_MIN_INTERVAL_MS = Number(process.env.PUSH_DUE_MIN_INTERVAL_MS || 30_000);
+const pushState = { ipHits: new Map(), dailyCount: 0, dailyDate: new Date().toISOString().slice(0, 10) };
+function checkPushLimits(ip) {
+  const limited = checkCounter(ip, pushState, PUSH_DAILY_CAP, PUSH_HOURLY_PER_IP);
+  if (!limited) pushState.dailyCount += 1;
+  return limited;
+}
+
+// --- Push store (disk JSON, survives restarts) ------------------------------
+const pushStore = { version: 1, subscriptions: {} };
+function pushStoreLoadFromDisk() {
+  try {
+    if (!fs.existsSync(PUSH_STORE_FILE)) return;
+    const parsed = JSON.parse(fs.readFileSync(PUSH_STORE_FILE, 'utf8'));
+    if (parsed && parsed.version === 1 && parsed.subscriptions && typeof parsed.subscriptions === 'object') {
+      pushStore.subscriptions = parsed.subscriptions;
+      console.log(`[push] loaded ${Object.keys(pushStore.subscriptions).length} subscriptions from disk`);
+    }
+  } catch (e) {
+    console.error('[push] corrupt store file, starting empty:', e.message);
+  }
+}
+let pushSaveQueue = Promise.resolve();
+function pushStoreSaveToDisk() {
+  pushSaveQueue = pushSaveQueue.then(() => {
+    const tmp = PUSH_STORE_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(pushStore), 'utf8');
+    fs.renameSync(tmp, PUSH_STORE_FILE);
+  }).catch((e) => console.error('[push] save failed:', e.message));
+}
+pushStoreLoadFromDisk();
+
+function pushNormLang(x) {
+  return ['ar', 'fr', 'en', 'ru'].includes(x) ? x : 'ar';
+}
+function pushNormSnapshot(b) {
+  return {
+    language: pushNormLang(b.language),
+    level: typeof b.level === 'string' ? b.level.slice(0, 100) : '',
+    completedCount: Number.isFinite(Number(b.completedCount)) ? Math.max(0, Math.floor(Number(b.completedCount))) : 0,
+    currentStage: Number.isFinite(Number(b.currentStage)) ? Math.max(0, Math.floor(Number(b.currentStage))) : 0,
+  };
+}
+function pushValidSubscription(sub) {
+  try {
+    if (!sub || typeof sub.endpoint !== 'string') return false;
+    new URL(sub.endpoint);
+    if (!sub.keys || typeof sub.keys.p256dh !== 'string' || typeof sub.keys.auth !== 'string') return false;
+    if (Buffer.from(sub.keys.p256dh, 'base64url').length !== 65) return false;
+    if (Buffer.from(sub.keys.auth, 'base64url').length !== 16) return false;
+    return true;
+  } catch { return false; }
+}
+
+// --- Web Push crypto (node:crypto only) -------------------------------------
+function pushB64urlEncode(buf) { return Buffer.from(buf).toString('base64url'); }
+function pushB64urlDecode(str) { return Buffer.from(str, 'base64url'); }
+function pushDerToRawSignature(der) {
+  let o = 0;
+  if (der[o++] !== 0x30) throw new Error('bad der');
+  let len = der[o++];
+  if (len & 0x80) { const n = len & 0x7f; len = 0; for (let i = 0; i < n; i++) len = (len << 8) | der[o++]; }
+  if (der[o++] !== 0x02) throw new Error('bad der');
+  const rLen = der[o++];
+  let r = der.subarray(o, o + rLen); o += rLen;
+  if (der[o++] !== 0x02) throw new Error('bad der');
+  const sLen = der[o++];
+  let s = der.subarray(o, o + sLen);
+  const strip = (b) => { let i = 0; while (i < b.length - 1 && b[i] === 0) i++; return b.subarray(i); };
+  r = strip(r); s = strip(s);
+  const out = Buffer.alloc(64);
+  r.copy(out, 32 - r.length);
+  s.copy(out, 64 - s.length);
+  return out;
+}
+function pushVapidHeaders(endpoint) {
+  if (!PUSH_VAPID_PUBLIC_KEY || !PUSH_VAPID_PRIVATE_KEY) return null;
+  const audience = new URL(endpoint).origin;
+  const now = Math.floor(Date.now() / 1000);
+  const header = pushB64urlEncode(Buffer.from(JSON.stringify({ typ: 'JWT', alg: 'ES256' })));
+  const payload = pushB64urlEncode(Buffer.from(JSON.stringify({ aud: audience, exp: now + 12 * 3600, sub: PUSH_VAPID_SUBJECT })));
+  const unsigned = header + '.' + payload;
+  const pubPoint = pushB64urlDecode(PUSH_VAPID_PUBLIC_KEY);
+  const key = crypto.createPrivateKey({ key: {
+    kty: 'EC', crv: 'P-256',
+    x: pushB64urlEncode(pubPoint.subarray(1, 33)),
+    y: pushB64urlEncode(pubPoint.subarray(33, 65)),
+    d: PUSH_VAPID_PRIVATE_KEY,
+  }, format: 'jwk' });
+  const sigDer = crypto.sign('sha256', Buffer.from(unsigned), key);
+  const jwt = unsigned + '.' + pushB64urlEncode(pushDerToRawSignature(sigDer));
+  return {
+    Authorization: `vapid t=${jwt},k=${PUSH_VAPID_PUBLIC_KEY}`,
+    'Crypto-Key': `p256ecdsa=${PUSH_VAPID_PUBLIC_KEY}`,
+  };
+}
+function pushEncrypt(sub, plaintext) {
+  const clientPub = pushB64urlDecode(sub.keys.p256dh);
+  const auth = pushB64urlDecode(sub.keys.auth);
+  const eph = crypto.createECDH('prime256v1');
+  const ephPub = eph.generateKeys();
+  const shared = eph.computeSecret(clientPub);
+  const salt = crypto.randomBytes(16);
+  const info = Buffer.concat([Buffer.from('WebPush: info\0', 'latin1'), clientPub, ephPub]);
+  // NOTE: hkdfSync returns an ArrayBuffer — wrap in Buffer.from() because
+  // createCipheriv needs a Buffer/TypedArray key and IV.
+  const prk = Buffer.from(crypto.hkdfSync('sha256', shared, auth, info, 32));
+  const cekInfo = Buffer.concat([Buffer.from('Content-Encoding: aes128gcm\0', 'latin1'), Buffer.from([1])]);
+  const nonceInfo = Buffer.concat([Buffer.from('Content-Encoding: nonce\0', 'latin1'), Buffer.from([1])]);
+  const cek = Buffer.from(crypto.hkdfSync('sha256', Buffer.alloc(0), prk, cekInfo, 16));
+  const nonce = Buffer.from(crypto.hkdfSync('sha256', Buffer.alloc(0), prk, nonceInfo, 12));
+  const cipher = crypto.createCipheriv('aes-128-gcm', cek, nonce);
+  const ct = Buffer.concat([cipher.update(plaintext), cipher.final(), cipher.getAuthTag()]);
+  const rs = Buffer.alloc(4);
+  rs.writeUInt32BE(4096, 0);
+  return { body: Buffer.concat([salt, rs, ephPub, ct]), salt, ephPub };
+}
+async function pushSend(sub, payloadObj) {
+  const vapid = pushVapidHeaders(sub.endpoint);
+  if (!vapid) return { ok: false, status: 0, error: 'vapid_not_configured' };
+  let enc;
+  try {
+    enc = pushEncrypt(sub, Buffer.from(JSON.stringify(payloadObj), 'utf8'));
+  } catch (e) {
+    return { ok: false, status: 0, error: 'encrypt_failed' };
+  }
+  const u = new URL(sub.endpoint);
+  const lib = u.protocol === 'http:' ? http : https;
+  const headers = {
+    ...vapid,
+    'Content-Type': 'application/octet-stream',
+    'Content-Encoding': 'aes128gcm',
+    'Encryption': `salt=${pushB64urlEncode(enc.salt)}`,
+    'Crypto-Key': `dh=${pushB64urlEncode(enc.ephPub)};p256ecdsa=${PUSH_VAPID_PUBLIC_KEY}`,
+    'TTL': '86400',
+  };
+  return new Promise((resolve) => {
+    const req = lib.request(u, { method: 'POST', headers, timeout: 10000 }, (res) => {
+      res.resume();
+      res.on('end', () => resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode }));
+    });
+    req.on('timeout', () => { req.destroy(new Error('timeout')); });
+    req.on('error', () => resolve({ ok: false, status: 0, error: 'network' }));
+    req.end(enc.body);
+  });
+}
+
+// --- Verbs of the day (embedded from the app's verbs data, 225 verbs) ------
+const PUSH_VERBS = [["v001","идти","يمشي","to go on foot (once)","aller à pied (une fois)","двигаться пешком"],["v002","ходить","يتجول","to go on foot (regularly)","aller à pied (souvent)","передвигаться пешком часто"],["v003","бежать","يجري","to run (once)","courir (une fois)","мчаться вперёд"],["v004","бегать","يركض","to run (regularly)","courir (souvent)","двигаться бегом часто"],["v005","ехать","يذهب بالمواصلات","to go by transport (once)","aller en transport (une fois)","двигаться на транспорте"],["v006","ездить","يتنقل","to go by transport (regularly)","aller en transport (souvent)","передвигаться на транспорте часто"],["v007","летать","يطير","to fly (regularly)","voler (souvent)","передвигаться по воздуху часто"],["v008","лететь","يسافر جوا","to fly (once)","voler (une fois)","двигаться по воздуху прямо"],["v009","плавать","يسبح","to swim (regularly)","nager (souvent)","передвигаться в воде часто"],["v010","плыть","يعوم","to swim (once)","nager (une fois)","двигаться в воде"],["v011","прыгать","يقفز","to jump","sauter","делать прыжки"],["v012","толкать","يدفع","to push","pousser","сдвигать силой"],["v013","тянуть","يسحب","to pull","tirer","тащить к себе"],["v014","нести","يحمل","to carry (once)","porter (une fois)","переносить груз"],["v015","носить","ينقل","to carry (regularly)","porter (souvent)","переносить груз часто"],["v016","падать","يسقط","to fall","tomber","опускаться вниз"],["v017","вставать","ينهض","to get up","se lever","подниматься на ноги"],["v018","садиться","يجلس","to sit down","s'asseoir","опускаться на сиденье"],["v019","стоять","يقف","to stand","se tenir debout","находиться стоя"],["v020","сидеть","يكون جالسا","to be sitting","être assis","находиться сидя"],["v021","ложиться","يستلقي","to lie down","s'allonger","принимать лежачее положение"],["v022","подниматься","يصعد","to go up","monter","двигаться вверх"],["v023","спускаться","ينزل","to go down","descendre","двигаться вниз"],["v024","поворачивать","يستدير","to turn","tourner","менять направление"],["v025","возвращаться","يعود","to return","revenir","приходить обратно"],["v026","просыпаться","يستيقظ","to wake up","se réveiller","выходить из сна"],["v027","умываться","يغسل وجهه","to wash one's face","se laver le visage","мыть лицо"],["v028","чистить","ينظف","to clean","nettoyer","делать чистым"],["v029","одеваться","يرتدي ملابسه","to get dressed","s'habiller","надевать одежду"],["v030","раздеваться","يخلع ملابسه","to get undressed","se déshabiller","снимать одежду"],["v031","завтракать","يفطر","to have breakfast","prendre le petit-déjeuner","есть утром"],["v032","обедать","يتغدى","to have lunch","déjeuner","есть днём"],["v033","ужинать","يتعشى","to have dinner","dîner","есть вечером"],["v034","гулять","يتنزه","to go for a walk","se promener","ходить на прогулке"],["v035","спать","ينام","to sleep","dormir","находиться во сне"],["v036","мыться","يغتسل","to wash oneself","se laver","мыть тело"],["v037","бриться","يحلق","to shave","se raser","сбривать бороду"],["v038","расчёсываться","يمشط شعره","to comb one's hair","se peigner","причёсывать волосы"],["v039","смотреть","يشاهد","to watch","regarder","направлять взгляд"],["v040","слушать","يستمع","to listen","écouter","воспринимать слухом"],["v041","покупать","يشتري","to buy","acheter","приобретать за деньги"],["v042","платить","يدفع المال","to pay","payer","отдавать деньги"],["v043","продавать","يبيع","to sell","vendre","отдавать за деньги"],["v044","играть","يلعب","to play","jouer","развлекаться игрой"],["v045","заниматься","يمارس","to practise","pratiquer","делать регулярно"],["v046","встречаться","يلتقي","to meet","se rencontrer","видеться с кем-то"],["v047","надевать","يلبس","to put on","mettre","натягивать одежду"],["v048","снимать","يخلع","to take off","enlever","убирать с себя"],["v049","завязывать","يربط","to tie","nouer","делать узел"],["v050","засыпать","يغفو","to fall asleep","s'endormir","погружаться в сон"],["v051","говорить","يتكلم","to speak","parler","произносить слова"],["v052","разговаривать","يتحدث","to talk","converser","вести беседу"],["v053","рассказывать","يحكي","to tell","raconter","излагать историю"],["v054","спрашивать","يسأل","to ask","demander","задавать вопрос"],["v055","отвечать","يجيب","to answer","répondre","давать ответ"],["v056","кричать","يصرخ","to shout","crier","громко говорить"],["v057","шептать","يهمس","to whisper","chuchoter","говорить тихо"],["v058","молчать","يصمت","to be silent","se taire","ничего не говорить"],["v059","объяснять","يشرح","to explain","expliquer","делать понятным"],["v060","обсуждать","يناقش","to discuss","discuter","вести обсуждение"],["v061","спорить","يجادل","to argue","argumenter","отстаивать своё мнение"],["v062","обещать","يعد","to promise","promettre","давать обещание"],["v063","благодарить","يشكر","to thank","remercier","выражать благодарность"],["v064","извиняться","يعتذر","to apologize","s'excuser","просить прощения"],["v065","здороваться","يحيي","to greet","saluer","приветствовать при встрече"],["v066","прощаться","يودع","to say goodbye","dire au revoir","говорить до свидания"],["v067","называть","يسمي","to name","nommer","давать имя"],["v068","звонить","يتصل","to call","appeler","делать телефонный звонок"],["v069","слышать","يسمع","to hear","entendre","воспринимать слухом"],["v070","понимать","يفهم","to understand","comprendre","улавливать смысл"],["v071","переводить","يترجم","to translate","traduire","передавать на другом языке"],["v072","повторять","يكرر","to repeat","répéter","говорить ещё раз"],["v073","смеяться","يضحك","to laugh","rire","издавать смех"],["v074","договариваться","يتفق","to agree","se mettre d'accord","приходить к согласию"],["v075","жаловаться","يشتكي","to complain","se plaindre","выражать недовольство"],["v076","учиться","يدرس","to study","étudier","получать знания"],["v077","учить","يتعلم","to learn","apprendre","усваивать знания"],["v078","читать","يقرأ","to read","lire","воспринимать текст"],["v079","писать","يكتب","to write","écrire","создавать текст"],["v080","считать","يحسب","to calculate","calculer","производить вычисления"],["v081","решать","يحل","to solve","résoudre","находить решение"],["v082","запоминать","يحفظ","to memorize","mémoriser","удерживать в памяти"],["v083","вспоминать","يتذكر","to recall","se souvenir","вызывать в памяти"],["v084","забывать","ينسى","to forget","oublier","терять из памяти"],["v085","знать","يعرف","to know","savoir","обладать знаниями"],["v086","изучать","يدرس بعمق","to study in depth","approfondir","углублённо познавать"],["v087","преподавать","يعلم","to teach","enseigner","передавать знания"],["v088","работать","يعمل","to work","travailler","выполнять работу"],["v089","помогать","يساعد","to help","aider","оказывать помощь"],["v090","проверять","يفحص","to check","vérifier","контролировать правильность"],["v091","исправлять","يصحح","to correct","corriger","устранять ошибки"],["v092","сдавать","يجتاز الامتحان","to pass an exam","passer un examen","проходить экзамен"],["v093","готовиться","يستعد","to prepare","se préparer","подготавливаться к делу"],["v094","начинать","يبدأ","to begin","commencer","приступать к делу"],["v095","заканчивать","ينهي","to finish","terminer","доводить до конца"],["v096","рисовать","يرسم","to draw","dessiner","создавать изображение"],["v097","чертить","يرسم مخططا","to draft","dessiner un plan","создавать чертёж"],["v098","искать","يبحث","to look for","chercher","разыскивать нужное"],["v099","находить","يجد","to find","trouver","обнаруживать искомое"],["v100","думать","يفكر","to think","penser","мыслить, размышлять"],["v101","любить","يحب","to love","aimer","испытывать любовь"],["v102","нравиться","يعجب","to be liked","plaire","вызывать симпатию"],["v103","ненавидеть","يكره","to hate","haïr","испытывать ненависть"],["v104","радоваться","يفرح","to rejoice","se réjouir","испытывать радость"],["v105","грустить","يحزن","to be sad","être triste","испытывать грусть"],["v106","плакать","يبكي","to cry","pleurer","лить слёзы"],["v107","бояться","يخاف","to be afraid","avoir peur","испытывать страх"],["v108","волноваться","يقلق","to worry","s'inquiéter","испытывать тревогу"],["v109","успокаиваться","يهدأ","to calm down","se calmer","становиться спокойным"],["v110","надеяться","يأمل","to hope","espérer","верить в лучшее"],["v111","хотеть","يريد","to want","vouloir","иметь желание"],["v112","мечтать","يحلم","to dream","rêver","представлять желаемое"],["v113","верить","يؤمن","to believe","croire","быть уверенным"],["v114","удивляться","يتعجب","to be surprised","s'étonner","испытывать удивление"],["v115","улыбаться","يبتسم","to smile","sourire","выражать радость улыбкой"],["v116","скучать","يشتاق","to miss someone","se languir de","тосковать по кому-то"],["v117","гордиться","يفتخر","to be proud","être fier","испытывать гордость"],["v118","злиться","يغضب","to be angry","se fâcher","испытывать злость"],["v119","уставать","يتعب","to get tired","se fatiguer","терять силы"],["v120","чувствовать","يشعر","to feel","sentir","воспринимать ощущения"],["v121","прощать","يسامح","to forgive","pardonner","отпускать обиду"],["v122","обнимать","يعانق","to hug","prendre dans ses bras","прижимать к себе"],["v123","дружить","يصادق","to be friends","être ami","поддерживать дружбу"],["v124","влюбляться","يقع في الحب","to fall in love","tomber amoureux","испытывать влюблённость"],["v125","целовать","يقبل","to kiss","embrasser","касаться губами"],["v126","пинать","يركل","to kick","frapper du pied","бить ногой"],["v127","бить","يضرب","to hit","frapper","наносить удары"],["v128","ловить","يلتقط","to catch","attraper","поймать в руки"],["v129","бросать","يرمي","to throw","jeter","кидать предмет"],["v130","держать","يمسك","to hold","tenir","не отпускать"],["v131","брать","يأخذ","to take","prendre","взять в руки"],["v132","давать","يعطي","to give","donner","передавать другому"],["v133","поднимать","يرفع","to lift","soulever","перемещать вверх"],["v134","опускать","يخفض","to lower","baisser","перемещать вниз"],["v135","танцевать","يرقص","to dance","danser","двигаться под музыку"],["v136","петь","يغني","to sing","chanter","издавать мелодию голосом"],["v137","дышать","يتنفس","to breathe","respirer","вдыхать воздух"],["v138","кашлять","يسعل","to cough","tousser","резко выдыхать воздух"],["v139","чихать","يعطس","to sneeze","éternuer","резко выдыхать носом"],["v140","курить","يدخن","to smoke","fumer","вдыхать дым"],["v141","хлопать","يصفق","to clap","applaudir","ударять ладонями"],["v142","махать","يلوح","to wave","agiter la main","двигать рукой"],["v143","кивать","يومئ برأسه","to nod","hocher la tête","двигать головой"],["v144","моргать","يرمش","to blink","cligner des yeux","закрывать глаза быстро"],["v145","жевать","يمضغ","to chew","mâcher","перемалывать пищу зубами"],["v146","глотать","يبلع","to swallow","avaler","пропускать пищу внутрь"],["v147","ползать","يزحف","to crawl","ramper","двигаться на четвереньках"],["v148","нырять","يغوص","to dive","plonger","погружаться под воду"],["v149","шевелиться","يتحرك","to move","bouger","слегка двигаться"],["v150","тренироваться","يتدرب","to train","s'entraîner","заниматься спортом"],["v151","есть","يأكل","to eat","manger","принимать пищу"],["v152","пить","يشرب","to drink","boire","принимать жидкость"],["v153","готовить","يطبخ","to cook","cuisiner","приготавливать пищу"],["v154","варить","يسلق","to boil","bouillir","готовить в воде"],["v155","жарить","يقلي","to fry","frire","готовить на сковороде"],["v156","печь","يخبز","to bake","cuire au four","готовить в духовке"],["v157","резать","يقطع","to cut","couper","делить на части"],["v158","пробовать","يتذوق","to taste","goûter","оценивать на вкус"],["v159","кушать","يتناول الطعام","to eat","manger","принимать пищу вежливо"],["v160","добавлять","يضيف","to add","ajouter","класть дополнительно"],["v161","мешать","يحرك","to stir","remuer","помешивать ложкой"],["v162","солить","يملح","to salt","saler","добавлять соль"],["v163","заказывать","يطلب","to order","commander","делать заказ"],["v164","подавать","يقدم","to serve","servir","ставить на стол"],["v165","наливать","يصب","to pour","verser","лить в посуду"],["v166","нюхать","يشم","to smell","renifler","вдыхать запах"],["v167","мыть","يغسل","to wash","laver","очищать водой"],["v168","угощать","يقدم الطعام","to offer food","offrir à manger","предлагать еду гостям"],["v169","перекусывать","يأكل وجبة خفيفة","to snack","grignoter","есть на ходу"],["v170","выбирать","يختار","to choose","choisir","отдавать предпочтение"],["v171","приносить","يحضر","to bring","apporter","доставлять сюда"],["v172","кипятить","يغلي","to bring to a boil","faire bouillir","доводить до кипения"],["v173","разогревать","يسخن","to reheat","réchauffer","греть повторно"],["v174","запекать","يشوي","to roast","rôtir","готовить до корочки"],["v175","смешивать","يخلط","to mix","mélanger","соединять вместе"],["v176","жить","يعيش","to live","vivre","существовать, проживать"],["v177","убирать","ينظف البيت","to clean up","faire le ménage","наводить порядок"],["v178","стирать","يغسل الملابس","to do the laundry","faire la lessive","мыть одежду"],["v179","гладить","يكوي","to iron","repasser","разглаживать утюгом"],["v180","открывать","يفتح","to open","ouvrir","делать открытым"],["v181","закрывать","يغلق","to close","fermer","делать закрытым"],["v182","включать","يشغل","to switch on","mettre en marche","запускать устройство"],["v183","выключать","يطفئ","to switch off","éteindre","отключать питание"],["v184","чинить","يصلح","to repair","réparer","исправлять поломку"],["v185","строить","يبني","to build","construire","возводить здание"],["v186","красить","يدهن","to paint","peindre","наносить краску"],["v187","вешать","يعلق","to hang up","accrocher","подвешивать на крюк"],["v188","ставить","يضع واقفا","to put upright","mettre debout","помещать вертикально"],["v189","класть","يضع","to put down","poser","помещать горизонтально"],["v190","сажать","يزرع","to plant","planter","высаживать в землю"],["v191","поливать","يسقي","to water","arroser","смачивать водой"],["v192","подметать","يكنس","to sweep","balayer","мести веником"],["v193","пылесосить","ينظف بالمكنسة","to vacuum","passer l'aspirateur","чистить пылесосом"],["v194","отдыхать","يستريح","to rest","se reposer","восстанавливать силы"],["v195","входить","يدخل","to enter","entrer","заходить внутрь"],["v196","выходить","يخرج","to go out","sortir","покидать помещение"],["v197","запирать","يقفل","to lock","verrouiller","закрывать на замок"],["v198","зажигать","يشعل","to light","allumer","давать огонь"],["v199","вытирать","يمسح","to wipe","essuyer","протирать тряпкой"],["v200","переезжать","ينتقل","to move house","déménager","менять место жительства"],["v201","путешествовать","يسافر","to travel","voyager","ездить по странам"],["v202","приезжать","يصل","to arrive","arriver","прибывать на транспорте"],["v203","уезжать","يغادر","to leave by transport","partir (en transport)","покидать место на транспорте"],["v204","приходить","يأتي","to come","venir","прибывать пешком"],["v205","уходить","يذهب","to leave on foot","partir (à pied)","покидать место пешком"],["v206","прилетать","يصل بالطائرة","to arrive by plane","arriver en avion","прибывать на самолёте"],["v207","улетать","يغادر بالطائرة","to leave by plane","partir en avion","отлетать на самолёте"],["v208","водить","يقود","to drive","conduire","управлять машиной"],["v209","кататься","يركب","to ride","faire un tour","ездить для удовольствия"],["v210","переходить","يعبر","to cross","traverser","идти через дорогу"],["v211","останавливаться","يتوقف","to stop","s'arrêter","делать остановку"],["v212","ждать","ينتظر","to wait","attendre","находиться в ожидании"],["v213","опаздывать","يتأخر","to be late","être en retard","приходить позже времени"],["v214","фотографировать","يصور","to take photos","photographier","снимать на камеру"],["v215","заходить","يزور","to drop in","passer voir","заглядывать в гости"],["v216","пересаживаться","يغير المواصلات","to change transport","changer de transport","менять транспорт"],["v217","теряться","يضيع","to get lost","se perdre","не знать дороги"],["v218","бронировать","يحجز","to book","réserver","заказывать заранее"],["v219","регистрироваться","يسجل","to check in","s'enregistrer","проходить регистрацию"],["v220","проходить","يمر","to pass through","passer","идти мимо"],["v221","добираться","يصل إلى","to get to","se rendre","доезжать до места"],["v222","отправляться","ينطلق","to set off","se mettre en route","начинать путь"],["v223","встречать","يستقبل","to meet","accueillir","принимать прибывшего"],["v224","провожать","يرافق","to see off","raccompagner","сопровождать до отъезда"],["v225","торопиться","يتعجل","to hurry","se dépêcher","спешить куда-то"]];
+function pushVerbOfTheDay(nowMs) {
+  const mskDay = Math.floor(((nowMs || Date.now()) + 3 * 3600 * 1000) / 86400000);
+  return PUSH_VERBS[mskDay % PUSH_VERBS.length];
+}
+function pushMskParts(nowMs) {
+  const msk = new Date((nowMs || Date.now()) + 3 * 3600 * 1000);
+  return { date: msk.toISOString().slice(0, 10), hour: msk.getUTCHours() };
+}
+
+// --- Notification content (4 languages) ------------------------------------
+const PUSH_TEXT = {
+  ar: {
+    morningTitle: (v) => `فعل اليوم: ${v}`,
+    morningBody: (m, level, stage) => {
+      if (level && stage) return `${m} — أنت في المستوى ${level}، المحطة ${stage} تستناك اليوم!`;
+      if (stage) return `${m} — المحطة ${stage} تستناك اليوم، ادخل وكمّلها!`;
+      if (level) return `${m} — أنت في المستوى ${level}، ادخل وتعلّم اليوم!`;
+      return `${m} — ادخل اليوم وتعلّم فعلاً جديداً!`;
+    },
+    closeTitle: 'واصل من حيث توقفت',
+    closeBody: (stage) => (stage ? `توقفت في المحطة ${stage} — ارجع الآن وكمّل مستواك!` : 'توقفت في منتصف الطريق — ارجع وكمّل مستواك!'),
+  },
+  fr: {
+    morningTitle: (v) => `Verbe du jour : ${v}`,
+    morningBody: (m, level, stage) => {
+      if (level && stage) return `${m} — vous êtes au niveau ${level}, l'étape ${stage} vous attend aujourd'hui !`;
+      if (stage) return `${m} — l'étape ${stage} vous attend aujourd'hui, entrez et terminez-la !`;
+      if (level) return `${m} — vous êtes au niveau ${level}, entrez apprendre aujourd'hui !`;
+      return `${m} — entrez apprendre un nouveau verbe aujourd'hui !`;
+    },
+    closeTitle: 'Reprenez où vous vous étiez arrêté',
+    closeBody: (stage) => (stage ? `Vous vous êtes arrêté à l'étape ${stage} — revenez terminer votre niveau !` : 'Vous vous êtes arrêté en chemin — revenez terminer votre niveau !'),
+  },
+  en: {
+    morningTitle: (v) => `Verb of the day: ${v}`,
+    morningBody: (m, level, stage) => {
+      if (level && stage) return `${m} — you're at level ${level}, stage ${stage} is waiting for you today!`;
+      if (stage) return `${m} — stage ${stage} is waiting for you today, open the app and finish it!`;
+      if (level) return `${m} — you're at level ${level}, open the app and learn today!`;
+      return `${m} — open the app and learn a new verb today!`;
+    },
+    closeTitle: 'Pick up where you left off',
+    closeBody: (stage) => (stage ? `You stopped at stage ${stage} — come back and finish your level!` : 'You stopped mid-road — come back and finish your level!'),
+  },
+  ru: {
+    morningTitle: (v) => `Глагол дня: ${v}`,
+    morningBody: (m, level, stage) => {
+      if (level && stage) return `${m} — вы на уровне ${level}, этап ${stage} ждёт вас сегодня!`;
+      if (stage) return `${m} — этап ${stage} ждёт вас сегодня, откройте приложение и пройдите его!`;
+      if (level) return `${m} — вы на уровне ${level}, откройте приложение и учитесь сегодня!`;
+      return `${m} — откройте приложение и выучите новый глагол сегодня!`;
+    },
+    closeTitle: 'Продолжите с того места, где остановились',
+    closeBody: (stage) => (stage ? `Вы остановились на этапе ${stage} — вернитесь и завершите свой уровень!` : 'Вы остановились на полпути — вернитесь и завершите свой уровень!'),
+  },
+};
+function pushMeaning(verb, lang) {
+  // verb = [id, ru, ar, en, fr, ruDef]
+  if (lang === 'fr') return verb[4];
+  if (lang === 'en') return verb[3];
+  if (lang === 'ru') return verb[5];
+  return verb[2];
+}
+function pushMorningPayload(sub, verb) {
+  const lang = pushNormLang(sub.language);
+  const t = PUSH_TEXT[lang];
+  const meaning = pushMeaning(verb, lang);
+  return {
+    title: t.morningTitle(verb[1]),
+    body: t.morningBody(meaning, sub.level || '', sub.currentStage || 0),
+    url: `${PUSH_APP_URL}/?autostart=1&push=verbs&verb=${verb[0]}`,
+    tag: `madingo-morning-${pushMskParts().date}`,
+    icon: `${PUSH_APP_URL}/pwa-192x192.png`,
+    kind: 'morning',
+    verbId: verb[0],
+  };
+}
+function pushClosePayload(sub) {
+  const lang = pushNormLang(sub.language);
+  const t = PUSH_TEXT[lang];
+  return {
+    title: t.closeTitle,
+    body: t.closeBody(sub.currentStage || 0),
+    url: `${PUSH_APP_URL}/?autostart=1`,
+    tag: 'madingo-close',
+    icon: `${PUSH_APP_URL}/pwa-192x192.png`,
+    kind: 'close',
+  };
+}
+
+// --- Due run (called by the external trigger) -------------------------------
+let pushDueRunning = false;
+let pushDueLastAt = 0;
+async function pushRunDue(nowMs) {
+  const now = nowMs || Date.now();
+  const { date, hour } = pushMskParts(now);
+  const result = { sentMorning: 0, sentClose: 0, failed: 0, pruned: 0, morning: false };
+  const subs = Object.values(pushStore.subscriptions);
+  if (hour >= PUSH_MORNING_HOUR_MS) {
+    const verb = pushVerbOfTheDay(now);
+    for (const sub of subs) {
+      if (sub.lastMorningDate === date) continue;
+      const r = await pushSend(sub, pushMorningPayload(sub, verb));
+      if (r.ok) { result.sentMorning++; sub.lastMorningDate = date; }
+      else {
+        result.failed++;
+        if (r.status === 410 || r.status === 404) { delete pushStore.subscriptions[sub.endpoint]; result.pruned++; }
+      }
+    }
+    result.morning = true;
+  }
+  for (const sub of Object.values(pushStore.subscriptions)) {
+    if (sub.closedAt && !sub.closeReminderSent && now >= sub.closedAt + PUSH_CLOSE_DELAY_MS) {
+      const r = await pushSend(sub, pushClosePayload(sub));
+      if (r.ok) { result.sentClose++; sub.closeReminderSent = true; }
+      else {
+        result.failed++;
+        if (r.status === 410 || r.status === 404) { delete pushStore.subscriptions[sub.endpoint]; result.pruned++; }
+      }
+    }
+  }
+  pushStoreSaveToDisk();
+  return result;
+}
+
 const server = http.createServer(async (req, res) => {
   const started = Date.now();
   const url = new URL(req.url || '/', 'http://localhost');
@@ -1256,7 +1575,7 @@ const server = http.createServer(async (req, res) => {
       service: 'madingo-gemini-proxy',
       models: MODELS,
       ttsModel: TTS_MODEL,
-      endpoints: ['/extract', '/chat', '/library', '/speak', '/transcribe', '/api/generate-content', '/api/arena/rooms', '/api/arena/rooms/:id', '/api/arena/rooms/:id/join', '/api/arena/rooms/:id/answer', '/api/arena/rooms/:id/questions', '/api/arena/rooms/:id/extract-page', '/api/arena/rooms/:id/start', '/api/arena/rooms/:id/next-question', '/api/arena/rooms/:id/finish', '/ (madingo storybook)'],
+      endpoints: ['/extract', '/chat', '/library', '/speak', '/transcribe', '/api/generate-content', '/api/arena/rooms', '/api/arena/rooms/:id', '/api/arena/rooms/:id/join', '/api/arena/rooms/:id/answer', '/api/arena/rooms/:id/questions', '/api/arena/rooms/:id/settings', '/api/arena/rooms/:id/extract-page', '/api/arena/rooms/:id/start', '/api/arena/rooms/:id/next-question', '/api/arena/rooms/:id/finish', '/api/push/subscribe', '/api/push/unsubscribe', '/api/push/open', '/api/push/close', '/api/push/due', '/api/push/vapid-public-key', '/ (madingo storybook)'],
       arenaRooms: arenaRooms.size,
       arenaExtractDailyUsed: arenaExtractState.dailyCount,
       arenaExtractDailyCap: ARENA_EXTRACT_DAILY_CAP,
@@ -1268,8 +1587,192 @@ const server = http.createServer(async (req, res) => {
       transcribeDailyCap: TRANSCRIBE_DAILY_CAP,
       libraryDailyUsed: libraryState.dailyCount,
       libraryDailyCap: LIBRARY_DAILY_CAP,
+      pushConfigured: Boolean(PUSH_VAPID_PUBLIC_KEY && PUSH_VAPID_PRIVATE_KEY),
+      pushSubscriptions: Object.keys(pushStore.subscriptions).length,
+      pushMorningHourMs: PUSH_MORNING_HOUR_MS,
+      pushCloseDelayMs: PUSH_CLOSE_DELAY_MS,
     }, origin);
     log(200);
+    return;
+  }
+
+  // --- Web Push: subscriptions + scheduler entry (2026-11-15) ---------------
+  if (req.method === 'GET' && url.pathname === '/api/push/vapid-public-key') {
+    if (!PUSH_VAPID_PUBLIC_KEY) {
+      sendJson(res, 503, { ok: false, error: { code: 'push_not_configured', message: 'VAPID keys are not set on the server.' } }, origin);
+      log(503);
+      return;
+    }
+    sendJson(res, 200, { ok: true, publicKey: PUSH_VAPID_PUBLIC_KEY }, origin);
+    log(200);
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/push/subscribe') {
+    if (!isAllowedOrigin(origin)) {
+      sendJson(res, 403, { ok: false, error: { code: 'unknown', message: 'Origin not allowed.' } }, origin);
+      log(403);
+      return;
+    }
+    const limited = checkPushLimits(ip);
+    if (limited) {
+      sendJson(res, 429, { ok: false, error: { code: 'quota', message: limited === 'daily' ? 'Daily push limit reached.' : 'Hourly push limit reached.' } }, origin);
+      log(429);
+      return;
+    }
+    let b;
+    try { b = await readArenaJsonBody(req); } catch {
+      sendJson(res, 400, { ok: false, error: { code: 'unknown', message: 'Invalid JSON body.' } }, origin);
+      log(400);
+      return;
+    }
+    if (!pushValidSubscription(b.subscription)) {
+      sendJson(res, 400, { ok: false, error: { code: 'unknown', message: 'Invalid push subscription.' } }, origin);
+      log(400);
+      return;
+    }
+    const snap = pushNormSnapshot(b);
+    const now = Date.now();
+    const prev = pushStore.subscriptions[b.subscription.endpoint];
+    pushStore.subscriptions[b.subscription.endpoint] = {
+      endpoint: b.subscription.endpoint,
+      keys: { p256dh: b.subscription.keys.p256dh, auth: b.subscription.keys.auth },
+      ...snap,
+      createdAt: prev ? prev.createdAt : now,
+      updatedAt: now,
+      closedAt: prev ? prev.closedAt : null,
+      closeReminderSent: prev ? !!prev.closeReminderSent : false,
+      lastMorningDate: prev ? prev.lastMorningDate || null : null,
+    };
+    pushStoreSaveToDisk();
+    sendJson(res, 200, { ok: true, subscriptions: Object.keys(pushStore.subscriptions).length }, origin);
+    log(200);
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/push/unsubscribe') {
+    if (!isAllowedOrigin(origin)) {
+      sendJson(res, 403, { ok: false, error: { code: 'unknown', message: 'Origin not allowed.' } }, origin);
+      log(403);
+      return;
+    }
+    let b;
+    try { b = await readArenaJsonBody(req); } catch {
+      sendJson(res, 400, { ok: false, error: { code: 'unknown', message: 'Invalid JSON body.' } }, origin);
+      log(400);
+      return;
+    }
+    if (typeof b.endpoint === 'string') delete pushStore.subscriptions[b.endpoint];
+    pushStoreSaveToDisk();
+    sendJson(res, 200, { ok: true, subscriptions: Object.keys(pushStore.subscriptions).length }, origin);
+    log(200);
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/push/open') {
+    if (!isAllowedOrigin(origin)) {
+      sendJson(res, 403, { ok: false, error: { code: 'unknown', message: 'Origin not allowed.' } }, origin);
+      log(403);
+      return;
+    }
+    let b;
+    try { b = await readArenaJsonBody(req); } catch {
+      sendJson(res, 400, { ok: false, error: { code: 'unknown', message: 'Invalid JSON body.' } }, origin);
+      log(400);
+      return;
+    }
+    let known = false;
+    if (typeof b.endpoint === 'string' && pushStore.subscriptions[b.endpoint]) {
+      const sub = pushStore.subscriptions[b.endpoint];
+      const snap = pushNormSnapshot(b);
+      sub.language = snap.language;
+      sub.level = snap.level;
+      sub.completedCount = snap.completedCount;
+      sub.currentStage = snap.currentStage;
+      sub.updatedAt = Date.now();
+      sub.closedAt = null;
+      sub.closeReminderSent = false;
+      known = true;
+      pushStoreSaveToDisk();
+    }
+    sendJson(res, 200, { ok: true, known }, origin);
+    log(200);
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/push/close') {
+    if (!isAllowedOrigin(origin)) {
+      sendJson(res, 403, { ok: false, error: { code: 'unknown', message: 'Origin not allowed.' } }, origin);
+      log(403);
+      return;
+    }
+    let b;
+    try { b = await readArenaJsonBody(req); } catch {
+      sendJson(res, 400, { ok: false, error: { code: 'unknown', message: 'Invalid JSON body.' } }, origin);
+      log(400);
+      return;
+    }
+    let known = false;
+    if (typeof b.endpoint === 'string' && pushStore.subscriptions[b.endpoint]) {
+      const sub = pushStore.subscriptions[b.endpoint];
+      // The client sends its LATEST snapshot with /close, so the reminder
+      // names the stage the user actually stopped at (not the one from
+      // when the app was opened).
+      const snap = pushNormSnapshot(b);
+      sub.language = snap.language;
+      sub.level = snap.level;
+      sub.completedCount = snap.completedCount;
+      sub.currentStage = snap.currentStage;
+      sub.closedAt = Date.now();
+      sub.closeReminderSent = false;
+      sub.updatedAt = Date.now();
+      known = true;
+      pushStoreSaveToDisk();
+    }
+    sendJson(res, 200, { ok: true, known }, origin);
+    log(200);
+    return;
+  }
+
+  if ((req.method === 'GET' || req.method === 'POST') && url.pathname === '/api/push/due') {
+    // Scheduler entry point — called by the EXTERNAL trigger (cron-job.org)
+    // every 5 minutes. Idempotent: extra calls send nothing extra.
+    if (PUSH_DUE_TOKEN) {
+      const tok = url.searchParams.get('token') || req.headers['x-push-due-token'] || '';
+      if (tok !== PUSH_DUE_TOKEN) {
+        sendJson(res, 401, { ok: false, error: { code: 'unauthorized', message: 'Bad or missing push due token.' } }, origin);
+        log(401);
+        return;
+      }
+    }
+    if (pushDueRunning) {
+      sendJson(res, 409, { ok: false, error: { code: 'busy', message: 'A due run is already in progress.' } }, origin);
+      log(409);
+      return;
+    }
+    if (Date.now() - pushDueLastAt < PUSH_DUE_MIN_INTERVAL_MS) {
+      sendJson(res, 429, { ok: false, error: { code: 'too_soon', message: 'Due was just checked.' } }, origin);
+      log(429);
+      return;
+    }
+    if (!PUSH_VAPID_PUBLIC_KEY || !PUSH_VAPID_PRIVATE_KEY) {
+      sendJson(res, 503, { ok: false, error: { code: 'push_not_configured', message: 'VAPID keys are not set on the server.' } }, origin);
+      log(503);
+      return;
+    }
+    pushDueRunning = true;
+    pushDueLastAt = Date.now();
+    try {
+      const result = await pushRunDue(Date.now());
+      sendJson(res, 200, { ok: true, ...result, subscriptions: Object.keys(pushStore.subscriptions).length }, origin);
+      log(200);
+    } catch (e) {
+      console.error('[push] due run failed:', e.message);
+      sendJson(res, 500, { ok: false, error: { code: 'unknown', message: 'Due run failed.' } }, origin);
+      log(500);
+    } finally {
+      pushDueRunning = false;
+    }
     return;
   }
 
@@ -1960,6 +2463,31 @@ const server = http.createServer(async (req, res) => {
       room.questions = validated.questions;
       if (room.currentQuestionIndex >= room.questions.length) {
         room.currentQuestionIndex = Math.max(0, room.questions.length - 1);
+      }
+      sendJson(res, 200, { room }, origin);
+      log(200);
+      return;
+    }
+
+    // PUT /api/arena/rooms/:id/settings — update a waiting room's settings
+    // (currently only timeLimitSeconds); returns { room }. Only before the
+    // challenge starts: once the quiz is live the timer is already running.
+    if (req.method === 'PUT' && action === 'settings') {
+      let body;
+      try {
+        body = await readArenaJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: 'Invalid JSON body.' }, origin);
+        log(400);
+        return;
+      }
+      if (room.status !== 'waiting') {
+        sendJson(res, 400, { error: 'Cannot change settings after the challenge has started.' }, origin);
+        log(400);
+        return;
+      }
+      if (body.timeLimitSeconds !== undefined && body.timeLimitSeconds !== null) {
+        room.questionTimeLimitSeconds = clampArenaTimeLimit(body.timeLimitSeconds, room.questionTimeLimitSeconds || 30);
       }
       sendJson(res, 200, { room }, origin);
       log(200);
