@@ -6813,6 +6813,14 @@
           /* END GENERATED MODELS */] }
     ];
 
+    /* Disassembly test order (OUTSIDE-IN, computed by raycasting — see
+       builder/compute-test-orders.mjs). For each model, the test asks for
+       parts in this order, so every part requested is visible and tappable
+       at the moment it is asked: external parts first, enclosed parts only
+       after their occluder is removed. Recompute if any model geometry
+       changes; audit-builder.mjs checks every order is a permutation. */
+    var TEST_ORDERS = {"car":[[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,3,2,5,4],[0,2,1,3,5,4],[0,2,3,5,1,4],[0,1,2,3,4,5],[3,0,1,2,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,4,3,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[4,1,5,0,2,3],[4,0,1,2,3,5],[2,4,0,1,3,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[1,0,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5]],"road":[[2,0,1,3,4,5],[0,1,2,3,4,5],[3,1,0,2,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[1,2,0,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[1,0,2,3,4,5],[0,1,2,3,4,5],[2,3,0,1,4,5],[1,2,3,4,0,5],[0,3,2,4,1,5],[0,1,3,2,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[2,0,1,3,4,5],[0,3,4,1,2,5],[3,0,1,2,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[4,0,5,1,2,3],[3,5,0,1,2,4],[0,1,2,3,4,5]],"bridge":[[3,1,0,2,4,5],[4,1,0,3,2,5],[4,1,0,2,3,5],[1,2,3,4,0,5],[1,2,0,3,4,5],[3,4,2,0,1,5],[4,0,3,1,2,5],[3,4,2,0,1,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[1,0,2,3,4,5],[0,1,2,3,4,5],[1,2,0,3,4,5],[3,1,0,4,2,5],[1,0,2,3,4,5],[1,0,2,3,4,5],[0,1,2,4,5,3],[3,2,1,0,4,5],[0,1,3,2,4,5],[1,0,2,3,4,5],[0,1,3,4,2,5],[2,0,1,3,4,5],[1,0,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5]],"logistics":[[0,2,1,4,5,3],[0,1,2,3,4,5],[0,2,4,1,3,5],[1,3,0,2,4,5],[1,0,4,5,2,3],[1,0,2,3,4,5],[0,1,2,3,4,5],[0,2,1,3,4,5],[1,0,2,3,4,5],[1,0,2,3,4,5],[1,0,3,2,4,5],[0,3,4,1,2,5],[0,1,2,3,4,5],[4,0,1,2,3,5],[2,0,3,4,5,1],[0,1,2,4,5,3],[0,1,2,3,4,5],[0,1,2,3,4,5],[3,5,0,1,2,4],[0,1,2,3,4,5],[1,2,0,3,4,5],[4,0,1,2,3,5],[0,1,2,4,3,5],[0,1,2,3,4,5],[0,1,3,4,2,5]]};
+
     /* ================= APP STATE ================= */
     var $ = function(s, r){ return (r||document).querySelector(s); };
     function ad(s){ return String(s).replace(/\d/g, function(d){ return "٠١٢٣٤٥٦٧٨٩"[+d]; }); }
@@ -7522,7 +7530,8 @@
       for(var i = 0; i < n; i++){ if(!partGroups[i]) addPartToScene(i, false); }
       var idxs = [];
       for(var k = 0; k < n; k++) idxs.push(k);
-      test = { queue: shuffle(idxs), mistakes:0, perfect:0, promptErr:false, removed:new Set() };
+      var ord = (typeof TEST_ORDERS !== "undefined" && TEST_ORDERS[curTrack.id] && TEST_ORDERS[curTrack.id][cur.idx]) || idxs.slice().reverse();
+      test = { queue: ord.slice(), mistakes:0, perfect:0, promptErr:false, removed:new Set() };
       mode = "test";
       renderAll();
     }
