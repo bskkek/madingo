@@ -1734,29 +1734,44 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if ((req.method === 'GET' || req.method === 'POST') && url.pathname === '/api/push/due') {
-    // Scheduler entry point — called by the EXTERNAL trigger (cron-job.org)
-    // every 5 minutes. Idempotent: extra calls send nothing extra.
+  if ((req.method === 'GET' || req.method === 'POST' || req.method === 'HEAD') && url.pathname === '/api/push/due') {
+    // Scheduler entry point — called by the EXTERNAL trigger (UptimeRobot
+    // monitor) every 5 minutes. Idempotent: extra calls send nothing extra.
+    // HEAD is treated exactly like GET (UptimeRobot's monitor checks with
+    // HEAD) — same due run, headers only, no body.
+    const sendDue = (status, obj) => {
+      if (req.method === 'HEAD') {
+        res.writeHead(status, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        });
+        res.end();
+      } else {
+        sendJson(res, status, obj, origin);
+      }
+    };
     if (PUSH_DUE_TOKEN) {
       const tok = url.searchParams.get('token') || req.headers['x-push-due-token'] || '';
       if (tok !== PUSH_DUE_TOKEN) {
-        sendJson(res, 401, { ok: false, error: { code: 'unauthorized', message: 'Bad or missing push due token.' } }, origin);
+        sendDue(401, { ok: false, error: { code: 'unauthorized', message: 'Bad or missing push due token.' } });
         log(401);
         return;
       }
     }
     if (pushDueRunning) {
-      sendJson(res, 409, { ok: false, error: { code: 'busy', message: 'A due run is already in progress.' } }, origin);
+      sendDue(409, { ok: false, error: { code: 'busy', message: 'A due run is already in progress.' } });
       log(409);
       return;
     }
     if (Date.now() - pushDueLastAt < PUSH_DUE_MIN_INTERVAL_MS) {
-      sendJson(res, 429, { ok: false, error: { code: 'too_soon', message: 'Due was just checked.' } }, origin);
+      sendDue(429, { ok: false, error: { code: 'too_soon', message: 'Due was just checked.' } });
       log(429);
       return;
     }
     if (!PUSH_VAPID_PUBLIC_KEY || !PUSH_VAPID_PRIVATE_KEY) {
-      sendJson(res, 503, { ok: false, error: { code: 'push_not_configured', message: 'VAPID keys are not set on the server.' } }, origin);
+      sendDue(503, { ok: false, error: { code: 'push_not_configured', message: 'VAPID keys are not set on the server.' } });
       log(503);
       return;
     }
@@ -1764,11 +1779,11 @@ const server = http.createServer(async (req, res) => {
     pushDueLastAt = Date.now();
     try {
       const result = await pushRunDue(Date.now());
-      sendJson(res, 200, { ok: true, ...result, subscriptions: Object.keys(pushStore.subscriptions).length }, origin);
+      sendDue(200, { ok: true, ...result, subscriptions: Object.keys(pushStore.subscriptions).length });
       log(200);
     } catch (e) {
       console.error('[push] due run failed:', e.message);
-      sendJson(res, 500, { ok: false, error: { code: 'unknown', message: 'Due run failed.' } }, origin);
+      sendDue(500, { ok: false, error: { code: 'unknown', message: 'Due run failed.' } });
       log(500);
     } finally {
       pushDueRunning = false;
