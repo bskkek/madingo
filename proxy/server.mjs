@@ -200,6 +200,15 @@ function isAllowedOrigin(origin) {
   try {
     const u = new URL(origin);
     if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
+    // Muse artifact / space runtime (the voice-call bot is served here,
+    // so its /transcribe + TTS calls must be allowed). Exact artifact
+    // origins are ephemeral, so allow the platform's own domains.
+    if (
+      u.hostname.endsWith('.metaaivm.com') ||
+      u.hostname.endsWith('.hatch.app') ||
+      u.hostname === 'muse.ai' ||
+      u.hostname.endsWith('.muse.ai')
+    ) return true;
   } catch {
     // ignore
   }
