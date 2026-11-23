@@ -68,6 +68,7 @@ jobs:
           cd capacitor
           bun init -y
           bun add @capacitor/cli@6.2.3 @capacitor/core@6.2.3 @capacitor/ios@6.2.3
+          bun add -d typescript@5
           bunx cap init Madingo app.madingo.twa --web-dir ../dist
           bunx cap add ios
           bunx cap sync ios
