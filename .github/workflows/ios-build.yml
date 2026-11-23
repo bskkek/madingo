@@ -1,0 +1,128 @@
+# Build an UNSIGNED iOS .ipa for Madingo on a free macOS runner.
+#
+# Why this workflow creates the Capacitor project itself:
+# - capacitor/ (the native Android/iOS shell) is LOCAL-ONLY and is not
+#   committed to this repo, so a bare checkout has no ios/ platform.
+# - The storybook (book/, 34 MB, 52 MP3s) is NOT in this repo either; it
+#   lives only on the gh-pages branch (the deployed site), so the workflow
+#   fetches it from there.
+#
+# What it does:
+#   1. Checks out main and builds the web app with the Capacitor relative
+#      base './' (CAPACITOR=1) — a PAGES=1 build (base '/madingo/') would
+#      produce a BLANK WHITE SCREEN in the native app. Never sync a
+#      PAGES=1 build into a native app.
+#   2. Creates the Capacitor iOS platform fresh (appId app.madingo.twa,
+#      same as the Android build) and syncs the web bundle into it.
+#   3. Copies the storybook from the gh-pages branch into the iOS bundle
+#      and rewrites its absolute paths /madingo/book/ -> /book/ (the book
+#      is bundled locally; Capacitor's server does NOT resolve a directory
+#      to its index.html, so the bubble loads the explicit file
+#      book/index.html).
+#   4. Builds the app UNSIGNED (CODE_SIGNING_ALLOWED=NO) and packages the
+#      .app into Payload/Madingo-unsigned.ipa, uploaded as an artifact.
+#
+# The .ipa is UNSIGNED: it CANNOT be installed on an iPhone as-is. To
+# install it, sign it with a free Apple ID (Xcode on a Mac: open
+# ios/App/App.xcworkspace, set a development team, build to the phone —
+# free provisioning lasts 7 days) or sideload it with AltStore/SideStore.
+# No Apple credentials are used or stored anywhere in this workflow.
+#
+# How to run: GitHub repo -> Actions -> "Build iOS (unsigned .ipa)" ->
+# Run workflow. Download the artifact "Madingo-iOS-unsigned" when it
+# finishes (about 10-15 minutes).
+name: Build iOS (unsigned .ipa)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Full history so the gh-pages branch (storybook source) is available.
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build web app (Capacitor relative base './')
+        run: bun run build
+        env:
+          CAPACITOR: '1'
+
+      - name: Create Capacitor iOS platform
+        run: |
+          mkdir -p capacitor
+          cd capacitor
+          bun init -y
+          bun add @capacitor/cli@6.2.3 @capacitor/core@6.2.3 @capacitor/ios@6.2.3
+          bunx cap init Madingo app.madingo.twa --web-dir ../dist --npm-client bun
+          bunx cap add ios
+          bunx cap sync ios
+
+      - name: Fetch storybook from gh-pages branch
+        run: |
+          git fetch origin gh-pages
+          git checkout origin/gh-pages -- book
+          test -f book/index.html
+          test "$(find book -name '*.mp3' | wc -l | tr -d ' ')" = "52"
+
+      - name: Copy storybook into iOS bundle + rewrite absolute paths
+        run: |
+          cp -r book capacitor/ios/App/App/public/book
+          # The book was built for GitHub Pages (/madingo/book/...); inside the
+          # native app it must use local paths (/book/...).
+          grep -rl '/madingo/book/' capacitor/ios/App/App/public/book | \
+            xargs perl -pi -e 's|/madingo/book/|/book/|g'
+          test "$(grep -r '/madingo/book/' capacitor/ios/App/App/public/book | wc -l | tr -d ' ')" = "0"
+
+      - name: Verify native bundle
+        run: |
+          # Relative base: index.html must use ./assets/... and contain no /madingo/ refs.
+          grep -q 'src="./assets/' capacitor/ios/App/App/public/index.html
+          test "$(grep -c '/madingo/' capacitor/ios/App/App/public/index.html || true)" = "0"
+          # The bubble must point at the EXPLICIT file book/index.html.
+          grep -q 'book/index.html' capacitor/ios/App/App/public/assets/*.js
+          # Storybook present with all audio.
+          test -f capacitor/ios/App/App/public/book/index.html
+          test "$(find capacitor/ios/App/App/public/book -name '*.mp3' | wc -l | tr -d ' ')" = "52"
+
+      - name: Build unsigned .app with Xcode
+        run: |
+          cd capacitor
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/derived \
+            CODE_SIGNING_ALLOWED=NO
+          test -d build/derived/Build/Products/Release-iphoneos/App.app
+
+      - name: Package .app into unsigned .ipa
+        run: |
+          cd capacitor
+          mkdir -p Payload
+          cp -r build/derived/Build/Products/Release-iphoneos/App.app Payload/
+          zip -r Madingo-unsigned.ipa Payload
+          ls -lh Madingo-unsigned.ipa
+
+      - name: Upload unsigned .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Madingo-iOS-unsigned
+          path: capacitor/Madingo-unsigned.ipa
+          if-no-files-found: error
