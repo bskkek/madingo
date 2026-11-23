@@ -72,19 +72,19 @@ export const MadiCrewSection: React.FC = () => {
   }, []);
 
   return (
-    <section className="py-16 px-4 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-800 overflow-hidden">
+    <section className="py-16 px-4 bg-transparent border-t border-white/10 overflow-hidden">
       <div className="max-w-4xl mx-auto text-center space-y-2 mb-10">
-        <h2 className="text-2xl sm:text-3xl font-display font-black text-slate-900 dark:text-white">
+        <h2 className="text-2xl sm:text-3xl font-display font-black text-white">
           {t('crew.heading')}
         </h2>
-        <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base font-medium">
+        <p className="text-white/70 text-sm sm:text-base font-medium">
           {t('crew.caption')}
         </p>
       </div>
 
       <div className="crew-wrap max-w-4xl mx-auto p-2 sm:p-6 flex justify-center items-center">
         <div className="crew relative w-full max-w-[920px] aspect-[2231/1145]" style={{ direction: 'ltr' }}>
-          <div className="absolute inset-[2%_14%_0_14%] rounded-full bg-[#EFE9DF] opacity-90 dark:bg-[#16213A]" />
+          <div className="absolute inset-[2%_14%_0_14%] rounded-full bg-[#16213A]/80" />
 
           <div className="car absolute top-[28%] left-[32%] w-[18%] z-10 animate-drive">
             <img src={import.meta.env.BASE_URL + "assets/madi-crew/sprites/car.png"} alt="Car" className="w-full h-auto select-none" draggable={false} />
@@ -113,7 +113,7 @@ export const MadiCrewSection: React.FC = () => {
               >
                 <span className="shadow absolute left-[8%] right-[8%] bottom-[-1.2%] h-[3.2%] rounded-full bg-slate-900/18 blur-[2px]" />
                 <span
-                  className={`bubble absolute bottom-[calc(100%+4px)] left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-2 border-slate-900 dark:border-slate-700 text-xs sm:text-sm font-extrabold shadow-md transition-all z-30 ${
+                  className={`bubble absolute bottom-[calc(100%+4px)] left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full bg-[#0A1F44]/95 text-white border-2 border-white/25 text-xs sm:text-sm font-extrabold shadow-md transition-all z-30 ${
                     isTalking ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-1.5 pointer-events-none'
                   }`}
                 >

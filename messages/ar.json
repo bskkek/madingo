@@ -48,7 +48,16 @@
     "tabLibrary": "المكتبة",
     "tabArena": "غرف التحدي",
     "tabTeacher": "المدرس",
-    "tabProfile": "الملف الشخصي"
+    "tabProfile": "الملف الشخصي",
+    "tabAlphabet": "الأبجدية",
+    "tabBuilder": "البناء",
+    "tabLearn": "تعلّم",
+    "tabPractice": "تدرّب",
+    "tabVerbs": "الأفعال",
+    "verbsSubtitle": "225 فعل · محاكاة + صوت"
+  },
+  "builder": {
+    "loading": "جارٍ تحميل ورشة البناء…"
   },
   "landing": {
     "kicker": "مصمم للطلاب الدوليين في جامعة مادي (MADI)",
@@ -218,6 +227,7 @@
     "clearWordBtn": "مسح الكل",
     "backspaceBtn": "حذف حرف",
     "checkAnswerBtn": "تحقق من الإجابة",
+    "tryAgainBtn": "حاول مرة أخرى",
     "feedbackCorrectTitle": "قيادة ممتازة! +10 وقود",
     "feedbackCorrectBody": "ميشا فخور بك — محرك النطق يعمل بسلاسة.",
     "feedbackWrongTitle": "تم تسجيلها في المرآب للمراجعة",
@@ -410,5 +420,38 @@
     "deleteConfirmTitle": "هل تريد حذف حسابك نهائياً؟",
     "deleteConfirmBody": "سيؤدي هذا إلى مسح ملفك الشخصي وسجل الوقود وعداد السلسلة وتقدم الدروس من قاعدة البيانات.",
     "deleteConfirmYes": "نعم، احذف بياناتي"
+  },
+  "assistant": {
+    "title": "مساعدك الشخصي",
+    "subtitle": "أنيس يجيب على أي سؤال — ويجد أي كتاب من مكتبة مادي.",
+    "placeholder": "اسأل أي شيء…",
+    "bookPlaceholder": "اسم الكتاب — مثال: كيمياء، طرق…",
+    "findBook": "ابحث عن الكتاب",
+    "typing": "يفكر…",
+    "listening": "أستمع…",
+    "noAi": "الذكاء الاصطناعي غير متاح الآن — حاول بعد دقيقة.",
+    "offlineNote": "السيرفر غير متاح حاليا — نخدم بالوضع دون اتصال: كتب من الفهرس دون اتصال وإجابات قصيرة بدون ذكاء اصطناعي.",
+    "anissFound": "تفضل!",
+    "librarySourceLive": "فهرس مادي (مباشر)",
+    "librarySourceOffline": "مكتبة مادي النصية (فهرس دون اتصال)",
+    "libraryOpenCatalog": "افتح فهرس مادي",
+    "libraryOpenFullText": "تصفح المكتبة النصية",
+    "libraryNoResults": "لم أجد كتابًا مطابقًا في فهرس مكتبة مادي. جرّب الفهرس الكامل — فيه كل شيء.",
+    "openBook": "افتح الكتاب",
+    "madiLibraryTitle": "مكتبة مادي — كتب نصية كاملة",
+    "madiLibraryHint": "ابحث في مكتبة مادي النصية. كل نتيجة تبين مصدرها، والفهرس الكامل على بعد نقرة.",
+    "bookLoading": "جارٍ تحميل الكتاب…"
+  },
+  "verbs": {
+    "listen": "استمع",
+    "previous": "السابق",
+    "next": "التالي",
+    "audioUnavailable": "الصوت غير متوفر حاليا"
+  },
+  "push": {
+    "promptTitle": "ذكّرني باش نكمّل تعليمي",
+    "promptBody": "كل صباح نرسلولك فعل جديد، وبعد 5 دقائق من خروجك من التطبيق نذكّرك باش تكمل مستواك.",
+    "promptAllow": "فعّل التنبيهات",
+    "promptLater": "مش دابا"
   }
 }

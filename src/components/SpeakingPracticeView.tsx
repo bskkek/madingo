@@ -570,8 +570,8 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
     filteredClips.length > 0 ? (safeIndex + 1) / filteredClips.length : 0;
 
   return (
-    <div className="min-h-screen bg-[var(--surface-canvas)] p-4 sm:p-8">
-      <div className="mx-auto w-full max-w-lg space-y-4">
+    <div className="bg-[var(--surface-canvas)] px-3 py-3 sm:p-4">
+      <div className="mx-auto w-full max-w-lg space-y-3">
         {/* Header — same pattern as LessonPlayer / TypingLab headers */}
         <div className="flex items-center justify-between gap-3">
           <button
@@ -592,7 +592,7 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
         </div>
 
         {/* Level filter + progress */}
-        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-md space-y-3">
+        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 shadow-md space-y-2">
           <div className="flex items-center gap-2">
             {(['all', 'A1', 'A2'] as LevelFilter[]).map((f) => (
               <button
@@ -601,8 +601,8 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
                 onClick={() => handleFilterChange(f)}
                 className={
                   levelFilter === f
-                    ? 'min-h-[40px] px-4 rounded-2xl bg-brand-blue text-white text-sm font-semibold shadow-xs transition cursor-pointer'
-                    : 'min-h-[40px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-brand-blue transition cursor-pointer'
+                    ? 'min-h-[36px] px-4 rounded-2xl bg-brand-blue text-white text-sm font-semibold shadow-xs transition cursor-pointer'
+                    : 'min-h-[36px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-brand-blue transition cursor-pointer'
                 }
               >
                 {f === 'all' ? s.allLevels : f}
@@ -626,24 +626,24 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
             {s.noClips}
           </div>
         ) : (
-          <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-md space-y-6">
+          <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-md space-y-3">
             {/* Clip title + badges */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-1 rounded-full bg-brand-blue text-white text-xs font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-brand-blue text-white text-xs font-bold">
                   {clip.level}
                 </span>
-                <span className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-xs font-semibold text-brand-blue dark:text-white">
+                <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-xs font-semibold text-brand-blue dark:text-white">
                   {s.topicLabel}: {clip.topic}
                 </span>
-                <span className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
                   {clip.register === 'formal' ? s.formal : s.colloquial}
                 </span>
-                <span className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
                   {s.durationLabel}: {clip.durationSec} {s.sec}
                 </span>
                 {bestForClip && (
-                  <span className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 text-xs font-bold">
+                  <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 text-xs font-bold">
                     <Trophy className="w-3.5 h-3.5" />
                     {s.best}: {bestForClip.bestScorePct}%
                     {bestForClip.attempts > 1
@@ -652,17 +652,17 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
                   </span>
                 )}
               </div>
-              <h2 className="text-2xl font-display font-extrabold text-slate-900 dark:text-white leading-snug">
+              <h2 className="text-xl font-display font-extrabold text-slate-900 dark:text-white leading-snug">
                 {clip.title[uiLang] ?? clip.title.en}
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
                 {s.grammarLabel}: {clip.grammarPoint}
               </p>
             </div>
 
             {/* Target phrase */}
-            <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-slate-800 border border-blue-200/70 dark:border-slate-700 text-center space-y-1">
-              <div className="text-xl font-display font-extrabold text-brand-blue dark:text-white leading-relaxed">
+            <div className="p-2.5 rounded-2xl bg-blue-50/70 dark:bg-slate-800 border border-blue-200/70 dark:border-slate-700 text-center space-y-1">
+              <div className="text-lg font-display font-extrabold text-brand-blue dark:text-white leading-relaxed">
                 {clip.russianSubtitle}
               </div>
               <div className="text-sm text-slate-600 dark:text-slate-300">
@@ -675,7 +675,7 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
               <button
                 type="button"
                 onClick={handleListen}
-                className="flex-1 min-h-[54px] px-4 rounded-2xl bg-brand-blue text-white font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-95 transition cursor-pointer"
+                className="flex-1 min-h-[48px] px-4 rounded-2xl bg-brand-blue text-white font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-95 transition cursor-pointer"
               >
                 <Volume2 className="w-5 h-5" />
                 <span>{s.listen}</span>
@@ -686,8 +686,8 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
                   onClick={() => setSlow(false)}
                   className={
                     !slow
-                      ? 'min-h-[54px] px-3 text-xs font-bold bg-brand-blue text-white transition cursor-pointer'
-                      : 'min-h-[54px] px-3 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer'
+                      ? 'min-h-[48px] px-3 text-xs font-bold bg-brand-blue text-white transition cursor-pointer'
+                      : 'min-h-[48px] px-3 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer'
                   }
                 >
                   {s.normal}
@@ -698,8 +698,8 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
                   aria-label="Slow playback"
                   className={
                     slow
-                      ? 'min-h-[54px] px-3 text-xs font-bold bg-brand-blue text-white flex items-center gap-1 transition cursor-pointer'
-                      : 'min-h-[54px] px-3 text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer'
+                      ? 'min-h-[48px] px-3 text-xs font-bold bg-brand-blue text-white flex items-center gap-1 transition cursor-pointer'
+                      : 'min-h-[48px] px-3 text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer'
                   }
                 >
                   <Gauge className="w-3.5 h-3.5 text-accent-orange" />
@@ -778,13 +778,13 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
                         key={star}
                         className={
                           star <= score.stars
-                            ? 'w-7 h-7 text-amber-400 fill-amber-400'
-                            : 'w-7 h-7 text-slate-300 dark:text-slate-600'
+                            ? 'w-6 h-6 text-amber-400 fill-amber-400'
+                            : 'w-6 h-6 text-slate-300 dark:text-slate-600'
                         }
                       />
                     ))}
                   </div>
-                  <div className="text-4xl font-display font-extrabold text-brand-blue dark:text-white">
+                  <div className="text-3xl font-display font-extrabold text-brand-blue dark:text-white">
                     {score.overall}%
                   </div>
                   <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -809,9 +809,9 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
                   ].map((m) => (
                     <div
                       key={m.label}
-                      className="p-3 rounded-2xl bg-blue-50/70 dark:bg-slate-800 border border-blue-200/70 dark:border-slate-700"
+                      className="p-2.5 rounded-2xl bg-blue-50/70 dark:bg-slate-800 border border-blue-200/70 dark:border-slate-700"
                     >
-                      <div className="text-lg font-display font-extrabold text-slate-900 dark:text-white">
+                      <div className="text-base font-display font-extrabold text-slate-900 dark:text-white">
                         {m.value}%
                       </div>
                       <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -836,7 +836,7 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
                               ? `${wordStatusLabel(w.status, s)}: ${w.spokenWord}`
                               : wordStatusLabel(w.status, s)
                         }
-                        className={`px-2.5 py-1.5 rounded-xl border text-sm font-semibold ${WORD_STATUS_STYLE[w.status]}`}
+                        className={`px-2 py-1 rounded-xl border text-xs font-semibold ${WORD_STATUS_STYLE[w.status]}`}
                       >
                         {w.targetWord}
                       </span>
@@ -844,7 +844,7 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-slate-800 border border-blue-200/70 dark:border-slate-700 flex items-start gap-3">
+                <div className="p-3 rounded-2xl bg-blue-50/70 dark:bg-slate-800 border border-blue-200/70 dark:border-slate-700 flex items-start gap-3">
                   <Lightbulb className="w-5 h-5 text-accent-orange shrink-0 mt-0.5" />
                   <p className="text-sm text-slate-700 dark:text-slate-200">
                     <span className="font-bold">{s.tipLabel}: </span>
@@ -859,7 +859,7 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
                     setFinalTranscript('');
                     setInterimTranscript('');
                   }}
-                  className="w-full min-h-[48px] rounded-2xl border border-slate-300 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  className="w-full min-h-[44px] rounded-2xl border border-slate-300 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
                   {s.tryAgain}
@@ -872,7 +872,7 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
               <button
                 type="button"
                 onClick={() => goToClip(safeIndex - 1)}
-                className="min-h-[54px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                className="min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
                 {s.prevClip}
@@ -880,7 +880,7 @@ export const SpeakingPracticeView: React.FC<SpeakingPracticeViewProps> = ({
               <button
                 type="button"
                 onClick={() => goToClip(safeIndex + 1)}
-                className="flex-1 min-h-[54px] px-4 rounded-2xl bg-accent-orange text-brand-navy font-display font-extrabold text-base shadow-md hover:brightness-105 transition flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 min-h-[48px] px-4 rounded-2xl bg-accent-orange text-brand-navy font-display font-extrabold text-base shadow-md hover:brightness-105 transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 {s.nextClip}
                 <ArrowRight className="w-5 h-5" />

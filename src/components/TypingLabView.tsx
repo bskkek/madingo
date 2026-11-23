@@ -218,18 +218,18 @@ export const TypingLabView: React.FC<TypingLabViewProps> = ({
   const currentDrillBest = bestScoresByDrill[activeDrill.id];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-28 space-y-6" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 py-3 sm:py-4 space-y-3" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Simple Clean Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-brand-blue text-white flex items-center justify-center shrink-0 shadow-md">
-            <Keyboard className="w-6 h-6" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-brand-blue text-white flex items-center justify-center shrink-0 shadow-md">
+            <Keyboard className="w-5 h-5" />
           </div>
           <div className="text-start">
-            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 dark:text-white">
+            <h1 className="text-xl sm:text-2xl font-display font-extrabold text-slate-900 dark:text-white">
               {lang === 'ar' ? 'مختبر الكتابة الاحترافية' : 'Professional Typing Lab'}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {lang === 'ar'
                 ? 'تمرس على كتابة جمل وفقرات روسية غنية بالمعنى لتطوير سرعتك ودقتك'
                 : 'Practice meaningful Russian sentences and paragraphs for speed & accuracy'}
@@ -275,15 +275,15 @@ export const TypingLabView: React.FC<TypingLabViewProps> = ({
       </div>
 
       {/* Clean Drill Information & Audio Controls */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-3 text-start">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-1">
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 shadow-xs space-y-2 text-start">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="space-y-0.5">
             <div className="text-xs font-mono font-extrabold text-brand-blue dark:text-sky-400">
               {lang === 'ar'
                 ? `التمرين ${activeDrill.drillIndex} / ${PROGRESSIVE_TYPING_DRILLS.length}`
                 : `Drill ${activeDrill.drillIndex} of ${PROGRESSIVE_TYPING_DRILLS.length}`}
             </div>
-            <h2 className="text-base sm:text-lg font-display font-extrabold text-slate-900 dark:text-white">
+            <h2 className="text-sm sm:text-base font-display font-extrabold text-slate-900 dark:text-white">
               {activeDrill.title[lang] || activeDrill.title.ar}
             </h2>
           </div>
@@ -325,7 +325,7 @@ export const TypingLabView: React.FC<TypingLabViewProps> = ({
         </div>
 
         {/* Translation and Best Score */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
           <p className="font-medium text-slate-700 dark:text-slate-200">
             <span className="font-bold text-slate-500">
               {lang === 'ar' ? 'الترجمة / المعنى: ' : 'Meaning: '}
@@ -347,13 +347,13 @@ export const TypingLabView: React.FC<TypingLabViewProps> = ({
       {/* Active Letter-by-Letter Canvas */}
       <div
         dir="ltr"
-        className={`rounded-3xl bg-white dark:bg-slate-900 border-2 p-6 sm:p-8 shadow-md transition ${
+        className={`rounded-3xl bg-white dark:bg-slate-900 border-2 p-4 sm:p-5 shadow-md transition ${
           wrongFlash
             ? 'border-rose-500 bg-red-50/30 dark:bg-red-950/20'
             : 'border-slate-200 dark:border-slate-800'
         }`}
       >
-        <div className="text-xl sm:text-2xl font-display font-bold leading-relaxed tracking-wide select-none">
+        <div className="text-lg sm:text-xl font-display font-bold leading-relaxed tracking-wide select-none">
           {typingState.targetClean.split('').map((ch, idx) => {
             const isTyped = idx < typingState.cursorIndex;
             const isCurrent = idx === typingState.cursorIndex;
@@ -379,7 +379,7 @@ export const TypingLabView: React.FC<TypingLabViewProps> = ({
 
         {/* Stressed Pronunciation Accent Guide */}
         {activeDrill.textStressed && (
-          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+          <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
             <span className="font-bold text-slate-500 dark:text-slate-400">
               {lang === 'ar' ? 'النطق بالنَبْر والتأكيد (Ударение):' : 'Stressed Pronunciation:'}
             </span>
@@ -391,7 +391,7 @@ export const TypingLabView: React.FC<TypingLabViewProps> = ({
 
         {/* Live Key Hint Guide Banner */}
         {activeKeyboardHighlight && (
-          <div className="mt-4 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 flex items-center justify-between gap-2 text-xs font-semibold text-amber-900 dark:text-amber-200">
+          <div className="mt-3 p-2 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 flex items-center justify-between gap-2 text-xs font-semibold text-amber-900 dark:text-amber-200">
             <div className="flex items-center gap-2">
               <Lightbulb className="w-4 h-4 text-accent-orange shrink-0" />
               <span>
@@ -410,16 +410,16 @@ export const TypingLabView: React.FC<TypingLabViewProps> = ({
 
       {/* Completion Modal / Banner */}
       {isComplete && finalMetrics && (
-        <div className="rounded-3xl bg-emerald-50/90 dark:bg-slate-900 border-2 border-emerald-500 p-6 sm:p-8 shadow-xl space-y-6 animate-fade-in text-start">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <MishaMascot expression="cheering" size={88} />
+        <div className="rounded-3xl bg-emerald-50/90 dark:bg-slate-900 border-2 border-emerald-500 p-4 sm:p-5 shadow-xl space-y-3 animate-fade-in text-start">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <MishaMascot expression="cheering" size={56} />
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span>{lang === 'ar' ? 'أحسنت! اكتمل التمرين بنجاح' : 'Exercise Complete!'}</span>
                 </div>
-                <h2 className="text-2xl font-display font-extrabold text-slate-900 dark:text-white">
+                <h2 className="text-xl font-display font-extrabold text-slate-900 dark:text-white">
                   {activeDrill.title[lang] || activeDrill.title.ar}
                 </h2>
                 <p className="text-xs text-slate-600 dark:text-slate-300">
@@ -451,28 +451,28 @@ export const TypingLabView: React.FC<TypingLabViewProps> = ({
           </div>
 
           {/* Metrics Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
               <div className="text-xs text-slate-500 font-bold">{t('typingLab.cpmLabel')}</div>
-              <div className="text-2xl font-display font-extrabold text-brand-blue dark:text-accent-orange tabular-nums">
+              <div className="text-xl font-display font-extrabold text-brand-blue dark:text-accent-orange tabular-nums">
                 {finalMetrics.cpm}
               </div>
             </div>
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
               <div className="text-xs text-slate-500 font-bold">{t('typingLab.accuracyLabel')}</div>
-              <div className="text-2xl font-display font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
+              <div className="text-xl font-display font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
                 {finalMetrics.accuracy}%
               </div>
             </div>
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
               <div className="text-xs text-slate-500 font-bold">{t('typingLab.timeLabel')}</div>
-              <div className="text-2xl font-display font-extrabold text-slate-900 dark:text-white tabular-nums">
+              <div className="text-xl font-display font-extrabold text-slate-900 dark:text-white tabular-nums">
                 {finalMetrics.durationSeconds}s
               </div>
             </div>
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
               <div className="text-xs text-slate-500 font-bold">{t('lesson.fuelEarnedLabel')}</div>
-              <div className="text-2xl font-display font-extrabold text-accent-orange tabular-nums flex items-center gap-1">
+              <div className="text-xl font-display font-extrabold text-accent-orange tabular-nums flex items-center gap-1">
                 <Fuel className="w-5 h-5" />
                 <span>+{finalMetrics.fuelEarned}</span>
               </div>

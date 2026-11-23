@@ -48,7 +48,16 @@
     "tabLibrary": "Library",
     "tabArena": "Challenge Arena",
     "tabTeacher": "Teacher",
-    "tabProfile": "Profile"
+    "tabProfile": "Profile",
+    "tabAlphabet": "Alphabet",
+    "tabBuilder": "Builder",
+    "tabLearn": "Learn",
+    "tabPractice": "Practice",
+    "tabVerbs": "Verbs",
+    "verbsSubtitle": "225 verbs · animation + voice"
+  },
+  "builder": {
+    "loading": "Loading the Builder workshop…"
   },
   "landing": {
     "kicker": "Built for MADI International Students",
@@ -218,6 +227,7 @@
     "clearWordBtn": "Clear",
     "backspaceBtn": "Backspace",
     "checkAnswerBtn": "Check Answer",
+    "tryAgainBtn": "Try Again",
     "feedbackCorrectTitle": "Smooth shifting! +10 Fuel",
     "feedbackCorrectBody": "Misha approves—your pronunciation engine is humming.",
     "feedbackWrongTitle": "Logged to Garage for tuning",
@@ -410,5 +420,38 @@
     "deleteConfirmTitle": "Permanently delete your account?",
     "deleteConfirmBody": "This will erase your profile, fuel log, streak odometer, and lesson progress from the database.",
     "deleteConfirmYes": "Yes, Delete My Data"
+  },
+  "assistant": {
+    "title": "Your Personal Assistant",
+    "subtitle": "Aniss answers any question — and finds any book from the MADI library.",
+    "placeholder": "Ask anything…",
+    "bookPlaceholder": "Book title — e.g. Химия, дороги, safety…",
+    "findBook": "Find the book",
+    "typing": "thinking…",
+    "listening": "Listening…",
+    "noAi": "AI is unavailable right now — try again in a minute.",
+    "offlineNote": "The server is unavailable right now — the assistant is working offline: books from the offline index and short answers without AI.",
+    "anissFound": "Here you are!",
+    "librarySourceLive": "MADI catalog (live)",
+    "librarySourceOffline": "MADI full-text library (offline index)",
+    "libraryOpenCatalog": "Open the MADI catalog",
+    "libraryOpenFullText": "Browse the full-text library",
+    "libraryNoResults": "No book matched in the MADI library index. Try the full catalog — it has everything.",
+    "openBook": "Open book",
+    "madiLibraryTitle": "MADI Library — full-text books",
+    "madiLibraryHint": "Search the MADI full-text library. Every result shows its source; the full catalog is always one tap away.",
+    "bookLoading": "Loading the book…"
+  },
+  "verbs": {
+    "listen": "Listen",
+    "previous": "Previous",
+    "next": "Next",
+    "audioUnavailable": "Audio unavailable right now"
+  },
+  "push": {
+    "promptTitle": "Get reminders to keep learning",
+    "promptBody": "Every morning we send you a verb of the day, and a gentle nudge 5 minutes after you leave the app so you finish your level.",
+    "promptAllow": "Turn on notifications",
+    "promptLater": "Not now"
   }
 }

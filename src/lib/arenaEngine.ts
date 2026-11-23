@@ -530,6 +530,23 @@ export interface ArenaLocaleStrings {
   extractNote: string;
   extractingBtn: string;
   extractSaveBtn: string;
+  newChallengeTitle: string;
+  pagePhotoLabel: string;
+  pagePhotoHint: string;
+  pasteTextToggle: string;
+  hideTextToggle: string;
+  extractQuestionsBtn: string;
+  questionsTitle: string;
+  questionsEmptyText: string;
+  addQuestionBtn: string;
+  startChallengeBtn: string;
+  moreOptionsTitle: string;
+  timePerQuestionLabel: string;
+  secondsShort: (sec: number) => string;
+  newQuestionTitle: string;
+  correctAnswerHint: string;
+  removeImageBtn: string;
+  copiedCodeLabel: string;
   backToArena: string;
   deleteRoomBtn: string;
   liveQuizRoomBadge: string;
@@ -673,6 +690,23 @@ export const ARENA_I18N: Record<ArenaSupportedLang, ArenaLocaleStrings> = {
       'ملاحظة: سيتم استخراج جميع التمارين والأسئلة الموجودة في ورقة الأستاذ المرفوعة بالكامل تلقائياً.',
     extractingBtn: 'جاري معالجة الصفحة بالذكاء الاصطناعي واستخراج الأسئلة...',
     extractSaveBtn: 'استخراج التمارين بالذكاء الاصطناعي وحفظها في الغرفة',
+    newChallengeTitle: 'تحدي جديد',
+    pagePhotoLabel: 'صورة الصفحة',
+    pagePhotoHint: 'اضغط لإضافة صورة صفحة الدرس',
+    pasteTextToggle: 'أو الصق النص',
+    hideTextToggle: 'إخفاء النص',
+    extractQuestionsBtn: 'استخراج الأسئلة',
+    questionsTitle: 'الأسئلة',
+    questionsEmptyText: 'الأسئلة تظهر هنا بعد الاستخراج',
+    addQuestionBtn: '+ إضافة سؤال',
+    startChallengeBtn: 'ابدأ التحدي',
+    moreOptionsTitle: 'خيارات إضافية',
+    timePerQuestionLabel: 'الوقت لكل سؤال',
+    secondsShort: (sec) => `${sec} ث`,
+    newQuestionTitle: 'سؤال جديد',
+    correctAnswerHint: 'الدائرة الخضراء = الإجابة الصحيحة',
+    removeImageBtn: 'إزالة الصورة',
+    copiedCodeLabel: 'تم النسخ ✓',
     backToArena: 'العودة لحلبة الغرف',
     deleteRoomBtn: 'حذف الغرفة',
     liveQuizRoomBadge: 'غرفة الاختبار الحية',
@@ -817,6 +851,23 @@ export const ARENA_I18N: Record<ArenaSupportedLang, ArenaLocaleStrings> = {
       'Note : Tous les exercices et questions de la feuille importée seront extraits automatiquement.',
     extractingBtn: 'Traitement de la page par l’IA et extraction des questions...',
     extractSaveBtn: 'Extraire les exercices avec l’IA et enregistrer dans la salle',
+    newChallengeTitle: 'Nouveau défi',
+    pagePhotoLabel: 'Photo de la page',
+    pagePhotoHint: 'Appuyez pour ajouter une photo de la page',
+    pasteTextToggle: 'Ou collez le texte',
+    hideTextToggle: 'Masquer le texte',
+    extractQuestionsBtn: 'Extraire les questions',
+    questionsTitle: 'Questions',
+    questionsEmptyText: 'Les questions apparaîtront ici après l’extraction',
+    addQuestionBtn: '+ Ajouter une question',
+    startChallengeBtn: 'Démarrer le défi',
+    moreOptionsTitle: 'Plus d’options',
+    timePerQuestionLabel: 'Temps par question',
+    secondsShort: (sec) => `${sec} s`,
+    newQuestionTitle: 'Nouvelle question',
+    correctAnswerHint: 'Le cercle vert = la bonne réponse',
+    removeImageBtn: 'Supprimer la photo',
+    copiedCodeLabel: 'Copié ✓',
     backToArena: 'Retour aux salles de défi',
     deleteRoomBtn: 'Supprimer la salle',
     liveQuizRoomBadge: 'Salle de défi en direct',
@@ -963,6 +1014,23 @@ export const ARENA_I18N: Record<ArenaSupportedLang, ArenaLocaleStrings> = {
       'Note: All exercises and questions on the uploaded worksheet will be extracted automatically.',
     extractingBtn: 'Processing page with AI and extracting questions...',
     extractSaveBtn: 'Extract Exercises with AI & Save to Room',
+    newChallengeTitle: 'New Challenge',
+    pagePhotoLabel: 'Page photo',
+    pagePhotoHint: 'Tap to add a photo of the lesson page',
+    pasteTextToggle: 'Or paste the text',
+    hideTextToggle: 'Hide text',
+    extractQuestionsBtn: 'Extract Questions',
+    questionsTitle: 'Questions',
+    questionsEmptyText: 'Questions will appear here after extraction',
+    addQuestionBtn: '+ Add question',
+    startChallengeBtn: 'Start Challenge',
+    moreOptionsTitle: 'More options',
+    timePerQuestionLabel: 'Time per question',
+    secondsShort: (sec) => `${sec}s`,
+    newQuestionTitle: 'New question',
+    correctAnswerHint: 'Green dot = correct answer',
+    removeImageBtn: 'Remove image',
+    copiedCodeLabel: 'Copied ✓',
     backToArena: 'Back to Challenge Arena',
     deleteRoomBtn: 'Delete Room',
     liveQuizRoomBadge: 'Live Quiz Room',
@@ -1109,6 +1177,23 @@ export const ARENA_I18N: Record<ArenaSupportedLang, ArenaLocaleStrings> = {
       'Примечание: Все упражнения и вопросы с загруженного листа будут извлечены автоматически.',
     extractingBtn: 'Обработка страницы с помощью ИИ и извлечение вопросов...',
     extractSaveBtn: 'Извлечь упражнения с помощью ИИ и сохранить в комнате',
+    newChallengeTitle: 'Новый вызов',
+    pagePhotoLabel: 'Фото страницы',
+    pagePhotoHint: 'Нажмите, чтобы добавить фото страницы урока',
+    pasteTextToggle: 'Или вставьте текст',
+    hideTextToggle: 'Скрыть текст',
+    extractQuestionsBtn: 'Извлечь вопросы',
+    questionsTitle: 'Вопросы',
+    questionsEmptyText: 'Вопросы появятся здесь после извлечения',
+    addQuestionBtn: '+ Добавить вопрос',
+    startChallengeBtn: 'Начать вызов',
+    moreOptionsTitle: 'Дополнительные опции',
+    timePerQuestionLabel: 'Время на вопрос',
+    secondsShort: (sec) => `${sec} с`,
+    newQuestionTitle: 'Новый вопрос',
+    correctAnswerHint: 'Зелёный кружок = правильный ответ',
+    removeImageBtn: 'Удалить фото',
+    copiedCodeLabel: 'Скопировано ✓',
     backToArena: 'Назад к комнатам вызова',
     deleteRoomBtn: 'Удалить комнату',
     liveQuizRoomBadge: 'Живая комната тестирования',

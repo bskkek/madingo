@@ -16,8 +16,8 @@ import {
 } from 'lucide-react';
 import { CurriculumLesson, LessonStep } from '../data/curriculum';
 import { useI18n } from '../lib/i18n';
-import { playSoundEffect, speakRussian } from '../lib/audio';
-import { calculateLessonSummary, validateWordBuilderNextChar } from '../lib/rules';
+import { playSoundEffect, speakRussian, stopAllAudio } from '../lib/audio';
+import { calculateLessonSummary, canAdvanceFromFeedback, hasMasteredAllQuestions, validateWordBuilderNextChar } from '../lib/rules';
 import {
   checkSentenceBuilderOrder,
   checkTranslationAnswer,
@@ -28,10 +28,43 @@ import {
 import { CarSprite, MishaMascot, VocabIllustration } from './BrandVisuals';
 import { CyrillicKeyboard } from './CyrillicKeyboard';
 
+// Letter colours — the standard Russian-school code: vowels warm,
+// consonants brand blue, hard/soft signs neutral. The letter card uses
+// these so the letter itself is the hero, big in its own colour.
+const VOWEL_LETTERS = new Set(['А', 'Е', 'Ё', 'И', 'О', 'У', 'Ы', 'Э', 'Ю', 'Я']);
+const SIGN_LETTERS = new Set(['Ъ', 'Ь']);
+
+function letterHeroClasses(upper: string): { text: string; tile: string } {
+  if (VOWEL_LETTERS.has(upper)) {
+    return {
+      text: 'text-accent-orange',
+      tile: 'bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-900/60',
+    };
+  }
+  if (SIGN_LETTERS.has(upper)) {
+    return {
+      text: 'text-slate-500 dark:text-slate-200',
+      tile: 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700',
+    };
+  }
+  return {
+    text: 'text-brand-blue dark:text-sky-400',
+    tile: 'bg-blue-50 dark:bg-sky-950/40 border-blue-200 dark:border-sky-900/60',
+  };
+}
+
 interface LessonPlayerProps {
   lesson: CurriculumLesson;
   soundEnabled: boolean;
   onExitToMap: () => void;
+  /**
+   * MASTERY GATE (default true — road lessons): a question step can only
+   * be passed after a correct answer; a wrong answer retries the same
+   * question, and the summary screen is reachable only when every
+   * question was answered correctly. Pass false only for non-road flows
+   * (e.g. the dev exercise preview) where free click-through is wanted.
+   */
+  requireMastery?: boolean;
   onRecordMistake: (payload: {
     stepId: string;
     lessonId: string;
@@ -44,6 +77,12 @@ interface LessonPlayerProps {
     lessonId: string;
     accuracy: number;
     fuelEarned: number;
+    /**
+     * True only when the mastery gate passed: every question step was
+     * answered correctly. `accuracy` is first-try accuracy and may be
+     * < 100 even when allCorrect is true (the student retried).
+     */
+    allCorrect: boolean;
     openNextLesson?: boolean;
   }) => void;
 }
@@ -51,6 +90,7 @@ interface LessonPlayerProps {
 export const LessonPlayer: React.FC<LessonPlayerProps> = ({
   lesson,
   soundEnabled,
+  requireMastery = true,
   onExitToMap,
   onRecordMistake,
   onCompleteLesson,
@@ -95,6 +135,18 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
     setCorrectStepsCount(0);
     setFirstTryCorrectExercises(0);
     setIsLessonFinished(false);
+  }, [lesson.id]);
+
+  // Leaving the lesson (unmount) or switching lessons must silence any
+  // sound at once — a slow fetch from the old lesson must never play
+  // on the next screen (stale-audio bug, 2026-11-18).
+  useEffect(() => {
+    return () => {
+      stopAllAudio();
+    };
+  }, []);
+  useEffect(() => {
+    stopAllAudio();
   }, [lesson.id]);
 
   const currentStep: LessonStep | undefined = stepQueue[stepIndex];
@@ -167,7 +219,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
           currentStep.content.audioText ||
           lesson.title[lang],
         correctAnswer: currentStep.content.correctAnswer,
-        caseTag: caseTag || currentStep.content.requiredCase,
+        caseTag: caseTag || currentStep.content.requiredCase || currentStep.content.targetCaseCode,
         letterTag: letterTag || currentStep.content.targetLetter,
       });
     }
@@ -201,6 +253,9 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
   };
 
   const handleSkipForLater = () => {
+    // MASTERY GATE: no skipping a question — it must be answered
+    // correctly here before the student may move on.
+    if (requireMastery) return;
     if (!currentStep || stepIndex + 1 >= stepQueue.length) {
       handleAdvanceStep();
       return;
@@ -212,6 +267,25 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
       next.push(skipped);
       return next;
     });
+  };
+
+  /**
+   * MASTERY GATE — retry the SAME question after a wrong answer. Resets
+   * the current step's answer state (choice selection, sentence tiles,
+   * typed input + word diff, stress pick) so the student re-attempts it
+   * fresh; the mistake counters are kept so first-try accuracy and the
+   * hint banner still reflect the earlier attempts. Word-builder and
+   * matching steps never reach this path — they block wrong input inline
+   * and already require a fully correct answer to pass.
+   */
+  const handleRetryStep = () => {
+    playSoundEffect('tap', soundEnabled);
+    setSelectedOption(null);
+    setFeedbackState('none');
+    setSentenceTilesPicked([]);
+    setTypedInput('');
+    setWordDiff(null);
+    setSelectedCharIndex(null);
   };
 
   const handleSelectOption = (opt: string) => {
@@ -300,7 +374,9 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
     if (!currentStep || !typedInput.trim()) return;
     const candidates = [
       currentStep.content.correctAnswer,
-      ...(currentStep.content.acceptedVariants || []),
+      ...(currentStep.content.acceptedVariants ||
+        currentStep.content.acceptedAnswers ||
+        []),
     ];
     const check = checkTranslationAnswer(typedInput, candidates, {
       treatYoAsYe: currentStep.content.treatYoAsYe ?? true,
@@ -388,6 +464,14 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
       totalExercises,
       correctStepsCount
     );
+    // MASTERY GATE: under mastery the gate only lets a question step be
+    // passed after a correct answer, so reaching this screen means every
+    // question was answered correctly. `accuracy` stays first-try
+    // accuracy for display — it may be < 100 after retries.
+    const allQuestionsCorrect = hasMasteredAllQuestions({
+      correctStepsCount,
+      totalExercises,
+    });
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--surface-canvas)] p-4 sm:p-8">
@@ -447,6 +531,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
                   lessonId: lesson.id,
                   accuracy: summary.accuracy,
                   fuelEarned: summary.fuelEarned,
+                  allCorrect: allQuestionsCorrect,
                   openNextLesson: true,
                 })
               }
@@ -463,6 +548,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
                   lessonId: lesson.id,
                   accuracy: summary.accuracy,
                   fuelEarned: summary.fuelEarned,
+                  allCorrect: allQuestionsCorrect,
                   openNextLesson: false,
                 })
               }
@@ -487,10 +573,26 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
     `${t('garage.correctForm')}: ${currentStep.content.correctAnswer}`;
 
   const sentenceBuilderWordBank =
-    currentStep.content.tiles || currentStep.content.options || [];
+    currentStep.content.tiles ||
+    currentStep.content.wordTiles ||
+    currentStep.content.options ||
+    [];
 
-  const fullBlankSentence = currentStep.content.sentenceBefore
-    ? `${currentStep.content.sentenceBefore} ___ ${currentStep.content.sentenceAfter || ''}`
+  // Fill-blank / case-declension steps store the sentence either in the
+  // canonical fields (sentenceBefore/sentenceAfter, baseNounWithStress,
+  // requiredCase) or in the legacy aliases (contextBefore/contextAfter,
+  // baseNounStressed, targetCaseCode) — read both.
+  const blankSentenceBefore =
+    currentStep.content.sentenceBefore ?? currentStep.content.contextBefore;
+  const blankSentenceAfter =
+    currentStep.content.sentenceAfter ?? currentStep.content.contextAfter;
+  const declensionBaseNoun =
+    currentStep.content.baseNounWithStress ?? currentStep.content.baseNounStressed;
+  const declensionCase =
+    currentStep.content.requiredCase ?? currentStep.content.targetCaseCode;
+
+  const fullBlankSentence = blankSentenceBefore
+    ? `${blankSentenceBefore} ___ ${blankSentenceAfter || ''}`
     : currentStep.content.promptText?.ru || '';
 
   return (
@@ -528,7 +630,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
           </div>
         </div>
 
-        {!isTeachingCard && stepQueue.length > 1 && (
+        {!isTeachingCard && stepQueue.length > 1 && !requireMastery && (
           <button
             type="button"
             onClick={handleSkipForLater}
@@ -574,11 +676,14 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
           </div>
         )}
 
-        {/* Adaptive Fast-Track Skip-Ahead Banner after 3+ consecutive first-try correct answers */}
+        {/* Adaptive Fast-Track Skip-Ahead Banner after 3+ consecutive first-try correct answers.
+            Disabled under the mastery gate: jumping to the final step would
+            skip unanswered questions. */}
         {firstTryCorrectExercises >= 3 &&
           mistakesOnStep === 0 &&
           stepIndex + 1 < stepQueue.length &&
-          !isTeachingCard && (
+          !isTeachingCard &&
+          !requireMastery && (
             <div
               role="status"
               className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 p-3.5 flex items-center justify-between gap-3"
@@ -599,11 +704,23 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
         {/* 1) TEACHING LETTER CARD */}
         {currentStep.type === 'letter_card' && currentStep.content.letter && (
           <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-md space-y-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <span className="text-xs font-semibold text-brand-blue dark:text-accent-orange">
+            {/* HERO LETTER — big, in its own colour, first thing on the
+                screen. Sound, cursive and examples all flow below it. */}
+            <div
+              className={`rounded-2xl border px-4 py-7 sm:p-8 text-center ${letterHeroClasses(currentStep.content.letter.upper).tile}`}
+            >
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 {t('lesson.teachingBadge')} · {stepIndex + 1}/{stepQueue.length}
-              </span>
-              <div className="flex items-center gap-2">
+              </div>
+              <div
+                className={`mt-2 font-display font-extrabold leading-none tracking-wide ${letterHeroClasses(currentStep.content.letter.upper).text} text-[96px] sm:text-[128px]`}
+              >
+                {currentStep.content.letter.upper} {currentStep.content.letter.lower}
+              </div>
+              <div className="mt-3 text-base font-mono font-semibold text-slate-700 dark:text-slate-200">
+                {currentStep.content.letter.phonetic}
+              </div>
+              <div className="mt-5 flex items-center justify-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() =>
@@ -637,20 +754,8 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {t('lesson.uppercaseLabel')}
-                </div>
-                <div className="mt-2 text-6xl font-display font-extrabold text-brand-blue dark:text-white tracking-wider">
-                  {currentStep.content.letter.upper} {currentStep.content.letter.lower}
-                </div>
-                <div className="mt-2 text-sm font-mono text-accent-orange font-semibold">
-                  {currentStep.content.letter.phonetic}
-                </div>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-amber-50/60 dark:bg-slate-800/80 border border-amber-200/80 dark:border-slate-700 flex flex-col items-center justify-between">
+            {/* Cursive + stroke order, full width below the hero letter. */}
+            <div className="p-6 rounded-2xl bg-amber-50/60 dark:bg-slate-800/80 border border-amber-200/80 dark:border-slate-700 flex flex-col items-center justify-between">
                 <div className="w-full flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                     {t('lesson.cursiveLabel')}
@@ -690,7 +795,6 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
                   </svg>
                 </div>
               </div>
-            </div>
 
             <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-slate-800 border border-blue-200/70 dark:border-slate-700">
               <div className="text-xs font-bold text-brand-blue dark:text-accent-orange">
@@ -1268,7 +1372,9 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
             {currentStep.type === 'translation_typing' && (
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
                 <div className="text-lg font-display font-bold text-slate-900 dark:text-white">
-                  {currentStep.content.promptText?.[lang] || currentStep.content.translation?.[lang]}
+                  {currentStep.content.promptText?.[lang] ||
+                    currentStep.content.sourcePrompt?.[lang] ||
+                    currentStep.content.translation?.[lang]}
                 </div>
               </div>
             )}
@@ -1407,10 +1513,10 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
           <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-md space-y-6">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
-                {currentStep.content.requiredCase && (
+                {declensionCase && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-accent-orange text-xs font-display font-bold mb-2">
                     <ShieldAlert className="w-3.5 h-3.5" />
-                    <span>{currentStep.content.requiredCase.toUpperCase()} CASE</span>
+                    <span>{declensionCase.toUpperCase()} CASE</span>
                   </span>
                 )}
                 <h2 className="text-xl sm:text-2xl font-display font-bold text-slate-900 dark:text-white">
@@ -1460,9 +1566,9 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
               <div className="text-2xl font-display font-extrabold text-slate-900 dark:text-white" dir="ltr">
                 {fullBlankSentence || currentStep.content.prepositionContext}
               </div>
-              {currentStep.content.baseNounWithStress && (
+              {declensionBaseNoun && (
                 <div className="text-xs font-mono font-bold text-brand-blue dark:text-accent-orange">
-                  Base noun: {currentStep.content.baseNounWithStress}
+                  Base noun: {declensionBaseNoun}
                 </div>
               )}
               {currentStep.content.translation && (
@@ -1634,14 +1740,25 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
               </div>
             </div>
 
+            {/* MASTERY GATE: a wrong answer never advances — the button
+                retries the SAME question. Only a correct answer (or, with
+                mastery off, any shown feedback) moves to the next step. */}
             <button
               type="button"
-              onClick={handleAdvanceStep}
+              onClick={() => {
+                if (canAdvanceFromFeedback(feedbackState, requireMastery)) {
+                  handleAdvanceStep();
+                } else {
+                  handleRetryStep();
+                }
+              }}
               className={`w-full sm:w-auto min-h-[50px] px-8 py-3 rounded-2xl font-display font-extrabold text-base text-white shadow-md cursor-pointer whitespace-nowrap ${
                 feedbackState === 'correct' ? 'bg-success' : 'bg-brand-blue'
               }`}
             >
-              {t('common.continue')}
+              {canAdvanceFromFeedback(feedbackState, requireMastery)
+                ? t('common.continue')
+                : t('lesson.tryAgainBtn')}
             </button>
           </div>
         </div>

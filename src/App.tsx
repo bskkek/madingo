@@ -5,21 +5,17 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Map,
-  BookOpen,
   Wrench,
-  User,
   Fuel,
   Gauge,
-  Keyboard,
   Mic,
-  Library,
-  GraduationCap,
   Trophy,
-  Swords,
   Award,
   Bell,
   ShieldCheck,
+  MapPin,
+  BookOpen,
+  Library,
 } from 'lucide-react';
 import {
   CURRICULUM_UNITS,
@@ -30,7 +26,12 @@ import {
 import { I18nProvider, useI18n } from './lib/i18n';
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { StreakState, updateStreakOdometer } from './lib/rules';
+import {
+  applyMasteryMigration,
+  shouldAcceptLessonCompletion,
+  StreakState,
+  updateStreakOdometer,
+} from './lib/rules';
 import {
   LeitnerReviewItem,
   advanceLeitnerItem,
@@ -81,6 +82,7 @@ import {
   DashboardSnapshot,
 } from './lib/offlineCache';
 import { DriverAvatarIcon, MadingoWordmark } from './components/BrandVisuals';
+import { SplashScreen } from './components/SplashScreen';
 import { FlagPickerModal } from './components/FlagPickerModal';
 import { LandingPage } from './components/LandingPage';
 import { OnboardingFlow } from './components/OnboardingFlow';
@@ -88,8 +90,10 @@ import { RoadMapView } from './components/RoadMapView';
 import { DictionaryView, UserWordRecord } from './components/DictionaryView';
 import { TypingLabView, TypingLabMode } from './components/TypingLabView';
 import { LibraryView } from './components/LibraryView';
+import { BuilderView } from './components/BuilderView';
+import { VerbsView } from './components/VerbsView';
 import { TeacherDashboardView } from './components/TeacherDashboardView';
-import { ProfileSettingsView, UserProfileState } from './components/ProfileSettingsView';
+import { UserProfileState } from './components/ProfileSettingsView';
 import { LessonPlayer } from './components/LessonPlayer';
 import { DevExercisesPage } from './components/DevExercisesPage';
 import { DevAudioTestPage } from './components/DevAudioTestPage';
@@ -114,6 +118,33 @@ import {
   SEED_NOTIFICATIONS,
 } from './components/Phase4NotificationsAndLegal';
 import { ContactMadiModal } from './components/ContactMadiModal';
+import { AssistantBubble } from './components/AssistantBubble';
+import { PushPrompt } from './components/PushPrompt';
+import {
+  ensurePushSubscription,
+  pushClose,
+  setPushDismissed,
+  shouldAskForPush,
+  subscribePush,
+  PushSnapshot,
+} from './lib/pushClient';
+import { LearnSheet, PracticeSheet, ProfileWindow } from './components/GlassSheets';
+import { TEACHER_IMAGES } from './components/TeacherAvatar';
+
+/**
+ * Bottom-nav icons: white line icons on a floating dark-glass dock
+ * (Road = pin, Learn = open book, Build = big orange button, Practice =
+ * trophy, Library = shelves). The MADI emblem sits next to the wordmark
+ * in the top bar; the Profile avatar is the Aniss portrait (the same
+ * photo as the floating assistant bubble). Paths go through
+ * import.meta.env.BASE_URL (the build uses base /madingo/ under PAGES=1).
+ */
+/** Circular MADI emblem — next to the wordmark in the top bar. */
+const MADI_EMBLEM_ICON =
+  import.meta.env.BASE_URL + 'assets/aistudio/madi-emblem-circle.png';
+/** The single real MADI photo: fixed background of the whole app. */
+const MADI_FACADE_BG =
+  import.meta.env.BASE_URL + 'assets/madi/madi-facade.jpg';
 
 export interface MistakeItem {
   id: string | number;
@@ -143,7 +174,9 @@ type AppTab =
   | 'profile'
   | 'garage'
   | 'placement'
-  | 'speaking';
+  | 'speaking'
+  | 'builder'
+  | 'verbs';
 
 const DEFAULT_PROFILE: UserProfileState = {
   id: 'demo-student',
@@ -239,6 +272,7 @@ const MadingoAppInner: React.FC = () => {
   });
 
   const [activeTab, setActiveTab] = useState<AppTab>('map');
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [activeLesson, setActiveLesson] = useState<CurriculumLesson | null>(null);
   const [dictionaryInitialQuery, setDictionaryInitialQuery] = useState<string>('');
 
@@ -246,6 +280,11 @@ const MadingoAppInner: React.FC = () => {
 
   const [profile, setProfile] = useState<UserProfileState>(DEFAULT_PROFILE);
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
+  // MASTERY PROOF: lessons completed with all questions correct. A mastered
+  // lesson keeps its completed state even when its first-try accuracy is
+  // < 100 — the boot migration needs this set to tell it apart from a
+  // pre-gate lesson completed with wrong answers (see rules.ts).
+  const [masteredLessonIds, setMasteredLessonIds] = useState<string[]>([]);
   const [accuracyByLesson, setAccuracyByLesson] = useState<Record<string, number>>({});
   const [streak, setStreak] = useState<StreakState>({
     current: 0,
@@ -302,6 +341,92 @@ const MadingoAppInner: React.FC = () => {
   const [showNotificationsDrawer, setShowNotificationsDrawer] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  // New-design windows: Learn / Practice sheets + Profile window.
+  const [showLearnSheet, setShowLearnSheet] = useState(false);
+  const [showPracticeSheet, setShowPracticeSheet] = useState(false);
+  const [showProfileWindow, setShowProfileWindow] = useState(false);
+  // Profile window level badge: current unit, e.g. "Level A1 · Unit 1".
+  const levelLabel = useMemo(() => {
+    const cur =
+      CURRICULUM_UNITS.find((u) =>
+        u.lessons.some((l) => !completedLessonIds.includes(l.id)),
+      ) ?? CURRICULUM_UNITS[CURRICULUM_UNITS.length - 1];
+    return `Level A1 · ${cur.title[lang]}`;
+  }, [completedLessonIds, lang]);
+
+  // --- Real push notifications (2026-11-15) -------------------------------
+  // Progress snapshot for the server, so reminders can name the user's level
+  // and stage in their own language. The whole curriculum is A1, so the
+  // level code is always "A1"; the current stage is the first uncompleted
+  // lesson's position on the Road (1..96).
+  const pushSnapshot = useMemo((): PushSnapshot => {
+    const ordered = getAllLessons();
+    const nextIdx = ordered.findIndex((l) => !completedLessonIds.includes(l.id));
+    return {
+      language: lang,
+      level: 'A1',
+      completedCount: completedLessonIds.length,
+      currentStage: nextIdx >= 0 ? nextIdx + 1 : ordered.length,
+    };
+  }, [lang, completedLessonIds]);
+  const pushSnapshotRef = useRef(pushSnapshot);
+  pushSnapshotRef.current = pushSnapshot;
+  const [pushPromptVisible, setPushPromptVisible] = useState(false);
+  const [pushVerbId, setPushVerbId] = useState<string | undefined>(undefined);
+  const pushPromptDecidedRef = useRef(false);
+
+  // Deep link from a push notification (?autostart=1&push=verbs&verb=v042)
+  // + close/open tracking (pagehide + visibilitychange).
+  // NOTE: the tab is set in a timeout on purpose — the boot effect below
+  // resets the tab to the map for a saved token, so the deep link must be
+  // applied after boot, not during it.
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('autostart') === '1' && params.get('push') === 'verbs') {
+          setPushVerbId(params.get('verb') || undefined);
+          setActiveTab('verbs');
+        }
+      } catch {
+        // ignore
+      }
+    }, 0);
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') pushClose(pushSnapshotRef.current);
+      else void ensurePushSubscription(pushSnapshotRef.current);
+    };
+    const onPageHide = () => pushClose(pushSnapshotRef.current);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, []);
+
+  // On entering the app screen: sync the push subscription (cancels any
+  // pending 5-min reminder) and, once per session, offer notifications.
+  useEffect(() => {
+    if (screen !== 'app' || pushPromptDecidedRef.current) return;
+    pushPromptDecidedRef.current = true;
+    void ensurePushSubscription(pushSnapshotRef.current);
+    if (shouldAskForPush()) {
+      const timer = window.setTimeout(() => setPushPromptVisible(true), 2500);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [screen]);
+
+  const handlePushAllow = async () => {
+    setPushPromptVisible(false);
+    await subscribePush(pushSnapshotRef.current);
+  };
+  const handlePushLater = () => {
+    setPushPromptVisible(false);
+    setPushDismissed();
+  };
 
   // Toggle Demo Mode datasets cleanly
   useEffect(() => {
@@ -612,14 +737,30 @@ const MadingoAppInner: React.FC = () => {
     if (Array.isArray(dashboard.progress)) {
       const ids: string[] = [];
       const accMap: Record<string, number> = {};
+      const mastered: string[] = [];
       for (const p of dashboard.progress) {
         if (p.status === 'completed') {
           ids.push(p.lessonId);
           accMap[p.lessonId] = p.accuracy ?? 100;
+          if (p.allCorrect === true) mastered.push(p.lessonId);
         }
       }
       setCompletedLessonIds(ids);
       setAccuracyByLesson(accMap);
+      // Merge any mastery proof the server carries into the device's own
+      // record (union, never replace): a server that does not store
+      // allCorrect must not erase the local mastery record, or the boot
+      // migration would drop those lessons again.
+      if (mastered.length > 0 || Array.isArray(dashboard.masteredLessonIds)) {
+        setMasteredLessonIds((prev) => {
+          const next = new Set(prev);
+          for (const id of mastered) next.add(id);
+          if (Array.isArray(dashboard.masteredLessonIds)) {
+            for (const id of dashboard.masteredLessonIds) next.add(id);
+          }
+          return [...next];
+        });
+      }
     }
     if (dashboard.streak) {
       setStreak(dashboard.streak);
@@ -683,6 +824,25 @@ const MadingoAppInner: React.FC = () => {
     storeAuthToken(token);
     setAuthToken(token);
     applyServerDashboard(dashboard);
+    // LOCAL SESSION: a fresh local dashboard carries no progress at all.
+    // If this device already has saved progress (e.g. the student lost
+    // the token and registered again with their name), the blank
+    // dashboard must NEVER wipe it — keep the saved stages, fuel and
+    // streak under the newly registered name.
+    if (
+      token.startsWith('local-') &&
+      (!dashboard || !Array.isArray(dashboard.progress) || dashboard.progress.length === 0)
+    ) {
+      const snapshot = loadDashboardSnapshot();
+      if (snapshot && snapshot.completedLessonIds.length > 0) {
+        setCompletedLessonIds(snapshot.completedLessonIds);
+        setAccuracyByLesson(snapshot.accuracyByLesson || {});
+        setMasteredLessonIds(snapshot.masteredLessonIds || []);
+        setTotalFuel(snapshot.totalFuel);
+        setStreak(snapshot.streak);
+        setTodayMinutesCompleted(snapshot.todayMinutesCompleted || 0);
+      }
+    }
     setScreen('app');
     setActiveTab('map');
   };
@@ -964,8 +1124,21 @@ const MadingoAppInner: React.FC = () => {
         uiLang: (snapshot.profile.uiLang || prev.uiLang) as SupportedLang,
         goalMinutes: snapshot.profile.goalMinutes || prev.goalMinutes,
       }));
-      setCompletedLessonIds(snapshot.completedLessonIds);
-      setAccuracyByLesson(snapshot.accuracyByLesson || {});
+      // MASTERY GATE migration: pre-gate progress could complete a stage
+      // with wrong answers. Any stored completion whose accuracy is < 100
+      // is dropped (with its accuracy entry) — that stage must be redone
+      // correctly to unlock the next one. Fuel/streak are NOT taken back.
+      // EXCEPTION: a lesson recorded as mastered (all questions correct,
+      // even with first-try accuracy < 100 after retries) is ALWAYS kept
+      // — dropping it wiped finished stages on every reopen.
+      const migrated = applyMasteryMigration(
+        snapshot.completedLessonIds,
+        snapshot.accuracyByLesson || {},
+        snapshot.masteredLessonIds || []
+      );
+      setCompletedLessonIds(migrated.completedLessonIds);
+      setAccuracyByLesson(migrated.accuracyByLesson);
+      setMasteredLessonIds(migrated.masteredLessonIds);
       setTotalFuel(snapshot.totalFuel);
       setStreak(snapshot.streak);
       setTodayMinutesCompleted(snapshot.todayMinutesCompleted || 0);
@@ -1042,6 +1215,7 @@ const MadingoAppInner: React.FC = () => {
       },
       completedLessonIds,
       accuracyByLesson,
+      masteredLessonIds,
       totalFuel,
       streak,
       todayMinutesCompleted,
@@ -1050,6 +1224,7 @@ const MadingoAppInner: React.FC = () => {
   }, [
     completedLessonIds,
     accuracyByLesson,
+    masteredLessonIds,
     totalFuel,
     streak,
     todayMinutesCompleted,
@@ -1161,8 +1336,21 @@ const MadingoAppInner: React.FC = () => {
     lessonId: string;
     accuracy: number;
     fuelEarned: number;
+    // MASTERY GATE proof from the player: true only when every question
+    // step was answered correctly. Optional so older callers stay valid.
+    allCorrect?: boolean;
     openNextLesson?: boolean;
   }) => {
+    // MASTERY GATE (defense in depth): a lesson counts as completed ONLY
+    // when the student answered all of its questions correctly. A
+    // non-mastery payload is ignored ENTIRELY — no completion, no fuel,
+    // no minutes, no streak, no server call, no navigation (the player
+    // stays on the summary screen). `accuracy` alone never proves
+    // mastery: it is first-try accuracy and can be < 100 after retries.
+    if (!shouldAcceptLessonCompletion(payload)) {
+      return;
+    }
+
     const finishedLesson = getAllLessons().find((l) => l.id === payload.lessonId);
     if (finishedLesson) {
       cacheCompletedLessonOffline(finishedLesson);
@@ -1175,6 +1363,13 @@ const MadingoAppInner: React.FC = () => {
       ...prev,
       [payload.lessonId]: payload.accuracy,
     }));
+    // MASTERY PROOF: this handler only runs for payloads that passed the
+    // gate (allCorrect, or legacy accuracy 100), so the lesson is mastered
+    // even when first-try accuracy is < 100. Record it, or the boot
+    // migration will drop this stage on the next reopen.
+    setMasteredLessonIds((prev) =>
+      prev.includes(payload.lessonId) ? prev : [...prev, payload.lessonId]
+    );
     setTotalFuel((f) => f + payload.fuelEarned);
     setTodayMinutesCompleted((m) =>
       Math.min(profile.goalMinutes, m + (finishedLesson?.estimatedMinutes || 5))
@@ -1467,6 +1662,9 @@ const MadingoAppInner: React.FC = () => {
 
   return (
     <>
+      {/* 3D launch splash — 5s on every launch, then fades; never blocks the app */}
+      <SplashScreen />
+
       {demoMode && (
         <div
           data-testid="demo-mode-global-banner"
@@ -1583,15 +1781,36 @@ const MadingoAppInner: React.FC = () => {
       )}
 
       {screen === 'app' && (
-        <div className="min-h-screen flex flex-col bg-[var(--surface-canvas)] text-[var(--text-primary)]">
-          <header className="sticky top-0 z-30 h-14 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6">
+        <div className="relative min-h-screen flex flex-col text-[var(--text-primary)]">
+          {/* One fixed real MADI photo behind the whole app — slow Ken
+              Burns drift, brand-blue tint so white text stays readable. */}
+          <div
+            className="fixed inset-0 z-0 pointer-events-none overflow-hidden"
+            aria-hidden="true"
+          >
+            <img
+              src={MADI_FACADE_BG}
+              alt=""
+              className="madi-kenburns absolute inset-0 w-full h-full object-cover"
+              draggable={false}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0B3D91]/55 via-[#0A1F44]/30 to-[#0A1F44]/70" />
+          </div>
+
+          <header className="sticky top-0 z-30 h-14 bg-[#0A1F44]/35 dark:bg-[#0A1F44]/45 backdrop-blur-md border-b border-white/15 px-4 sm:px-6">
             <div className="max-w-6xl mx-auto h-full flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setActiveTab('map')}
-                className="cursor-pointer shrink-0"
+                className="cursor-pointer shrink-0 flex items-center gap-2"
               >
-                <MadingoWordmark size="sm" />
+                <MadingoWordmark size="sm" lightText />
+                <img
+                  src={MADI_EMBLEM_ICON}
+                  alt="MADI"
+                  className="w-7 h-7 rounded-full ring-2 ring-white/40 object-cover"
+                  draggable={false}
+                />
               </button>
 
               <div className="flex items-center gap-2">
@@ -1600,7 +1819,7 @@ const MadingoAppInner: React.FC = () => {
                   data-testid="header-notifications-btn"
                   onClick={() => setShowNotificationsDrawer(true)}
                   aria-label="Open Notifications Center"
-                  className="relative w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200 cursor-pointer"
+                  className="relative w-9 h-9 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white cursor-pointer"
                 >
                   <Bell className="w-4 h-4" />
                   {unreadNotificationsCount > 0 && (
@@ -1609,11 +1828,27 @@ const MadingoAppInner: React.FC = () => {
                     </span>
                   )}
                 </button>
+                {/* Profile avatar (Aniss's original photo) — opens the
+                    Profile window; Profile is NOT a bottom tab anymore. */}
+                <button
+                  type="button"
+                  data-testid="header-profile-btn"
+                  onClick={() => setShowProfileWindow(true)}
+                  aria-label={t('nav.tabProfile')}
+                  className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-orange-400 cursor-pointer shrink-0"
+                >
+                  <img
+                    src={TEACHER_IMAGES.neutral}
+                    alt="Aniss"
+                    className="w-full h-full object-cover object-top"
+                    draggable={false}
+                  />
+                </button>
               </div>
             </div>
           </header>
 
-          <main className="flex-1 pb-20">
+          <main className="relative z-10 flex-1 pb-24">
             {activeTab === 'map' && (
               <RoadMapView
                 completedLessonIds={completedLessonIds}
@@ -1740,6 +1975,9 @@ const MadingoAppInner: React.FC = () => {
               />
             )}
 
+            {activeTab === 'builder' && <BuilderView />}
+            {activeTab === 'verbs' && <VerbsView initialVerbId={pushVerbId} />}
+
             {activeTab === 'teacher' && (
               userRole === 'student' ? (
                 <div
@@ -1777,64 +2015,119 @@ const MadingoAppInner: React.FC = () => {
               )
             )}
 
-            {activeTab === 'profile' && (
-              <ProfileSettingsView
-                profile={profile}
-                onSaveSettings={handleSaveSettings}
-                onLogout={handleLogout}
-                onDeleteAccount={handleDeleteAccount}
-                onOpenLegalModal={() => setShowLegalModal(true)}
-                onOpenContactModal={() => setShowContactModal(true)}
-                onExportGdprJson={handleExportGdprJson}
-              />
-            )}
           </main>
 
+          {/* Bottom navigation — floating dark-glass capsule dock:
+              Road / Learn / Build (big orange center) / Practice / Library.
+              Profile opens from the top-bar avatar, not from here. */}
           <nav
             aria-label="Primary Bottom Navigation"
-            className="fixed bottom-0 inset-x-0 z-40 h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800"
+            className="fixed bottom-3 inset-x-3 sm:bottom-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-40"
           >
-            <div className="max-w-5xl mx-auto h-full flex items-center justify-around px-1 sm:px-2">
-              {[
-                { id: 'map' as const, icon: Map, label: t('nav.tabMap'), show: true },
-                { id: 'dictionary' as const, icon: BookOpen, label: t('nav.tabDictionary'), show: true },
-                { id: 'typing_lab' as const, icon: Keyboard, label: t('nav.tabTypingLab'), show: true },
-                { id: 'arena' as const, icon: Swords, label: t('nav.tabArena'), show: true },
-                { id: 'library' as const, icon: Library, label: t('nav.tabLibrary'), show: true },
-                {
-                  id: 'teacher' as const,
-                  icon: GraduationCap,
-                  label: t('nav.tabTeacher'),
-                  show: userRole !== 'student',
-                },
-                { id: 'profile' as const, icon: User, label: t('nav.tabProfile'), show: true },
-              ]
-                .filter((item) => item.show)
-                .map((item) => {
-                  const Icon = item.icon;
-                  const active = activeTab === item.id;
+            <div className="mx-auto max-w-md flex items-end justify-between gap-1 rounded-full bg-[#0A1628]/85 backdrop-blur-xl border border-white/15 shadow-2xl px-2 py-2">
+              {(
+                [
+                  { id: 'road', icon: MapPin, label: t('nav.tabMap'), testId: 'nav-tab-road', active: activeTab === 'map', onClick: () => setActiveTab('map'), fab: false },
+                  { id: 'learn', icon: BookOpen, label: t('nav.tabLearn'), testId: 'nav-tab-learn', active: activeTab === 'dictionary' || activeTab === 'typing_lab' || activeTab === 'garage' || activeTab === 'verbs', onClick: () => setShowLearnSheet(true), fab: false },
+                  { id: 'build', icon: Wrench, label: t('nav.tabBuilder'), testId: 'nav-tab-build', active: activeTab === 'builder', onClick: () => setActiveTab('builder'), fab: true },
+                  { id: 'practice', icon: Trophy, label: t('nav.tabPractice'), testId: 'nav-tab-practice', active: activeTab === 'arena' || activeTab === 'speaking' || activeTab === 'leagues', onClick: () => setShowPracticeSheet(true), fab: false },
+                  { id: 'library', icon: Library, label: t('nav.tabLibrary'), testId: 'nav-tab-library', active: activeTab === 'library', onClick: () => setActiveTab('library'), fab: false },
+                ] as {
+                  id: string;
+                  icon: typeof MapPin;
+                  label: string;
+                  testId: string;
+                  active: boolean;
+                  onClick: () => void;
+                  fab: boolean;
+                }[]
+              ).map((item) => {
+                if (item.fab) {
                   return (
                     <button
                       key={item.id}
                       type="button"
-                      data-testid={`nav-tab-${item.id}`}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`relative min-h-[48px] flex flex-col items-center justify-center rounded-xl transition cursor-pointer ${
-                        active
-                          ? 'text-brand-blue dark:text-accent-orange font-bold'
-                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      data-testid={item.testId}
+                      onClick={item.onClick}
+                      aria-label={item.label}
+                      className={`w-14 h-14 -mt-8 rounded-full flex items-center justify-center shadow-xl ring-4 ring-white/25 transition cursor-pointer ${
+                        item.active
+                          ? 'bg-gradient-to-b from-[#FF9B32] to-[#FF7A00] text-[#0F172A] scale-105'
+                          : 'bg-gradient-to-b from-[#FF9B32] to-[#FF7A00] text-[#0F172A] hover:brightness-105 active:scale-95'
                       }`}
                     >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-[9px] sm:text-[10px] mt-0.5 truncate max-w-[60px]">
-                        {item.label}
-                      </span>
+                      <item.icon className="w-6 h-6" />
                     </button>
                   );
-                })}
+                }
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    data-testid={item.testId}
+                    onClick={item.onClick}
+                    aria-label={item.label}
+                    className={`flex-1 min-w-0 min-h-[48px] flex flex-col items-center justify-center gap-0.5 rounded-full transition cursor-pointer ${
+                      item.active
+                        ? 'bg-accent-orange text-white'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className={`text-[10px] leading-none ${item.active ? 'font-bold' : 'font-medium'}`}>
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </nav>
+
+          {/* Personal assistant: floating Aniss bubble on every screen */}
+          <AssistantBubble
+            open={assistantOpen}
+            onOpenChange={setAssistantOpen}
+          />
+
+          {/* New-design windows: Learn / Practice sheets + Profile window */}
+          <LearnSheet
+            open={showLearnSheet}
+            onClose={() => setShowLearnSheet(false)}
+            onSelect={(tab) => {
+              setShowLearnSheet(false);
+              setActiveTab(tab);
+            }}
+          />
+          <PracticeSheet
+            open={showPracticeSheet}
+            onClose={() => setShowPracticeSheet(false)}
+            onSelect={(tab) => {
+              setShowPracticeSheet(false);
+              setActiveTab(tab);
+            }}
+          />
+          <ProfileWindow
+            open={showProfileWindow}
+            onClose={() => setShowProfileWindow(false)}
+            profile={profile}
+            streak={streak}
+            totalFuel={totalFuel}
+            completedCount={completedLessonIds.length}
+            levelLabel={levelLabel}
+            userRole={userRole}
+            onSaveSettings={handleSaveSettings}
+            onLogout={handleLogout}
+            onDeleteAccount={handleDeleteAccount}
+            onOpenLegalModal={() => setShowLegalModal(true)}
+            onOpenContactModal={() => setShowContactModal(true)}
+            onExportGdprJson={handleExportGdprJson}
+            onOpenTeacher={() => setActiveTab('teacher')}
+          />
         </div>
+      )}
+
+      {screen === 'app' && pushPromptVisible && (
+        <PushPrompt onAllow={handlePushAllow} onLater={handlePushLater} />
       )}
 
       <NotificationsCenterDrawer

@@ -17,7 +17,7 @@ import {
   LIBRARY_SEED_ITEMS,
 } from '../data/phase3Seed';
 
-describe('Phase 3 Seed Content Integrity — 30 Clips, 6 Scenarios, 20 Library Items', () => {
+describe('Phase 3 Seed Content Integrity — 30 Clips, 6 Scenarios, 37 Official Library Books', () => {
   it('provides 30 original speaking clips labeled honestly as AI editorial drafts until reviewed', () => {
     assert.equal(SPEAKING_CLIPS.length, 30);
     for (const clip of SPEAKING_CLIPS) {
@@ -33,11 +33,23 @@ describe('Phase 3 Seed Content Integrity — 30 Clips, 6 Scenarios, 20 Library I
     }
   });
 
-  it('provides 6 branching conversation scenarios and 20 library items (3 verified public-domain classics + 17 editorial drafts)', () => {
+  // NOTE (2026-11-08): LIBRARY_SEED_ITEMS is the 37-book official MADI catalog
+  // (phase3Seed.ts aliases it to OFFICIAL_LIBRARY_CATALOG); the old 20-item
+  // seed (3 public-domain classics + 17 drafts) no longer exists. The property
+  // that matters is preserved: every seed item is approved AND passes the
+  // publication check — no unreviewed draft can slip into the library.
+  it('provides 6 branching conversation scenarios and the official library catalog (every item approved)', () => {
     assert.equal(CONVERSATION_SCENARIOS.length, 6);
-    assert.equal(LIBRARY_SEED_ITEMS.length, 20);
+    assert.ok(
+      LIBRARY_SEED_ITEMS.length >= 25,
+      `Expected at least 25 official books in LIBRARY_SEED_ITEMS, found ${LIBRARY_SEED_ITEMS.length}`
+    );
     const approvedItems = LIBRARY_SEED_ITEMS.filter((i) => i.reviewStatus === 'approved');
-    assert.equal(approvedItems.length, 3);
+    assert.equal(
+      approvedItems.length,
+      LIBRARY_SEED_ITEMS.length,
+      'Every library seed item must be approved — no draft may ship in the catalog'
+    );
     for (const item of approvedItems) {
       const check = validateLibraryItemForPublication(item);
       assert.equal(

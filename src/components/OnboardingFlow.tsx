@@ -350,9 +350,18 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--surface-canvas)] text-[var(--text-primary)]">
+    <div className="relative min-h-screen flex flex-col bg-transparent text-white">
+      {/* Night MADI backdrop (registration only) */}
+      <div className="night-bg-wrap" aria-hidden="true">
+        <img src={import.meta.env.BASE_URL + 'assets/madi/madi-dusk.jpg'} alt="" className="night-bg-img" draggable={false} />
+        <div className="night-bg-glow" />
+        <div className="night-bg-sweep" />
+        <div className="night-bg-grain" />
+        <div className="night-bg-vig" />
+        <div className="night-bg-shade" />
+      </div>
       {/* Header */}
-      <header className="h-16 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between bg-white dark:bg-slate-900">
+      <header className="relative z-10 h-16 border-b border-white/10 px-4 sm:px-6 flex items-center justify-between bg-[#0A1628]/80 backdrop-blur-xl">
         <button
           type="button"
           onClick={() => {
@@ -362,30 +371,30 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               onBackToLanding();
             }
           }}
-          className="min-h-[44px] px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 cursor-pointer"
+          className="min-h-[44px] px-3 py-2 rounded-xl text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white flex items-center gap-2 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
           <span>{t('common.back')}</span>
         </button>
 
-        <MadingoWordmark size="sm" />
+        <MadingoWordmark size="sm" lightText />
 
         {/* Step Indicator */}
-        <div className="text-xs font-semibold text-slate-500 tabular-nums">
+        <div className="text-xs font-semibold text-white/70 tabular-nums">
           {step}/5
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-10 shadow-lg">
+      <main className="relative z-10 flex-1 flex items-center justify-center p-4 sm:p-8">
+        <div className="w-full max-w-xl rounded-3xl bg-[#0A1628]/90 backdrop-blur-xl border border-white/15 p-6 sm:p-10 shadow-2xl">
           {/* STEP 1: UI Language */}
           {step === 1 && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-display font-bold text-slate-900 dark:text-white">
+                <h1 className="text-2xl sm:text-3xl font-display font-bold text-white">
                   {t('onboarding.stepLanguageTitle')}
                 </h1>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                <p className="mt-2 text-sm text-white/70">
                   {t('onboarding.stepLanguageSub')}
                 </p>
               </div>
@@ -400,21 +409,21 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                       onClick={() => setLang(opt.code as SupportedLang)}
                       className={`min-h-[68px] p-4 rounded-2xl border-2 flex items-center justify-between gap-3 transition cursor-pointer ${
                         selected
-                          ? 'border-brand-blue dark:border-accent-orange bg-blue-50/70 dark:bg-slate-800'
-                          : 'border-slate-200 dark:border-slate-800 hover:border-brand-blue/50'
+                          ? 'border-accent-orange bg-white/10 shadow-[0_0_0_1px_rgba(255,138,31,0.35)]'
+                          : 'border-white/15 bg-white/5 hover:border-white/40'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <LanguageFlagIcon lang={opt.code} className="w-9 h-6" />
                         <div className="text-start">
-                          <div className="font-display font-bold text-lg text-slate-900 dark:text-white">
+                          <div className="font-display font-bold text-lg text-white">
                             {opt.nativeName}
                           </div>
-                          <div className="text-xs text-slate-500">{opt.subLabel}</div>
+                          <div className="text-xs text-white/60">{opt.subLabel}</div>
                         </div>
                       </div>
                       {selected && (
-                        <Check className="w-5 h-5 text-brand-blue dark:text-accent-orange" />
+                        <Check className="w-5 h-5 text-accent-orange" />
                       )}
                     </button>
                   );
@@ -436,10 +445,10 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-display font-bold text-slate-900 dark:text-white">
+                <h1 className="text-2xl sm:text-3xl font-display font-bold text-white">
                   {t('onboarding.stepReasonTitle')}
                 </h1>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                <p className="mt-2 text-sm text-white/70">
                   {t('onboarding.stepReasonSub')}
                 </p>
               </div>
@@ -455,25 +464,25 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                       onClick={() => setReason(r.id)}
                       className={`w-full min-h-[68px] p-4 rounded-2xl border-2 flex items-center justify-between gap-4 text-start transition cursor-pointer ${
                         selected
-                          ? 'border-brand-blue dark:border-accent-orange bg-blue-50/70 dark:bg-slate-800'
-                          : 'border-slate-200 dark:border-slate-800 hover:border-brand-blue/50'
+                          ? 'border-accent-orange bg-white/10 shadow-[0_0_0_1px_rgba(255,138,31,0.35)]'
+                          : 'border-white/15 bg-white/5 hover:border-white/40'
                       }`}
                     >
                       <div className="flex items-center gap-3.5">
-                        <div className="w-11 h-11 rounded-xl bg-brand-blue/10 dark:bg-brand-blue/30 text-brand-blue dark:text-accent-orange flex items-center justify-center shrink-0">
+                        <div className="w-11 h-11 rounded-xl bg-white/10 text-accent-orange flex items-center justify-center shrink-0">
                           <Icon className="w-5 h-5" />
                         </div>
                         <div>
-                          <div className="font-display font-bold text-base text-slate-900 dark:text-white">
+                          <div className="font-display font-bold text-base text-white">
                             {r.title}
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          <div className="text-xs text-white/60 mt-0.5">
                             {r.desc}
                           </div>
                         </div>
                       </div>
                       {selected && (
-                        <Check className="w-5 h-5 text-brand-blue dark:text-accent-orange shrink-0" />
+                        <Check className="w-5 h-5 text-accent-orange shrink-0" />
                       )}
                     </button>
                   );
@@ -496,10 +505,10 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           {step === 3 && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-display font-bold text-slate-900 dark:text-white">
+                <h1 className="text-2xl sm:text-3xl font-display font-bold text-white">
                   {t('onboarding.stepGoalTitle')}
                 </h1>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                <p className="mt-2 text-sm text-white/70">
                   {t('onboarding.stepGoalSub')}
                 </p>
               </div>
@@ -514,8 +523,8 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                       onClick={() => setGoalMinutes(g.minutes)}
                       className={`w-full min-h-[68px] p-4 rounded-2xl border-2 flex items-center justify-between gap-4 text-start transition cursor-pointer ${
                         selected
-                          ? 'border-brand-blue dark:border-accent-orange bg-blue-50/70 dark:bg-slate-800'
-                          : 'border-slate-200 dark:border-slate-800 hover:border-brand-blue/50'
+                          ? 'border-accent-orange bg-white/10 shadow-[0_0_0_1px_rgba(255,138,31,0.35)]'
+                          : 'border-white/15 bg-white/5 hover:border-white/40'
                       }`}
                     >
                       <div className="flex items-center gap-3.5">
@@ -523,16 +532,16 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                           <Clock className="w-5 h-5" />
                         </div>
                         <div>
-                          <div className="font-display font-bold text-base text-slate-900 dark:text-white">
+                          <div className="font-display font-bold text-base text-white">
                             {g.title}
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          <div className="text-xs text-white/60 mt-0.5">
                             {g.desc}
                           </div>
                         </div>
                       </div>
                       {selected && (
-                        <Check className="w-5 h-5 text-brand-blue dark:text-accent-orange shrink-0" />
+                        <Check className="w-5 h-5 text-accent-orange shrink-0" />
                       )}
                     </button>
                   );
@@ -554,7 +563,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           {step === 4 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-display font-bold text-slate-900 dark:text-white">
+                <h1 className="text-2xl sm:text-3xl font-display font-bold text-white">
                   {lang === 'ar'
                     ? 'دخول التطبيق'
                     : lang === 'ru'
@@ -563,7 +572,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                     ? 'Entrer dans Madingo'
                     : 'Enter Madingo'}
                 </h1>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                <p className="mt-2 text-sm text-white/70">
                   {lang === 'ar'
                     ? 'أدخل بالاسم واللقب فقط بدون تسجيل في قوقل أو كلمة مرور'
                     : lang === 'ru'
@@ -575,7 +584,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               </div>
 
               {/* Mode Tabs */}
-              <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-800 p-1.5 gap-1.5">
+              <div className="flex rounded-2xl bg-white/10 p-1.5 gap-1.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -584,8 +593,8 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                   }}
                   className={`flex-1 min-h-[44px] px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     authTab === 'quick'
-                      ? 'bg-white dark:bg-slate-700 text-brand-blue dark:text-accent-orange shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      ? 'bg-white/15 text-accent-orange shadow-sm'
+                      : 'text-white/60 hover:text-white'
                   }`}
                 >
                   <Sparkles className="w-4 h-4 text-amber-500" />
@@ -607,8 +616,8 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                   }}
                   className={`flex-1 min-h-[44px] px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     authTab === 'email'
-                      ? 'bg-white dark:bg-slate-700 text-brand-blue dark:text-accent-orange shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      ? 'bg-white/15 text-accent-orange shadow-sm'
+                      : 'text-white/60 hover:text-white'
                   }`}
                 >
                   <span>
@@ -626,7 +635,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               {errorMsg && (
                 <div
                   role="alert"
-                  className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/60 border border-error text-error text-sm font-medium flex items-center gap-2.5"
+                  className="p-3.5 rounded-2xl bg-red-500/15 border border-red-400/40 text-red-200 text-sm font-medium flex items-center gap-2.5"
                 >
                   <AlertCircle className="w-5 h-5 shrink-0" />
                   <span>{errorMsg}</span>
@@ -639,7 +648,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                     <div>
                       <label
                         htmlFor="quick-first-name"
-                        className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+                        className="block text-sm font-semibold text-white/85 mb-1.5"
                       >
                         {lang === 'ar'
                           ? 'الاسم الأول *'
@@ -662,14 +671,14 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                             : 'e.g., Alex'
                         }
                         required
-                        className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                        className="w-full min-h-[48px] px-4 rounded-2xl border border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent-orange"
                       />
                     </div>
 
                     <div>
                       <label
                         htmlFor="quick-last-name"
-                        className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+                        className="block text-sm font-semibold text-white/85 mb-1.5"
                       >
                         {lang === 'ar'
                           ? 'اللقب / اسم العائلة'
@@ -691,7 +700,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                             ? 'Например: Иванов'
                             : 'e.g., Smith'
                         }
-                        className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                        className="w-full min-h-[48px] px-4 rounded-2xl border border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent-orange"
                       />
                     </div>
                   </div>
@@ -716,7 +725,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                         </span>
                       )}
                     </button>
-                    <p className="mt-2.5 text-center text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-2.5 text-center text-xs text-white/60">
                       {lang === 'ar'
                         ? 'لا يلزم إدخال كلمة مرور أو التسجيل عبر قوقل — بدء فوري ومباشر!'
                         : lang === 'ru'
@@ -733,7 +742,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                     <div>
                       <label
                         htmlFor="onboard-name"
-                        className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+                        className="block text-sm font-semibold text-white/85 mb-1.5"
                       >
                         {t('onboarding.displayNameLabel')}
                       </label>
@@ -743,7 +752,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
                         placeholder={t('onboarding.displayNamePlaceholder')}
-                        className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                        className="w-full min-h-[48px] px-4 rounded-2xl border border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent-orange"
                       />
                     </div>
                   )}
@@ -751,7 +760,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                   <div>
                     <label
                       htmlFor="onboard-email"
-                      className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+                      className="block text-sm font-semibold text-white/85 mb-1.5"
                     >
                       {t('onboarding.emailLabel')}
                     </label>
@@ -761,14 +770,14 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder={t('onboarding.emailPlaceholder')}
-                      className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                      className="w-full min-h-[48px] px-4 rounded-2xl border border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent-orange"
                     />
                   </div>
 
                   <div>
                     <label
                       htmlFor="onboard-password"
-                      className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+                      className="block text-sm font-semibold text-white/85 mb-1.5"
                     >
                       {t('onboarding.passwordLabel')}
                     </label>
@@ -778,20 +787,20 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder={t('onboarding.passwordPlaceholder')}
-                      className="w-full min-h-[48px] px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                      className="w-full min-h-[48px] px-4 rounded-2xl border border-white/20 bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent-orange"
                     />
                   </div>
 
                   {!isLoginMode && (
-                    <div className="space-y-2.5 pt-1 rounded-2xl bg-slate-50 dark:bg-slate-800/60 p-3.5 border border-slate-200 dark:border-slate-700">
+                    <div className="space-y-2.5 pt-1 rounded-2xl bg-white/5 p-3.5 border border-white/10">
                       <label className="flex items-start gap-3 cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={consentAccepted}
                           onChange={(e) => setConsentAccepted(e.target.checked)}
-                          className="mt-1 w-5 h-5 rounded border-slate-300 text-brand-blue focus:ring-brand-blue shrink-0"
+                          className="mt-1 w-5 h-5 rounded border-white/30 bg-white/10 accent-[#FF8A1F] focus:ring-accent-orange shrink-0"
                         />
-                        <span className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                        <span className="text-xs text-white/85 leading-relaxed font-medium">
                           {t('onboarding.consentLabel')} *
                         </span>
                       </label>
@@ -802,9 +811,9 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                           onChange={(e) =>
                             setMicPermissionAcknowledged(e.target.checked)
                           }
-                          className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue shrink-0"
+                          className="mt-0.5 w-4 h-4 rounded border-white/30 bg-white/10 accent-[#FF8A1F] focus:ring-accent-orange shrink-0"
                         />
-                        <span className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                        <span className="text-[11px] text-white/70 leading-relaxed">
                           {lang === 'ru'
                             ? 'Разрешить доступ к микрофону браузера для произношения в окне «Говорить» (обработка по запросу).'
                             : lang === 'ar'
@@ -819,9 +828,9 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                           onChange={(e) =>
                             setOptionalRecordingStorageConsent(e.target.checked)
                           }
-                          className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue shrink-0"
+                          className="mt-0.5 w-4 h-4 rounded border-white/30 bg-white/10 accent-[#FF8A1F] focus:ring-accent-orange shrink-0"
                         />
-                        <span className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                        <span className="text-[11px] text-white/70 leading-relaxed">
                           {lang === 'ru'
                             ? 'Опционально: сохранять мои голосовые попытки для проверки преподавателем (по умолчанию выключено).'
                             : lang === 'ar'
@@ -846,12 +855,12 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                 </form>
               )}
 
-              <div className="flex flex-col gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col gap-2.5 pt-2 border-t border-white/10">
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting}
-                  className="w-full min-h-[48px] rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
+                  className="w-full min-h-[48px] rounded-2xl border border-white/20 bg-white/10 text-white font-semibold text-sm hover:bg-white/15 transition cursor-pointer"
                 >
                   {t('onboarding.googleButton')}
                 </button>
@@ -862,7 +871,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                     setErrorMsg(null);
                     setIsLoginMode(!isLoginMode);
                   }}
-                  className="min-h-[44px] text-sm font-semibold text-brand-blue dark:text-accent-orange hover:underline cursor-pointer"
+                  className="min-h-[44px] text-sm font-semibold text-accent-orange hover:underline cursor-pointer"
                 >
                   {isLoginMode ? t('onboarding.switchToSignup') : t('onboarding.switchToLogin')}
                 </button>
@@ -874,16 +883,22 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           {step === 5 && pendingAuthResult && (
             <div className="text-center space-y-6 py-4">
               <div className="flex justify-center">
-                <MishaMascot expression="cheering" size={140} />
+                <div className="rounded-full bg-[#0B3D91] ring-4 ring-[#FF8A1F] shadow-[0_0_40px_rgba(255,138,31,0.35)] overflow-hidden">
+                  <MishaMascot
+                    expression="cheering"
+                    size={140}
+                    className="[&>circle:first-child]:fill-[#0B3D91]"
+                  />
+                </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 dark:text-white">
+              <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white">
                 {t('onboarding.welcomeMishaTitle', {
                   name: pendingAuthResult.dashboard?.profile?.displayName || displayName || 'Student',
                 })}
               </h1>
 
-              <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-md mx-auto">
+              <p className="text-base text-white/75 leading-relaxed max-w-md mx-auto">
                 {t('onboarding.welcomeMishaBody')}
               </p>
 

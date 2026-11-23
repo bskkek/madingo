@@ -50,6 +50,23 @@ html {
   color: var(--text-primary);
   scroll-behavior: smooth;
   scroll-padding-bottom: 5.5rem;
+  /* Mobile layout safety net: no page may ever grow wider than the phone
+     (a single too-wide row used to force pinch-zoom on the dictionary page).
+     `clip` — not `hidden` — so sticky headers and fixed bars keep working. */
+  overflow-x: clip;
+}
+
+body {
+  overflow-x: clip;
+}
+
+/* Swipeable tab strips: scroll sideways inside the viewport, no scrollbar. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 html[dir="rtl"] {
@@ -121,6 +138,16 @@ h1, h2, h3, .font-display {
 @keyframes drive { 0%,100% { transform:translate(-30%,0); } 50% { transform:translate(30%,-6%); } }
 @keyframes jump { 0% { transform:none; } 30% { transform:translateY(-12%) scale(.96,1.07); } 60% { transform:translateY(0) scale(1.06,.93); } 100% { transform:none; } }
 
+/* --- Assistant avatar: lifelike motion for the still portraits ------ */
+@keyframes avatar-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes avatar-blink { 0%, 92%, 100% { transform: scaleY(1); } 94% { transform: scaleY(0.9); } 96% { transform: scaleY(1); } }
+@keyframes avatar-speaking { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+@keyframes avatar-typing { 0%, 60%, 100% { transform: translateY(0); opacity: .4; } 30% { transform: translateY(-4px); opacity: 1; } }
+.avatar-bob { animation: avatar-bob 4s ease-in-out infinite; }
+.avatar-blink { animation: avatar-blink 4.6s ease-in-out infinite; transform-origin: center; }
+.avatar-speaking { animation: avatar-speaking 0.9s ease-in-out infinite; }
+.avatar-typing-dot { animation: avatar-typing 1.2s ease-in-out infinite; }
+
 .animate-wave { animation: wave 2.2s ease-in-out infinite; }
 .animate-breathe { animation: breathe 4.2s ease-in-out infinite; }
 .animate-hop { animation: hop 2.6s ease-in-out infinite; }
@@ -128,6 +155,82 @@ h1, h2, h3, .font-display {
 .animate-lean { animation: lean 3.8s ease-in-out infinite; }
 .animate-drive { animation: drive 5s ease-in-out infinite; }
 .fig.jump img { animation: jump .55s cubic-bezier(.3,.8,.3,1); }
+
+/* --- MADI photo backdrop: one fixed real photo across the whole app,
+   drifting slowly like a video (Ken Burns). Respects reduced motion
+   via the media query below (animation collapses to ~0ms there). --- */
+@keyframes madiKenBurns {
+  0% { transform: scale(1.03) translate(0%, 0%); }
+  50% { transform: scale(1.1) translate(-1.2%, -1.6%); }
+  100% { transform: scale(1.06) translate(1%, -0.8%); }
+}
+.madi-kenburns {
+  animation: madiKenBurns 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* --- NIGHT MADI backdrop (landing + registration ONLY — never the app
+   home screen). One fixed real night photo (assets/madi/madi-dusk.jpg),
+   cinematic motion: stronger Ken Burns + pan, warm breathing glow,
+   light sweep, film grain, vignette. Respects reduced motion via the
+   global media query below (all animations collapse to ~0ms there). --- */
+.night-bg-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.night-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: nightKenBurns 24s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes nightKenBurns {
+  0% { transform: scale(1.04) translate(0%, 0%); }
+  50% { transform: scale(1.26) translate(-2%, -1.5%); }
+  100% { transform: scale(1.12) translate(1.5%, -1%); }
+}
+.night-bg-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 90% 55% at 50% 78%, rgba(255, 190, 90, 0.28), rgba(255, 190, 90, 0.08) 55%, transparent 75%);
+  animation: nightGlow 6s ease-in-out infinite alternate;
+}
+@keyframes nightGlow {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+.night-bg-sweep {
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 220, 150, 0.10) 50%, transparent 58%);
+  animation: nightSweep 12s linear infinite;
+}
+@keyframes nightSweep {
+  from { transform: translateX(-60%); }
+  to { transform: translateX(60%); }
+}
+.night-bg-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+.night-bg-vig {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(2, 6, 23, 0.55) 100%);
+}
+.night-bg-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(5, 11, 26, 0.55), rgba(5, 11, 26, 0.22) 42%, rgba(5, 11, 26, 0.68));
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
@@ -138,3 +241,136 @@ h1, h2, h3, .font-display {
   }
 }
 
+
+/* --- 3D LAUNCH SPLASH (SplashScreen.tsx) — new classes only.
+   Real 3D depth: perspective scene + slow rotateX/rotateY float on the
+   logo lockup, layered extruded text-shadow on the wordmark, a shine
+   sweep across the lockup, soft pulsing glow. The global
+   prefers-reduced-motion query above collapses all of these animations
+   (logo stays static); the 5s JS timer still fires and unmounts. --- */
+.splash-fade {
+  transition: opacity 600ms ease;
+}
+.splash-3d-scene {
+  perspective: 1000px;
+}
+.splash-logo-3d {
+  transform-style: preserve-3d;
+  animation: splashFloat3d 6s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes splashFloat3d {
+  0%, 100% { transform: rotateX(6deg) rotateY(-10deg) translateY(0); }
+  50% { transform: rotateX(-4deg) rotateY(10deg) translateY(-8px); }
+}
+.splash-emblem-3d {
+  transform-style: preserve-3d;
+  animation: splashEmblem3d 6s ease-in-out infinite;
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 26px rgba(255, 138, 31, 0.35));
+  will-change: transform;
+}
+@keyframes splashEmblem3d {
+  0%, 100% { transform: rotateY(-14deg) rotateX(4deg); }
+  50% { transform: rotateY(14deg) rotateX(-4deg); }
+}
+/* Layered extrusion: stacked 1px offsets in deep blues + soft blue glow.
+   text-shadow inherits into the wordmark text. */
+.splash-wordmark-3d {
+  text-shadow:
+    0 1px 0 #1e3a8a,
+    0 2px 0 #172f6e,
+    0 3px 0 #122a5e,
+    0 4px 0 #0d2149,
+    0 5px 0 #081736,
+    0 6px 0 #050d20,
+    0 10px 18px rgba(0, 0, 0, 0.55),
+    0 0 30px rgba(59, 130, 246, 0.45);
+}
+.splash-glow {
+  /* Centred with negative margins (half of 26rem) so the keyframe's
+     transform only handles the pulse scale, never the position. */
+  margin: -13rem 0 0 -13rem;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.28) 0%, rgba(255, 138, 31, 0.12) 45%, transparent 70%);
+  animation: splashGlowPulse 3s ease-in-out infinite alternate;
+}
+@keyframes splashGlowPulse {
+  from { opacity: 0.6; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1.06); }
+}
+.splash-shine {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: -25%;
+  width: 4.5rem;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.45) 50%, transparent);
+  transform: skewX(-20deg);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: splashShine 3s ease-in-out infinite;
+}
+@keyframes splashShine {
+  0% { left: -25%; opacity: 0; }
+  15% { opacity: 1; }
+  55% { left: 110%; opacity: 1; }
+  70%, 100% { left: 110%; opacity: 0; }
+}
+
+/* --- RUSSIAN VERBS WINDOW (VerbsView.tsx / VerbScene.tsx) ---
+   Flat-illustration animated scenes on the video's dark-brown stage.
+   All motion lives in @keyframes here; elements bind them inline
+   (animation + transform-box: fill-box + transform-origin). --- */
+.verbs-stage { background: #4b3a28; }
+/* Short screens (small phones with browser chrome): shrink the Verbs
+   header so the stage + pills always fit with no overflow. Without this,
+   at ~640px viewport height the stage content overflowed by ~66px and the
+   old controls row was pushed out of view, overlapping the pills strip. */
+@media (max-height: 700px) {
+  .verbs-stage .splash-emblem-3d { height: 2.5rem; width: 2.5rem; }
+  .verbs-stage h2 { font-size: 36px; }
+}
+.v-echo { animation: vEchoIn .45s ease both; }
+.v-slide-in { animation: vSlideIn .4s ease both; }
+@keyframes vEchoIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes vSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes vBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes vLegSwingL { 0%, 100% { transform: rotate(24deg); } 50% { transform: rotate(-22deg); } }
+@keyframes vLegSwingR { 0%, 100% { transform: rotate(-22deg); } 50% { transform: rotate(24deg); } }
+@keyframes vArmSwingL { 0%, 100% { transform: rotate(-18deg); } 50% { transform: rotate(20deg); } }
+@keyframes vArmSwingR { 0%, 100% { transform: rotate(20deg); } 50% { transform: rotate(-18deg); } }
+@keyframes vHeadBob { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-3px) rotate(2deg); } }
+@keyframes vWheelSpin { to { transform: rotate(360deg); } }
+@keyframes vKick { 0%, 55%, 100% { transform: rotate(8deg); } 25% { transform: rotate(-72deg); } }
+@keyframes vBallFly { 0% { transform: translate(0, 0) rotate(0deg); } 100% { transform: translate(120px, -70px) rotate(540deg); } }
+@keyframes vEatArm { 0%, 100% { transform: rotate(10deg); } 50% { transform: rotate(-58deg); } }
+@keyframes vChew { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(2px); } }
+@keyframes vLaugh { 0%, 100% { transform: translateY(0) rotate(0deg); } 25% { transform: translateY(-3px) rotate(-2deg); } 75% { transform: translateY(1px) rotate(2deg); } }
+@keyframes vFlap { 0%, 100% { transform: rotate(-28deg); } 50% { transform: rotate(32deg); } }
+@keyframes vFloatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes vSteam { 0% { transform: translateY(0); opacity: 0; } 30% { opacity: .7; } 100% { transform: translateY(-26px); opacity: 0; } }
+@keyframes vStir { to { transform: rotate(360deg); } }
+@keyframes vType { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(2px); } }
+@keyframes vPageFlip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.15); } }
+@keyframes vHeartPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+@keyframes vTear { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(22px); opacity: 0; } }
+@keyframes vDanceArm { 0%, 100% { transform: rotate(-30deg); } 50% { transform: rotate(40deg); } }
+@keyframes vJump { 0%, 100% { transform: translateY(0); } 40%, 60% { transform: translateY(-34px); } }
+@keyframes vWave { 0%, 100% { transform: rotate(12deg); } 50% { transform: rotate(-28deg); } }
+@keyframes vZzz { 0% { transform: translate(0, 0); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(14px, -30px); opacity: 0; } }
+@keyframes vSoundWave { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+@keyframes vHammer { 0%, 100% { transform: rotate(18deg); } 50% { transform: rotate(-38deg); } }
+@keyframes vScrub { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(10px); } }
+@keyframes vPenWrite { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(8px, 1px); } 75% { transform: translate(-6px, 2px); } }
+@keyframes vDoorSwing { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(.25); } }
+@keyframes vCoinDrop { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(26px); opacity: 0; } }
+@keyframes vTwinkle { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes vCloudDrift { 0% { transform: translateX(-14px); } 100% { transform: translateX(14px); } }
+@keyframes vRain { 0% { transform: translateY(-6px); opacity: 0; } 30% { opacity: .9; } 100% { transform: translateY(16px); opacity: 0; } }
+@keyframes vClockSpin { to { transform: rotate(360deg); } }
+@keyframes vDrawLine { from { stroke-dashoffset: 120; } to { stroke-dashoffset: 0; } }
+@keyframes vBreathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.04); } }
+@keyframes vSway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes vBlink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes vRock { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes vBobSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes vDashMove { to { stroke-dashoffset: -40; } }

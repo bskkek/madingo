@@ -76,11 +76,20 @@ export const AssistantBubble: React.FC<AssistantBubbleProps> = ({
   const bubbleRef = useRef<HTMLButtonElement | null>(null);
 
   const [bookLoaded, setBookLoaded] = useState(false);
-  // The book lives on GitHub Pages (same host as the app) since 2026-11-11:
-  // the Replit proxy's edge returned 403 Forbidden to the user's phone, so
+  // The book lives next to the app (same origin) since 2026-11-11: the
+  // Replit proxy's edge returned 403 Forbidden to the user's phone, so
   // the bubble no longer loads the book from the proxy. The book's own API
   // calls still reach the proxy via its absolute API base.
-  const bookUrl = 'https://bskkek.github.io/madingo/book/';
+  // BASE_URL keeps it same-origin on every build: '/madingo/book/' on
+  // GitHub Pages, './book/' in the Capacitor native app (bundled locally).
+  //
+  // IMPORTANT (2026-11-18, v8 blank-story bug — ROOT CAUSE): the iframe
+  // MUST point at the EXPLICIT file 'book/index.html', NOT the directory
+  // 'book/'. Capacitor's Android server does NOT resolve a directory to
+  // its index.html, so './book/' 404s (blank white bubble, onLoad still
+  // fires) while './book/index.html' loads. Proven with a no-index test
+  // server: './book/' -> 404, './book/index.html' -> book renders.
+  const bookUrl = import.meta.env.BASE_URL + 'book/index.html';
   const mountedRef = useRef(true);
 
   useEffect(() => {

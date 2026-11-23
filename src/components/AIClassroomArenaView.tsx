@@ -58,10 +58,10 @@ import {
 } from '../lib/localArena';
 import {
   GeminiExtractError,
-  clearGeminiApiKey,
   extractQuestionsViaGemini,
   getGeminiApiKey,
-  saveGeminiApiKey,
+  getGeminiProxyUrl,
+  isGeminiProxyConfigured,
 } from '../lib/geminiClient';
 import { speakRussian, playSoundEffect } from '../lib/audio';
 import { useI18n } from '../lib/i18n';
@@ -72,6 +72,20 @@ interface AIClassroomArenaViewProps {
   currentUserAvatar: string;
   userRole: 'student' | 'teacher' | 'content_reviewer' | 'admin';
   soundEnabled: boolean;
+}
+
+// ARENA API BASE (static hosting): the app is served from GitHub Pages
+// with no /api server of its own, so arena calls go to the shared AI
+// proxy. VITE_GEMINI_PROXY_URL is the FULL /extract URL (see
+// src/lib/geminiClient.ts) — strip that suffix to get the proxy origin.
+// Returns '' when no proxy is configured: every call below then falls
+// back to the current relative URL, so local dev still works. When the
+// proxy is unreachable, readJsonSafe returns null and the existing
+// local-mode fallback (markLocalMode) still triggers exactly as before.
+function arenaBase(): string {
+  const proxyUrl = getGeminiProxyUrl();
+  if (!proxyUrl) return '';
+  return proxyUrl.replace(/\/extract\/?$/, '').replace(/\/+$/, '');
 }
 
 export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
@@ -128,16 +142,15 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       setIsLocalArena(true);
     }
   };
-  // Gemini key (client-side AI extraction on static hosting): the key lives
-  // only in this browser's localStorage, never in the code.
-  const [geminiKeyInput, setGeminiKeyInput] = useState('');
-  const [geminiKeySaved, setGeminiKeySaved] = useState<boolean>(() => !!getGeminiApiKey());
+  // AI extraction goes through the shared proxy (see src/lib/geminiClient.ts)
+  // — the user is NEVER asked for a key. The message below is a safety
+  // net only (it cannot trigger while the proxy default is in place).
   const geminiKeyNeededMessage =
     lang === 'ar'
-      ? 'استخراج الأسئلة بالذكاء الاصطناعي يحتاج مفتاح Gemini مجاني — الصقه بالأسفل مرة واحدة، وسيعمل الاستخراج دون خادم.'
+      ? 'خدمة الذكاء الاصطناعي غير متاحة الآن — تحقق من الإنترنت وحاول مرة أخرى.'
       : lang === 'ru'
-        ? 'Извлечение вопросов с помощью ИИ требует бесплатный ключ Gemini — вставьте его ниже один раз, и извлечение будет работать без сервера.'
-        : 'AI question extraction needs a free Gemini key — paste it below once, and extraction will work without a server.';
+        ? 'Сервис ИИ сейчас недоступен — проверьте интернет и попробуйте снова.'
+        : 'The AI service is unavailable right now — check your connection and try again.';
   const localizeGeminiError = (err: any): string => {
     const code = err instanceof GeminiExtractError ? err.code : 'unknown';
     if (code === 'invalid_key')
@@ -152,6 +165,12 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         : lang === 'ru'
           ? 'Достигнут бесплатный лимит Gemini — подождите немного или используйте другой ключ.'
           : 'Gemini free quota reached — wait a bit or use another key.';
+    if (code === 'timeout')
+      return lang === 'ar'
+        ? 'انتهت مهلة الذكاء الاصطناعي — الخدمة بطيئة الآن، حاول مرة أخرى بعد دقيقة.'
+        : lang === 'ru'
+          ? 'Время ожидания ИИ истекло — сервис сейчас перегружен, попробуйте через минуту.'
+          : 'The AI service timed out — it is slow right now, please try again in a minute.';
     if (code === 'no_questions')
       return lang === 'ar'
         ? 'لم يستخرج Gemini أي سؤال من هذه الصفحة — جرب صفحة أو نصاً أوضح.'
@@ -163,6 +182,81 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       : lang === 'ru'
         ? 'Не удалось связаться с Gemini — проверьте интернет и попробуйте снова.'
         : 'Could not reach Gemini — check the connection and try again.';
+  };
+
+  // SINGLE DISPLAY-SITE MAPPER for the extraction error banner (2026-11-13):
+  // every value that can reach setExtractError MUST go through here, so the
+  // banner can never show a raw English code or message again.
+  // WHY the raw word "timeout" appeared live (18:48 MSK): the proxy's
+  // callGemini turns an AbortError into detail='timeout', extractViaGemini
+  // returns it as message, and extract-page answers { error: 'timeout' }
+  // (a PLAIN STRING — no {code,message} object). The server-path branch
+  // did setExtractError(err.error) verbatim, bypassing localizeGeminiError,
+  // which only the local/direct path and the client-side AbortError branch
+  // used. This helper unwraps every shape — GeminiExtractError, a plain
+  // string, {error: string}, {error:{code,message}}, {code,message}, a
+  // fetch Error, an AbortError — and always returns a user-facing
+  // localized sentence. The structured code is kept only for the mapping
+  // itself, never rendered.
+  const localizeExtractError = (raw: any): string => {
+    if (raw instanceof GeminiExtractError) return localizeGeminiError(raw);
+    if (raw && raw.name === 'AbortError')
+      return localizeGeminiError(new GeminiExtractError('timeout', 'extract-page timed out'));
+    const errObj = raw?.error ?? raw;
+    const code =
+      typeof errObj?.code === 'string'
+        ? errObj.code
+        : typeof raw?.code === 'string'
+          ? raw.code
+          : '';
+    const text =
+      typeof errObj === 'string'
+        ? errObj
+        : typeof errObj?.message === 'string'
+          ? errObj.message
+          : typeof raw?.message === 'string'
+            ? raw.message
+            : '';
+    // Already a user-facing Arabic sentence: show it as-is.
+    if (/[\u0600-\u06FF]/.test(text)) return text;
+    const hay = `${code} ${text}`.toLowerCase();
+    if (hay.includes('timeout') || hay.includes('timed out'))
+      return localizeGeminiError(new GeminiExtractError('timeout', 'timeout'));
+    if (hay.includes('no_questions') || hay.includes('no questions'))
+      return localizeGeminiError(new GeminiExtractError('no_questions', 'no_questions'));
+    if (
+      hay.includes('invalid_key') ||
+      hay.includes('invalid api key') ||
+      hay.includes('api key not valid')
+    )
+      return localizeGeminiError(new GeminiExtractError('invalid_key', 'invalid_key'));
+    if (hay.includes('image_too_large') || hay.includes('image is too large'))
+      return lang === 'ar'
+        ? 'الصورة كبيرة جداً — أرسل صورة أصغر أو مضغوطة لصفحة الدرس.'
+        : lang === 'ru'
+          ? 'Фото слишком большое — отправьте меньшее или сжатое фото страницы.'
+          : 'The image is too large — please send a smaller or compressed photo of the page.';
+    if (
+      hay.includes('quota') ||
+      hay.includes('rate limit') ||
+      hay.includes('overload') ||
+      hay.includes('503') ||
+      hay.includes('429') ||
+      hay.includes('too many') ||
+      hay.includes('limit reached')
+    )
+      return lang === 'ar'
+        ? 'خدمة الذكاء الاصطناعي مشغولة الآن — حاول مرة أخرى بعد قليل.'
+        : lang === 'ru'
+          ? 'Сервис ИИ сейчас перегружен — попробуйте ещё раз чуть позже.'
+          : 'The AI service is busy right now — please try again in a little while.';
+    // Network / unknown / any other raw English text (e.g. 'Failed to
+    // fetch', a bare code like 'network'): never render it raw.
+    return lang === 'ar'
+      ? 'حدث خطأ أثناء استخراج الأسئلة — تحقق من الإنترنت وحاول مرة أخرى.'
+      : lang === 'ru'
+        ? 'Произошла ошибка при извлечении вопросов — проверьте интернет и попробуйте снова.'
+        : 'Something went wrong while extracting the questions — check your connection and try again.';
   };
 
   // Mode: 'lobby' | 'create' | 'room' | 'active_quiz' | 'podium'
@@ -205,7 +299,10 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   const [copiedCode, setCopiedCode] = useState(false);
 
   // Room Creation state
-  const [newTitle, setNewTitle] = useState(L.defaultRoomTitle);
+  // newTitle starts EMPTY on purpose (redesign 2026-11-13): the title
+  // input is gone, so both room creation (handleCreateRoom) and extraction
+  // (handleExtractExercises) fall back to L.defaultCreatedRoomTitle.
+  const [newTitle, setNewTitle] = useState('');
   const [newTopic, setNewTopic] = useState(L.defaultTopic);
   const [newInstructions, setNewInstructions] = useState(L.defaultInstructions);
   const [newTimeLimit, setNewTimeLimit] = useState(30);
@@ -213,6 +310,13 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   const [customText, setCustomText] = useState('');
   const [customImageBase64, setCustomImageBase64] = useState<string>('');
   const [customImageName, setCustomImageName] = useState<string>('');
+  // New-challenge setup screen (redesign 2026-11-13): paste-text toggle +
+  // ⋯ options sheet — both local to the 'create' view.
+  const [showPasteText, setShowPasteText] = useState(false);
+  const [showMoreSheet, setShowMoreSheet] = useState(false);
+  // Ref to the file input so removing the image also clears the input
+  // value — otherwise picking the SAME file again would not fire onChange.
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
 
@@ -259,7 +363,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   const fetchRooms = async () => {
     setIsLoadingRooms(true);
     try {
-      const resp = await fetch('/api/arena/rooms');
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms`);
       const data = await readJsonSafe(resp);
       if (data) {
         setRooms(data.rooms || []);
@@ -311,7 +415,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       return;
     }
     try {
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(roomIdOrCode)}`);
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(roomIdOrCode)}`);
       const data = await readJsonSafe(resp);
       if (!data) {
         markLocalMode();
@@ -349,7 +453,19 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
 
     const roomId = activeRoom.id;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/arena?roomId=${encodeURIComponent(roomId)}`;
+    // Static hosting: no WS server on this origin — point at the shared
+    // proxy host when configured (the proxy has no WS server either, so
+    // the 3.5s polling below stays the real sync mechanism).
+    const wsHost = (() => {
+      const base = arenaBase();
+      if (!base) return window.location.host;
+      try {
+        return new URL(base).host;
+      } catch {
+        return window.location.host;
+      }
+    })();
+    const wsUrl = `${protocol}//${wsHost}/ws/arena?roomId=${encodeURIComponent(roomId)}`;
 
     try {
       const ws = new WebSocket(wsUrl);
@@ -415,7 +531,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       if (!currentRm || (currentMode !== 'room' && currentMode !== 'active_quiz')) return;
 
       try {
-        const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(currentRm.id)}`);
+        const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(currentRm.id)}`);
         if (resp.status === 404) {
           setActiveRoom(null);
           setViewMode('lobby');
@@ -501,7 +617,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       // Offline: nothing to report to the server (0 points either way).
       if (localModeRef.current) return;
       try {
-        const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/answer`, {
+        const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/answer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -579,7 +695,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     }
 
     try {
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(cleanCode)}/join`, {
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(cleanCode)}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -675,7 +791,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     }
 
     try {
-      const resp = await fetch('/api/arena/rooms', {
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -712,7 +828,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         deleteLocalRoom(activeRoom.id);
       } else {
         try {
-          await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}`, {
+          await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(activeRoom.id)}`, {
             method: 'DELETE',
           });
         } catch {
@@ -756,7 +872,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     }
 
     try {
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(roomIdOrCode)}`, {
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(roomIdOrCode)}`, {
         method: 'DELETE',
       });
       if (resp.ok) {
@@ -771,16 +887,97 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     }
   };
 
+  // Downscale the page photo on the client before upload: a phone photo is
+  // 2–5 MB (3–7 MB as base64) and stalls the extraction request; a 1280px
+  // JPEG at quality 0.8 is ~100–200 KB and stays perfectly readable for
+  // the AI. On any failure the original image is used as-is.
+  const downscalePageImage = (dataUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const longest = Math.max(img.naturalWidth, img.naturalHeight);
+          if (longest <= 1280) {
+            resolve(dataUrl);
+            return;
+          }
+          const scale = 1280 / longest;
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.naturalWidth * scale);
+          canvas.height = Math.round(img.naturalHeight * scale);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(dataUrl);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } catch {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
   // Handle Image Upload for AI Extraction
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setCustomImageName(file.name);
     const reader = new FileReader();
-    reader.onload = () => {
-      setCustomImageBase64(reader.result as string);
+    reader.onload = async () => {
+      // Downscale once here: customImageBase64 is the single source both
+      // extract paths send (server path and local path).
+      setCustomImageBase64(await downscalePageImage(reader.result as string));
     };
     reader.readAsDataURL(file);
+  };
+
+  // Remove the uploaded page image (2026-11-13): clears the image state
+  // AND the file input value, so a text-only extraction is possible —
+  // without reloading the page and without touching the pasted text.
+  const handleRemoveImage = () => {
+    setCustomImageBase64('');
+    setCustomImageName('');
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
+  // Change the per-question time from the ⋯ sheet (redesign 2026-11-13).
+  // The value is sent at creation + on every re-extraction via the
+  // extract payloads, AND to an existing waiting room right away via
+  // PUT /api/arena/rooms/:id/settings — otherwise the selector would be
+  // dead once the room already has questions. Local mode: the room lives
+  // in localStorage, so update it directly. If the server has no settings
+  // route (old proxy), the call 404s harmlessly and the value still
+  // applies on the next re-extraction.
+  const handleChangeTimeLimit = async (seconds: number) => {
+    const clamped = Math.max(10, Math.min(60, Number(seconds) || 30));
+    setNewTimeLimit(clamped);
+    if (!activeRoom) return;
+    if (localModeRef.current) {
+      const updatedRoom = { ...activeRoom, questionTimeLimitSeconds: clamped };
+      upsertLocalRoom(updatedRoom);
+      setActiveRoom(sanitizeRoom(updatedRoom));
+      return;
+    }
+    try {
+      const resp = await fetch(
+        `${arenaBase()}/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/settings`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ timeLimitSeconds: clamped }),
+        }
+      );
+      const data = await readJsonSafe(resp);
+      if (resp.ok && data?.room) {
+        setActiveRoom(sanitizeRoom(data.room));
+      }
+    } catch (err) {
+      console.error('Failed to update room time limit:', err);
+    }
   };
 
   // Client-side AI extraction (offline mode): the user's own free Gemini
@@ -788,7 +985,9 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
   // saved to the local room — the same prompt and parsing the server used.
   const handleLocalExtract = async () => {
     const apiKey = getGeminiApiKey();
-    if (!apiKey) {
+    // With the shared proxy configured, extraction works for every user
+    // with no key at all; the saved key is only a fallback.
+    if (!apiKey && !isGeminiProxyConfigured()) {
       setExtractError(geminiKeyNeededMessage);
       return;
     }
@@ -813,7 +1012,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     };
     try {
       const result = await extractQuestionsViaGemini({
-        apiKey,
+        apiKey: apiKey || undefined,
         pageText: customText.trim(),
         pageImageBase64: customImageBase64,
         teacherInstructions: newInstructions || targetRoom.teacherInstructions,
@@ -845,7 +1044,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       setViewMode('room');
       confetti({ particleCount: 40, spread: 60 });
     } catch (err: any) {
-      setExtractError(localizeGeminiError(err));
+      setExtractError(localizeExtractError(err));
     }
   };
 
@@ -854,7 +1053,8 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     setIsExtracting(true);
     setExtractError(null);
 
-    // Static hosting: no server — extract with the user's own free Gemini
+    // Static hosting: extraction goes through the shared AI proxy when it
+    // is configured (no key needed), otherwise the user's own free Gemini
     // key, straight from the browser (see src/lib/geminiClient.ts).
     if (localModeRef.current) {
       try {
@@ -868,7 +1068,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     try {
       let targetRoom = activeRoom;
       if (!targetRoom) {
-        const createResp = await fetch('/api/arena/rooms', {
+        const createResp = await fetch(`${arenaBase()}/api/arena/rooms`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -907,25 +1107,44 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         questionCount: newQuestionCount || 20,
       };
 
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(targetRoom!.id)}/extract-page`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      // Server-path extract had no timeout of its own (2026-11-13): without
+      // one a hung proxy left the UI spinning forever. 90s matches the local
+      // proxy path budget; the proxy answers extract calls in <= ~54s worst
+      // case, so a 90s abort is a real hang, not a slow OK.
+      const extractCtrl = new AbortController();
+      const extractTimer = setTimeout(() => extractCtrl.abort(), 90_000);
+      let resp: Response;
+      try {
+        resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(targetRoom!.id)}/extract-page`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: extractCtrl.signal,
+        });
+      } finally {
+        clearTimeout(extractTimer);
+      }
 
       if (!resp.ok) {
         const err = (await readJsonSafe(resp)) || {};
-        setExtractError(err.error || L.errExtractPage);
+        // Never render err.error raw: the server answers { error: 'timeout' }
+        // (plain string, no code object) — route it through the display
+        // mapper so the banner always shows an Arabic sentence.
+        setExtractError(localizeExtractError(err));
         return;
       }
 
       await refreshRoomDetails(targetRoom!.id);
       await fetchRooms();
       setShowTeacherAnswersPreview(false);
-      setViewMode('room');
+      // Redesign 2026-11-13: stay on the setup screen after extraction so
+      // the teacher sees the questions here (no jump to the room view).
       confetti({ particleCount: 40, spread: 60 });
     } catch (err: any) {
-      setExtractError(err?.message || L.errAiProcess);
+      // One mapper for every failure here: client-side AbortError (the 90s
+      // timer) AND raw fetch errors ('Failed to fetch', …) both become a
+      // user-facing Arabic sentence — never a raw code or English message.
+      setExtractError(localizeExtractError(err));
     } finally {
       setIsExtracting(false);
     }
@@ -966,7 +1185,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       return;
     }
     try {
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/questions`, {
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/questions`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questions: updatedQuestions }),
@@ -1000,7 +1219,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       return;
     }
     try {
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/questions`, {
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/questions`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questions: updatedQuestions }),
@@ -1046,7 +1265,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       return;
     }
     try {
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/start`, {
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1145,7 +1364,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     }
 
     try {
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/answer`, {
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1226,7 +1445,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       return;
     }
     try {
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/next-question`, {
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/next-question`, {
         method: 'POST',
       });
       const data = await readJsonSafe(resp);
@@ -1270,7 +1489,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       return;
     }
     try {
-      const resp = await fetch(`/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/finish`, {
+      const resp = await fetch(`${arenaBase()}/api/arena/rooms/${encodeURIComponent(activeRoom.id)}/finish`, {
         method: 'POST',
       });
       const data = await readJsonSafe(resp);
@@ -1322,7 +1541,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     const practiceRoomCard = (
       <div
         data-testid="arena-room-card-room-madi-101"
-        className="rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/70 border border-[#E2E8F0] dark:border-slate-700 p-4 flex flex-col justify-between gap-3 hover:border-[#0B3D91]/50 transition text-start"
+        className="rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/70 border border-[#E2E8F0] dark:border-slate-700 p-3 flex flex-col justify-between gap-3 hover:border-[#0B3D91]/50 transition text-start"
       >
         <div className="space-y-1.5">
           <div className="flex items-center justify-between gap-2">
@@ -1358,7 +1577,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
       </div>
     );
     return (
-      <div className="max-w-xl mx-auto px-3 sm:px-4 pb-28 animate-fade-in" dir={dir}>
+      <div className="max-w-xl mx-auto px-3 sm:px-4 pb-4 animate-fade-in" dir={dir}>
         {/* Delete notification toast */}
         {deleteNotice && (
           <div
@@ -1381,7 +1600,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         )}
 
         {/* Top Scenic Road Hero Banner using Image 3 (/assets/aistudio/1793153092003_48d96bde.jpg) */}
-        <div className="relative -mx-3 sm:-mx-4 h-[235px] sm:h-[265px] overflow-hidden select-none">
+        <div className="relative -mx-3 sm:-mx-4 h-[150px] sm:h-[170px] overflow-hidden select-none">
           {/* Cropped Image 3 so the full orange car, winding road, green hills & Moscow towers appear cleanly without the bottom grey/tan strips */}
           <img
             src={import.meta.env.BASE_URL + "assets/aistudio/1793153092003_48d96bde.jpg"}
@@ -1405,10 +1624,10 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
 
           {/* Centered Header Title & Subtitle overlaid on the sky */}
           <div className="absolute inset-x-0 top-2.5 sm:top-3.5 z-10 text-center px-4 space-y-0.5">
-            <h1 className="text-2xl sm:text-4xl font-display font-black text-[#0B2545] dark:text-white tracking-tight drop-shadow-[0_2px_10px_rgba(255,255,255,0.95)] dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+            <h1 className="text-xl sm:text-2xl font-display font-black text-[#0B2545] dark:text-white tracking-tight drop-shadow-[0_2px_10px_rgba(255,255,255,0.95)] dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
               {L.heroTitle}
             </h1>
-            <p className="text-xs sm:text-base font-display font-bold text-[#2B4C7E] dark:text-slate-200 drop-shadow-[0_1px_8px_rgba(255,255,255,0.95)] dark:drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)]">
+            <p className="text-xs font-display font-bold text-[#2B4C7E] dark:text-slate-200 drop-shadow-[0_1px_8px_rgba(255,255,255,0.95)] dark:drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)]">
               {L.heroSubtitle}
             </p>
           </div>
@@ -1427,20 +1646,20 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         </div>
 
         {/* Main Stacked Cards Container */}
-        <div className="relative z-20 -mt-5 space-y-4">
+        <div className="relative z-20 -mt-4 space-y-3">
           {/* CARD 1: Teacher Room Creation Card */}
-          <div className="rounded-[28px] bg-white dark:bg-slate-900 border-2 border-[#FAD6A5] dark:border-orange-500/30 p-4 sm:p-6 shadow-[0_10px_30px_rgba(245,130,32,0.08)] space-y-4">
+          <div className="rounded-[28px] bg-white dark:bg-slate-900 border-2 border-[#FAD6A5] dark:border-orange-500/30 p-3.5 sm:p-4 shadow-[0_10px_30px_rgba(245,130,32,0.08)] space-y-3">
             {/* Top Content Row */}
             <div className="flex items-center justify-between gap-2.5">
               {/* Tilted Orange Clipboard Checklist Illustration */}
-              <div className="relative w-20 h-20 sm:w-26 sm:h-26 shrink-0 flex items-center justify-center">
+              <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
                 <div
                   className="absolute inset-1 rounded-full bg-[#FFF3E6] dark:bg-orange-950/40"
                   aria-hidden="true"
                 />
                 <svg
                   viewBox="0 0 120 120"
-                  className="w-20 h-20 sm:w-24 sm:h-24 relative z-10 drop-shadow-xs"
+                  className="w-14 h-14 sm:w-16 sm:h-16 relative z-10 drop-shadow-xs"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
@@ -1516,10 +1735,10 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                     {L.teacherBadge}
                   </span>
                 </div>
-                <h2 className="text-base sm:text-2xl font-display font-black text-[#0B2545] dark:text-white leading-tight">
+                <h2 className="text-base sm:text-xl font-display font-black text-[#0B2545] dark:text-white leading-tight">
                   {L.teacherTitle}
                 </h2>
-                <p className="text-xs sm:text-sm font-medium text-[#475569] dark:text-slate-400">
+                <p className="text-xs font-medium text-[#475569] dark:text-slate-400">
                   {L.teacherDesc}
                 </p>
               </div>
@@ -1536,7 +1755,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                 type="button"
                 data-testid="arena-create-room-btn"
                 onClick={() => handleCreateRoom(L.defaultCreatedRoomTitle)}
-                className="w-full py-3.5 px-5 rounded-2xl bg-linear-to-r from-[#F58220] via-[#FF8C24] to-[#F58220] hover:brightness-105 text-white font-display font-extrabold text-base sm:text-lg shadow-[0_6px_18px_rgba(245,130,32,0.35)] flex items-center justify-center gap-2 transition cursor-pointer"
+                className="w-full py-2.5 px-5 rounded-2xl bg-linear-to-r from-[#F58220] via-[#FF8C24] to-[#F58220] hover:brightness-105 text-white font-display font-extrabold text-sm sm:text-base shadow-[0_6px_18px_rgba(245,130,32,0.35)] flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <Plus className="w-5 h-5 stroke-[2.8]" />
                 <span>{L.createRoomBtn}</span>
@@ -1545,7 +1764,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               <button
                 type="button"
                 onClick={() => handleJoinRoom('MADI-101')}
-                className="w-full py-3 px-4 rounded-2xl bg-[#F1F5F9] hover:bg-[#E2E8F0] dark:bg-slate-800 dark:hover:bg-slate-700 text-[#1E293B] dark:text-slate-200 font-display font-extrabold text-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-2xl bg-[#F1F5F9] hover:bg-[#E2E8F0] dark:bg-slate-800 dark:hover:bg-slate-700 text-[#1E293B] dark:text-slate-200 font-display font-extrabold text-sm flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <Flame className="w-4 h-4 text-[#F58220] shrink-0" />
                 <span>{L.practiceRoomBtn}</span>
@@ -1554,10 +1773,10 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           </div>
 
           {/* CARD 2: Student Join Room Card using Image 2 */}
-          <div className="rounded-[28px] bg-white dark:bg-slate-900 border-2 border-[#CBD5E1]/80 dark:border-slate-800 p-4 sm:p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] space-y-4">
+          <div className="rounded-[28px] bg-white dark:bg-slate-900 border-2 border-[#CBD5E1]/80 dark:border-slate-800 p-3.5 sm:p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] space-y-3">
             <div className="flex items-center justify-between gap-3">
               {/* Image 2 (/assets/aistudio/1793153163292_a75dd14c.jpg) framed on a soft sky-blue backdrop */}
-              <div className="relative w-26 h-34 sm:w-34 sm:h-40 shrink-0 flex items-center justify-center">
+              <div className="relative w-20 h-24 sm:w-24 sm:h-28 shrink-0 flex items-center justify-center">
                 <div
                   className="absolute inset-x-0 bottom-1 top-3 rounded-[32px] bg-[#EAF2FF] dark:bg-slate-800/90"
                   aria-hidden="true"
@@ -1582,10 +1801,10 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                 </div>
 
                 <div className="text-center sm:text-start space-y-1">
-                  <h2 className="text-base sm:text-2xl font-display font-black text-[#0B2545] dark:text-white leading-tight">
+                  <h2 className="text-base sm:text-xl font-display font-black text-[#0B2545] dark:text-white leading-tight">
                     {L.studentTitle}
                   </h2>
-                  <p className="text-xs sm:text-sm font-medium text-[#475569] dark:text-slate-400">
+                  <p className="text-xs font-medium text-[#475569] dark:text-slate-400">
                     {L.studentDesc}
                   </p>
                 </div>
@@ -1621,16 +1840,16 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               type="button"
               data-testid="arena-join-code-btn"
               onClick={() => handleJoinRoom(roomCodeInput)}
-              className="w-full py-3.5 px-5 rounded-2xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-display font-extrabold text-base sm:text-lg shadow-[0_6px_18px_rgba(11,61,145,0.28)] flex items-center justify-center transition cursor-pointer"
+              className="w-full py-2.5 px-5 rounded-2xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-display font-extrabold text-sm sm:text-base shadow-[0_6px_18px_rgba(11,61,145,0.28)] flex items-center justify-center transition cursor-pointer"
             >
               {L.joinRoomBtn}
             </button>
           </div>
 
           {/* CARD 3: Available Rooms Section */}
-          <div className="rounded-[28px] bg-white dark:bg-slate-900 border-2 border-[#E2E8F0] dark:border-slate-800 p-4 sm:p-6 shadow-[0_10px_30px_rgba(15,23,42,0.04)] space-y-4">
+          <div className="rounded-[28px] bg-white dark:bg-slate-900 border-2 border-[#E2E8F0] dark:border-slate-800 p-3.5 sm:p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)] space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm sm:text-xl font-display font-black text-[#0B2545] dark:text-white flex items-center gap-2">
+              <h2 className="text-sm font-display font-black text-[#0B2545] dark:text-white flex items-center gap-2">
                 <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-[#F58220] shrink-0" />
                 <span>
                   {L.availableRoomsTitle} ({availableRoomsCount})
@@ -1674,7 +1893,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                     <div
                       key={room.id}
                       data-testid={`arena-room-card-${room.id}`}
-                      className="rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/70 border border-[#E2E8F0] dark:border-slate-700 p-4 flex flex-col justify-between gap-3 hover:border-[#0B3D91]/50 transition text-start"
+                      className="rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/70 border border-[#E2E8F0] dark:border-slate-700 p-3 flex flex-col justify-between gap-3 hover:border-[#0B3D91]/50 transition text-start"
                     >
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
@@ -1768,258 +1987,364 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           </div>
         </div>
 
-        <div className="h-24 w-full shrink-0" aria-hidden="true" />
       </div>
     );
   }
 
   // ==========================================================================
-  // RENDER: 2. ROOM CREATION & AI PAGE EXTRACTION STUDIO
+  // RENDER: 2. ROOM CREATION & AI PAGE EXTRACTION STUDIO (redesigned 2026-11-13)
   // ==========================================================================
   if (viewMode === 'create') {
+    const questions = activeRoom?.questions ?? [];
+    const hasQuestions = questions.length > 0;
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-6 animate-fade-in" dir={dir}>
-        {/* Navigation header */}
-        <div className="flex items-center justify-between">
+      <div
+        className="max-w-md mx-auto px-3 pt-2 h-[calc(100dvh-9.5rem)] flex flex-col animate-fade-in"
+        dir={dir}
+      >
+        {/* Top bar: back + title + room-code chip (copy on tap) */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={handleCancelCreationStudio}
-            className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 hover:bg-slate-200 cursor-pointer"
+            aria-label={L.backToList}
+            className="w-9 h-9 rounded-xl bg-white/90 dark:bg-slate-900/90 shadow-sm flex items-center justify-center text-brand-blue dark:text-white cursor-pointer"
           >
-            {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
-            <span>{L.backToList}</span>
+            {isRtl ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
           </button>
+          <div className="flex-1 text-lg font-display font-extrabold text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]">
+            {L.newChallengeTitle}
+          </div>
           {activeRoom?.code && (
-            <div className="text-xs font-mono font-bold text-slate-500">
-              {L.roomCodeHeader}{' '}
-              <span className="text-brand-blue font-extrabold">{activeRoom.code}</span>
-            </div>
+            <button
+              type="button"
+              onClick={copyRoomCode}
+              title={L.copyRoomCodeTitle}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-sm font-mono text-[13px] font-extrabold text-brand-blue dark:text-sky-300 cursor-pointer"
+            >
+              {copiedCode ? (
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+              <span>{copiedCode ? L.copiedCodeLabel : activeRoom.code}</span>
+            </button>
           )}
         </div>
 
-        {/* Creator Studio Card */}
-        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-4 space-y-1 text-start">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-orange">
-              <Sparkles className="w-4 h-4" />
-              <span>{L.studioBadge}</span>
-            </div>
-            <h2 className="text-xl font-display font-extrabold text-slate-900 dark:text-white">
-              {L.studioTitle}
+        {/* Big page-photo drop zone (tap to pick; thumbnail + × to remove) */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => imageInputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') imageInputRef.current?.click();
+          }}
+          className={`relative mt-3 h-44 shrink-0 rounded-3xl border-2 ${
+            customImageBase64 ? 'border-white/90 border-solid' : 'border-dashed border-white/80'
+          } bg-white/90 dark:bg-slate-900/90 shadow-lg flex flex-col items-center justify-center gap-1.5 cursor-pointer overflow-hidden text-center`}
+        >
+          {customImageBase64 ? (
+            <img
+              src={customImageBase64}
+              alt={customImageName || ''}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <>
+              <Upload className="w-9 h-9 text-brand-blue" />
+              <div className="text-base font-display font-extrabold text-brand-blue">
+                {L.pagePhotoLabel}
+              </div>
+              <div className="text-xs font-semibold text-slate-500">{L.pagePhotoHint}</div>
+            </>
+          )}
+          {customImageBase64 && (
+            <button
+              type="button"
+              data-testid="arena-remove-image-btn"
+              aria-label={L.removeImageBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemoveImage();
+              }}
+              className="absolute top-2 start-2 z-10 w-8 h-8 rounded-full bg-slate-900/70 text-white text-sm font-bold flex items-center justify-center cursor-pointer"
+            >
+              ✕
+            </button>
+          )}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageFileChange}
+            className="hidden"
+          />
+        </div>
+
+        {/* Paste-text toggle (field hidden until tapped) */}
+        <div className="mt-2.5 shrink-0 text-center">
+          <button
+            type="button"
+            onClick={() => setShowPasteText((v) => !v)}
+            className="px-4 py-1.5 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-sm text-[13px] font-bold text-brand-blue dark:text-sky-300 cursor-pointer"
+          >
+            {showPasteText ? L.hideTextToggle : L.pasteTextToggle}
+          </button>
+        </div>
+        {showPasteText && (
+          <textarea
+            value={customText}
+            onChange={(e) => setCustomText(e.target.value)}
+            rows={3}
+            placeholder={L.pasteTextPlaceholder}
+            className="mt-2 shrink-0 w-full h-16 p-3 rounded-2xl border border-white/70 bg-white/95 dark:bg-slate-900/95 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-accent-orange resize-none"
+          />
+        )}
+
+        {/* ONE extract button with white AI pill */}
+        <button
+          type="button"
+          data-testid="arena-extract-btn"
+          disabled={isExtracting}
+          onClick={handleExtractExercises}
+          className="mt-3 w-full h-[52px] shrink-0 rounded-2xl bg-linear-to-r from-orange-500 to-orange-600 text-white font-display font-extrabold text-base flex items-center justify-center gap-2 shadow-lg shadow-orange-500/40 hover:brightness-105 transition cursor-pointer disabled:opacity-70"
+        >
+          {isExtracting ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>{L.extractingBtn}</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5" />
+              <span>{L.extractQuestionsBtn}</span>
+              <span className="bg-white text-[#ea580c] text-xs font-extrabold rounded-full px-2.5 py-0.5">
+                AI
+              </span>
+            </>
+          )}
+        </button>
+
+        {isExtracting && (
+          <p className="mt-1.5 shrink-0 text-center text-[11px] font-bold text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.5)]">
+            {lang === 'ar'
+              ? 'جارٍ إرسال الصورة واستخراج الأسئلة… قد يستغرق ذلك حتى دقيقة، لا تغلق الصفحة.'
+              : lang === 'ru'
+                ? 'Отправка фото и извлечение вопросов… Это может занять до минуты, не закрывайте страницу.'
+                : 'Sending the photo and extracting questions… This may take up to a minute, please don’t close the page.'}
+          </p>
+        )}
+
+        {extractError && (
+          <div className="mt-2 shrink-0 p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-200 text-xs font-bold flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>{extractError}</span>
+          </div>
+        )}
+
+        {/* AI extraction runs through the shared proxy — the user is never
+            asked for a key (see src/lib/geminiClient.ts). No key UI here. */}
+
+        {/* Questions list — the ONLY scrolling part of the screen */}
+        <div className="mt-3 flex-1 min-h-0 rounded-3xl bg-white/95 dark:bg-slate-900/95 shadow-lg p-3 flex flex-col overflow-hidden">
+          <div className="flex items-center gap-2 shrink-0 pb-2">
+            <h2 className="text-[15px] font-display font-extrabold text-slate-900 dark:text-white">
+              {L.questionsTitle}
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{L.studioDesc}</p>
+            <span className="px-2 py-0.5 rounded-full bg-brand-blue text-white text-xs font-extrabold">
+              {questions.length}
+            </span>
           </div>
 
-          {/* Form Settings */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5 text-start">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {L.roomTitleLabel}
-              </label>
-              <input
-                type="text"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder={L.roomTitlePlaceholder}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
-              />
-            </div>
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pe-0.5">
+            {questions.map((q, idx) => (
+              <div
+                key={q.id}
+                className="flex items-center gap-2.5 bg-slate-100 dark:bg-slate-800/70 rounded-2xl px-3 py-2.5"
+              >
+                <span className="w-7 h-7 shrink-0 rounded-full bg-accent-orange text-white text-[13px] font-extrabold flex items-center justify-center">
+                  {idx + 1}
+                </span>
+                <div className="flex-1 min-w-0 text-start">
+                  <div
+                    dir="ltr"
+                    className="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate text-right"
+                  >
+                    {q.promptRu}
+                  </div>
+                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                    {getArenaQuestionInstruction(q, lang)}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteQuestion(q.id)}
+                  title={L.deleteQuestionTitle}
+                  disabled={questions.length <= 1}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer disabled:opacity-40"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
 
-            <div className="space-y-1.5 text-start">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {L.topicLabel}
-              </label>
-              <input
-                type="text"
-                value={newTopic}
-                onChange={(e) => setNewTopic(e.target.value)}
-                placeholder={L.topicPlaceholder}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
-              />
-            </div>
-          </div>
+            {!hasQuestions && !showAddQuestionForm && (
+              <div className="min-h-[110px] h-full flex flex-col items-center justify-center gap-1.5 border-[1.5px] border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-slate-400">
+                <FileText className="w-7 h-7" />
+                <p className="text-[13px] font-bold">{L.questionsEmptyText}</p>
+              </div>
+            )}
 
-          {/* Upload Custom Scanned Page / Paste Text */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-3 text-start">
-            <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {L.uploadSectionLabel}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Image upload */}
-              <div className="border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-4 text-center space-y-2 bg-slate-50/50 dark:bg-slate-800/30">
-                <Upload className="w-6 h-6 text-slate-400 mx-auto" />
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {customImageName ? customImageName : L.uploadBtnLabel}
+            {/* Manual-add form (compact card, same shared state + handler
+                as the room view's form — question + 4 options + green-dot
+                correct marker; instruction/explanation keep their defaults). */}
+            {showAddQuestionForm && (
+              <div className="rounded-2xl bg-white dark:bg-slate-900 border-[1.5px] border-orange-200 dark:border-orange-900/60 p-3 space-y-2 text-start">
+                <div className="text-xs font-extrabold text-brand-blue dark:text-accent-orange">
+                  {L.newQuestionTitle}
                 </div>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageFileChange}
-                  className="text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-blue file:text-white cursor-pointer"
+                  type="text"
+                  dir="ltr"
+                  value={manualPromptRu}
+                  onChange={(e) => setManualPromptRu(e.target.value)}
+                  placeholder={L.manualPromptPlaceholder}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
                 />
+                <div className="space-y-1.5">
+                  {manualOptions.map((optVal, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                    >
+                      <button
+                        type="button"
+                        aria-label={L.markAsCorrectTitle}
+                        onClick={() => setManualCorrectIndex(idx)}
+                        className={`w-5 h-5 shrink-0 rounded-full border-2 cursor-pointer ${
+                          manualCorrectIndex === idx
+                            ? 'bg-emerald-500 border-emerald-500 shadow-[inset_0_0_0_3px_white]'
+                            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                        }`}
+                      />
+                      <input
+                        type="text"
+                        dir="ltr"
+                        value={optVal}
+                        onChange={(e) => {
+                          const next = [...manualOptions];
+                          next[idx] = e.target.value;
+                          setManualOptions(next);
+                        }}
+                        placeholder={L.optionPlaceholder(idx + 1, manualCorrectIndex === idx)}
+                        className="flex-1 min-w-0 bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="text-[11px] font-semibold text-slate-500">
+                  {L.correctAnswerHint}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddManualQuestion}
+                    disabled={!manualPromptRu.trim()}
+                    className="flex-1 py-2 rounded-xl bg-brand-blue text-white text-xs font-bold cursor-pointer disabled:opacity-50"
+                  >
+                    {L.saveQuestionBtn}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddQuestionForm(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
-
-              {/* Paste text */}
-              <textarea
-                value={customText}
-                onChange={(e) => setCustomText(e.target.value)}
-                rows={3}
-                placeholder={L.pasteTextPlaceholder}
-                className="w-full p-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
-              />
-            </div>
+            )}
           </div>
 
-          {/* Teacher Instructions to AI */}
-          <div className="space-y-2 text-start">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {L.aiInstructionsLabel}
-            </label>
-            <input
-              type="text"
-              value={newInstructions}
-              onChange={(e) => setNewInstructions(e.target.value)}
-              placeholder={L.aiInstructionsPlaceholder}
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
-            />
-            {/* Quick Prompt Chips */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {L.chips.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => setNewInstructions(L.chipPrefixPrompt(chip))}
-                  className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-brand-blue hover:text-white text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition cursor-pointer"
-                >
-                  + {chip}
-                </button>
-              ))}
-            </div>
-          </div>
+          <button
+            type="button"
+            disabled={!activeRoom}
+            onClick={() => setShowAddQuestionForm((v) => !v)}
+            className="mt-2 w-full h-[42px] shrink-0 rounded-2xl border-[1.5px] border-dashed border-slate-300 dark:border-slate-600 text-brand-blue dark:text-sky-300 text-sm font-extrabold cursor-pointer disabled:opacity-50"
+          >
+            {L.addQuestionBtn}
+          </button>
+        </div>
 
-          {/* Time Limit Setting */}
-          <div className="space-y-1 text-start max-w-sm">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {L.timeLimitLabel}
-            </label>
-            <select
-              value={newTimeLimit}
-              onChange={(e) => setNewTimeLimit(Number(e.target.value))}
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+        {/* Bottom bar: start challenge + ⋯ sheet trigger */}
+        <div className="mt-3 shrink-0 flex gap-2.5">
+          <button
+            type="button"
+            data-testid="arena-start-btn"
+            disabled={!hasQuestions}
+            onClick={handleStartQuiz}
+            className="flex-1 h-[54px] rounded-2xl bg-brand-blue text-white font-display font-extrabold text-base shadow-lg shadow-[#0B3D91]/40 cursor-pointer disabled:opacity-45"
+          >
+            {L.startChallengeBtn}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowMoreSheet(true)}
+            aria-label={L.moreOptionsTitle}
+            className="w-[54px] h-[54px] shrink-0 rounded-2xl bg-white/95 dark:bg-slate-900/95 shadow-md text-brand-blue dark:text-sky-300 text-2xl font-extrabold cursor-pointer"
+          >
+            ⋯
+          </button>
+        </div>
+
+        {/* ⋯ sheet: time per question + delete room */}
+        {showMoreSheet && (
+          <div
+            className="fixed inset-0 z-50 bg-slate-950/45 flex items-end justify-center"
+            onClick={() => setShowMoreSheet(false)}
+          >
+            <div
+              className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[26px] p-4 pb-6 space-y-3 animate-fade-in"
+              onClick={(e) => e.stopPropagation()}
             >
-              <option value={15}>{L.time15}</option>
-              <option value={30}>{L.time30}</option>
-              <option value={45}>{L.time45}</option>
-            </select>
-            <p className="text-[11px] text-slate-500 pt-1">{L.extractNote}</p>
-          </div>
-
-          {/* Gemini key setup (offline mode): AI extraction needs the user's
-              own free key — stored only in this browser. */}
-          {isLocalArena && !geminiKeySaved && (
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-start">
-              <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
-                {lang === 'ar'
-                  ? 'لاستخراج الأسئلة بالذكاء الاصطناعي: الصق مفتاح Gemini المجاني مرة واحدة.'
-                  : lang === 'ru'
-                    ? 'Чтобы извлекать вопросы с помощью ИИ: вставьте бесплатный ключ Gemini один раз.'
-                    : 'To extract questions with AI: paste a free Gemini key once.'}
-              </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {lang === 'ar' ? 'مفتاح مجاني من ' : lang === 'ru' ? 'Бесплатный ключ: ' : 'Free key: '}
-                <a
-                  href="https://aistudio.google.com/apikey"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline font-bold text-brand-blue"
-                >
-                  Google AI Studio
-                </a>
-                {lang === 'ar'
-                  ? ' — المفتاح يبقى على هذا الجهاز فقط ولا يرسل لأحد.'
-                  : lang === 'ru'
-                    ? ' — ключ хранится только на этом устройстве и никому не отправляется.'
-                    : ' — the key stays on this device only and is sent to nobody.'}
-              </p>
+              <h3 className="text-[15px] font-display font-extrabold text-slate-900 dark:text-white text-start">
+                {L.moreOptionsTitle}
+              </h3>
+              <div className="text-xs font-bold text-slate-500 text-start">
+                {L.timePerQuestionLabel}
+              </div>
               <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={geminiKeyInput}
-                  onChange={(e) => setGeminiKeyInput(e.target.value)}
-                  placeholder="AIza..."
-                  autoComplete="off"
-                  className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-blue"
-                />
+                {[15, 30, 45].map((sec) => (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => handleChangeTimeLimit(sec)}
+                    className={`flex-1 h-[42px] rounded-xl border-[1.5px] text-sm font-extrabold cursor-pointer ${
+                      newTimeLimit === sec
+                        ? 'bg-brand-blue border-brand-blue text-white'
+                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {L.secondsShort(sec)}
+                  </button>
+                ))}
+              </div>
+              {activeRoom && (
                 <button
                   type="button"
                   onClick={() => {
-                    const key = geminiKeyInput.trim();
-                    if (key.length < 8) return;
-                    saveGeminiApiKey(key);
-                    setGeminiKeySaved(true);
-                    setGeminiKeyInput('');
-                    setExtractError(null);
+                    setShowMoreSheet(false);
+                    handleDeleteRoom(activeRoom.id, activeRoom.title);
                   }}
-                  className="px-4 py-2 rounded-xl bg-[#0B3D91] text-white text-xs font-bold shrink-0 cursor-pointer"
+                  className="w-full h-[46px] rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 text-sm font-extrabold cursor-pointer"
                 >
-                  {lang === 'ar' ? 'حفظ' : lang === 'ru' ? 'Сохранить' : 'Save'}
+                  {L.deleteRoomBtn}
                 </button>
-              </div>
+              )}
             </div>
-          )}
-          {isLocalArena && geminiKeySaved && (
-            <div className="flex items-center justify-between gap-2 text-start">
-              <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                {lang === 'ar'
-                  ? 'مفتاح Gemini محفوظ على هذا الجهاز — الاستخراج يعمل.'
-                  : lang === 'ru'
-                    ? 'Ключ Gemini сохранён на этом устройстве — извлечение работает.'
-                    : 'Gemini key saved on this device — extraction works.'}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  clearGeminiApiKey();
-                  setGeminiKeySaved(false);
-                  setGeminiKeyInput('');
-                }}
-                className="text-[11px] font-bold text-slate-500 underline shrink-0 cursor-pointer"
-              >
-                {lang === 'ar' ? 'تغيير' : lang === 'ru' ? 'Изменить' : 'Change'}
-              </button>
-            </div>
-          )}
-
-          {extractError && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>{extractError}</span>
-            </div>
-          )}
-
-          {/* Action button */}
-          <button
-            type="button"
-            data-testid="arena-extract-btn"
-            disabled={isExtracting}
-            onClick={handleExtractExercises}
-            className="w-full py-3.5 rounded-2xl bg-linear-to-r from-brand-blue to-accent-orange text-white font-display font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg hover:brightness-105 transition cursor-pointer disabled:opacity-50"
-          >
-            {isExtracting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>{L.extractingBtn}</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5" />
-                <span>{L.extractSaveBtn}</span>
-              </>
-            )}
-          </button>
-        </div>
-        <div className="h-28 w-full shrink-0" aria-hidden="true" />
+          </div>
+        )}
       </div>
     );
   }
@@ -2033,7 +2358,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     );
 
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-6 animate-fade-in" dir={dir}>
+      <div className="max-w-4xl mx-auto px-4 pt-3 pb-4 space-y-3 animate-fade-in" dir={dir}>
         {/* Top bar with back and delete buttons */}
         <div className="flex items-center justify-between">
           <button
@@ -2060,7 +2385,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         </div>
 
         {/* Room Header Banner */}
-        <div className="rounded-3xl bg-linear-to-r from-brand-navy to-brand-blue p-6 text-white space-y-4 shadow-xl border border-white/10">
+        <div className="rounded-3xl bg-linear-to-r from-brand-navy to-brand-blue p-4 text-white space-y-3 shadow-xl border border-white/10">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1 text-start">
               <span className="text-xs text-accent-orange font-bold uppercase tracking-wider">
@@ -2135,7 +2460,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         </div>
 
         {/* Questions Preview / Teacher Controls (Answers hidden by default to prevent spoiling!) */}
-        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
+        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-base font-display font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <FileText className="w-5 h-5 text-brand-blue dark:text-accent-orange" />
@@ -2266,7 +2591,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
               return (
                 <div
                   key={q.id}
-                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2 text-start"
+                  className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2 text-start"
                 >
                   <div className="flex items-center justify-between text-xs font-bold text-slate-500">
                     <span>{L.questionLabel(idx + 1)}</span>
@@ -2331,7 +2656,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         </div>
 
         {/* Connected Students Roster */}
-        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
+        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-display font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <Users className="w-4 h-4 text-emerald-500" />
@@ -2401,7 +2726,6 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             </div>
           )}
         </div>
-        <div className="h-28 w-full shrink-0" aria-hidden="true" />
       </div>
     );
   }
@@ -2417,9 +2741,9 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     const currentHint = currentQuestion ? getArenaQuestionHint(currentQuestion, lang) : undefined;
 
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-5 animate-fade-in" dir={dir}>
+      <div className="max-w-4xl mx-auto px-4 pt-3 pb-4 space-y-3 animate-fade-in" dir={dir}>
         {/* Progress & Live Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex items-center gap-3">
             <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
             <div className="text-xs font-bold text-slate-900 dark:text-white">
@@ -2477,7 +2801,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
 
         {/* Question Card */}
         {currentQuestion && (
-          <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-md space-y-6 text-center">
+          <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-md space-y-3 text-center">
             {/* Instruction pill */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-blue/10 text-brand-blue dark:text-accent-orange text-xs font-bold">
               <span>{getArenaQuestionInstruction(currentQuestion, lang)}</span>
@@ -2487,7 +2811,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             <div className="space-y-2">
               <div
                 dir="ltr"
-                className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 dark:text-white leading-relaxed"
+                className="text-xl sm:text-2xl font-display font-extrabold text-slate-900 dark:text-white leading-relaxed"
               >
                 {currentQuestion.promptRu}
               </div>
@@ -2511,7 +2835,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             )}
 
             {/* 4 Interactive Choice Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2 max-w-2xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 max-w-2xl mx-auto">
               {currentQuestion.options.map((opt, idx) => {
                 const isSelected = selectedOption === idx;
                 const showResults = hasAnsweredCurrent;
@@ -2537,7 +2861,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
                     data-testid={`arena-option-${idx}`}
                     disabled={hasAnsweredCurrent}
                     onClick={() => handleSelectOption(idx)}
-                    className={`min-h-[58px] p-4 rounded-2xl border-2 text-base font-display font-extrabold flex items-center justify-between transition cursor-pointer ${btnStyle}`}
+                    className={`min-h-[48px] p-3 rounded-2xl border-2 text-sm font-display font-extrabold flex items-center justify-between transition cursor-pointer ${btnStyle}`}
                   >
                     <span dir="ltr">{opt}</span>
                     {showResults && isCorrect && <CheckCircle2 className="w-5 h-5 shrink-0" />}
@@ -2552,7 +2876,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             {/* Post-Answer Feedback banner + Prominent Next Question Button */}
             {hasAnsweredCurrent && lastAnswerOutcome && (
               <div
-                className={`p-4 rounded-2xl text-start space-y-3 animate-fade-in ${
+                className={`p-3 rounded-2xl text-start space-y-2 animate-fade-in ${
                   lastAnswerOutcome.isCorrect
                     ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
                     : 'bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300'
@@ -2596,7 +2920,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         )}
 
         {/* Live Mini Leaderboard during game */}
-        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-xs space-y-3">
+        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <div className="text-xs font-display font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
               <Trophy className="w-4 h-4 text-accent-orange" />
@@ -2606,7 +2930,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
           </div>
 
           <div className="space-y-2">
-            {rankings.slice(0, 5).map((st) => {
+            {rankings.slice(0, 3).map((st) => {
               // Accuracy over ANSWERED questions only. The server-sent
               // st.accuracyPct divides by the total question count, so it
               // misleadingly reads 33% after 1 correct answer out of 1.
@@ -2646,7 +2970,6 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             })}
           </div>
         </div>
-        <div className="h-28 w-full shrink-0" aria-hidden="true" />
       </div>
     );
   }
@@ -2660,7 +2983,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
     const top3 = rankings[2];
 
     return (
-      <div className="max-w-4xl mx-auto px-4 pt-6 pb-28 space-y-6 animate-fade-in" dir={dir}>
+      <div className="max-w-4xl mx-auto px-4 pt-3 pb-4 space-y-3 animate-fade-in" dir={dir}>
         {/* Celebration Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-orange/15 text-accent-orange text-xs font-extrabold">
@@ -2688,7 +3011,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             <div className="text-[11px] font-mono font-bold text-slate-500">
               {top2?.score ?? 0} {L.pointsUnit}
             </div>
-            <div className="w-full h-20 rounded-t-2xl bg-linear-to-t from-slate-300 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
+            <div className="w-full h-16 rounded-t-2xl bg-linear-to-t from-slate-300 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
               2
             </div>
           </div>
@@ -2705,7 +3028,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             <div className="text-xs font-mono font-extrabold text-accent-orange">
               {top1?.score ?? 0} {L.pointsUnit}
             </div>
-            <div className="w-full h-28 rounded-t-2xl bg-linear-to-t from-accent-orange to-amber-400 flex items-center justify-center font-extrabold text-brand-navy text-xl shadow-lg">
+            <div className="w-full h-24 rounded-t-2xl bg-linear-to-t from-accent-orange to-amber-400 flex items-center justify-center font-extrabold text-brand-navy text-xl shadow-lg">
               1
             </div>
           </div>
@@ -2721,14 +3044,14 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             <div className="text-[11px] font-mono font-bold text-slate-500">
               {top3?.score ?? 0} {L.pointsUnit}
             </div>
-            <div className="w-full h-14 rounded-t-2xl bg-linear-to-t from-amber-700/30 to-amber-700/20 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
+            <div className="w-full h-12 rounded-t-2xl bg-linear-to-t from-amber-700/30 to-amber-700/20 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
               3
             </div>
           </div>
         </div>
 
         {/* Full Ranked Table: Strong vs. Needs Review */}
-        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
+        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-display font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <Award className="w-5 h-5 text-brand-blue" />
@@ -2743,7 +3066,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             {rankings.map((st) => (
               <div
                 key={st.id}
-                className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                className="py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
               >
                 <div className="flex items-center gap-3">
                   <span className="w-7 text-center font-bold text-sm text-slate-500">#{st.rank}</span>
@@ -2792,7 +3115,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
 
         {/* Teacher Analytics Card (Hardest questions & review points) */}
         {analytics && analytics.hardestQuestions.length > 0 && (
-          <div className="rounded-3xl bg-linear-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-850 border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4 text-start">
+          <div className="rounded-3xl bg-linear-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-850 border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-3 text-start">
             <div className="flex items-center gap-2 text-brand-blue dark:text-accent-orange font-bold text-sm">
               <BarChart3 className="w-4 h-4" />
               <span>{L.teacherAnalyticsTitle}</span>
@@ -2843,7 +3166,7 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
         )}
 
         {/* Back and Repeat Actions */}
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-4 pb-16">
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2 pb-2">
           <button
             type="button"
             onClick={handleStartQuiz}
@@ -2876,7 +3199,6 @@ export const AIClassroomArenaView: React.FC<AIClassroomArenaViewProps> = ({
             <span>{L.deleteRoomPermanentlyBtn}</span>
           </button>
         </div>
-        <div className="h-28 w-full shrink-0" aria-hidden="true" />
       </div>
     );
   }

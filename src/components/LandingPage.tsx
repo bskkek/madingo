@@ -102,6 +102,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const { lang, t } = useI18n();
   const [scrollY, setScrollY] = useState(0);
   const [showStickyBottomBar, setShowStickyBottomBar] = useState(false);
+  const [heroMishaJump, setHeroMishaJump] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -192,11 +193,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-900 font-sans pb-24 lg:pb-0" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      {/* A) Sticky Header (height 56px) */}
-      <header className="h-[56px] bg-gradient-to-b from-white via-white/95 to-transparent text-slate-900 px-4 sticky top-0 z-50 backdrop-blur-md border-0 shadow-none flex items-center justify-between">
+    <div className="min-h-screen flex flex-col bg-transparent text-white font-sans pb-24 lg:pb-0" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Night MADI backdrop (fixed, behind everything) */}
+      <div className="night-bg-wrap" aria-hidden="true"><img src={import.meta.env.BASE_URL + 'assets/madi/madi-dusk.jpg'} alt="" className="night-bg-img" draggable={false} /><div className="night-bg-glow" /><div className="night-bg-sweep" /><div className="night-bg-grain" /><div className="night-bg-vig" /><div className="night-bg-shade" /></div>
+      {/* A) Sticky Header (height 56px) — dark navy glass */}
+      <header className="h-[56px] bg-[#0A1F44]/85 text-white px-4 sticky top-0 z-50 backdrop-blur-md border-b border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.35)] flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <MadingoWordmark size="sm" lightText={false} />
+          <MadingoWordmark size="sm" lightText={true} />
         </div>
 
         {/* 3 small lines hamburger menu for language selection */}
@@ -204,20 +207,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <button
             type="button"
             onClick={() => setShowLangMenu(!showLangMenu)}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 transition flex items-center gap-1.5 cursor-pointer"
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition flex items-center gap-1.5 cursor-pointer"
             aria-label="Language menu"
           >
             <div className="flex flex-col justify-between w-5 h-4">
-              <span className="block h-0.5 w-full bg-slate-800 rounded-full"></span>
-              <span className="block h-0.5 w-full bg-slate-800 rounded-full"></span>
-              <span className="block h-0.5 w-full bg-slate-800 rounded-full"></span>
+              <span className="block h-0.5 w-full bg-white rounded-full"></span>
+              <span className="block h-0.5 w-full bg-white rounded-full"></span>
+              <span className="block h-0.5 w-full bg-white rounded-full"></span>
             </div>
             <span className="text-xs font-bold uppercase ms-1">{lang}</span>
           </button>
 
           {showLangMenu && (
-            <div className="absolute top-full mt-2 end-0 bg-white text-slate-900 rounded-2xl shadow-2xl border border-slate-200 py-2 w-48 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-3 py-1.5 text-[10px] uppercase font-bold text-slate-400 tracking-wider border-b border-slate-100">
+            <div className="absolute top-full mt-2 end-0 bg-[#0A1F44]/95 text-white rounded-2xl shadow-2xl border border-white/15 py-2 w-48 z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-3 py-1.5 text-[10px] uppercase font-bold text-white/50 tracking-wider border-b border-white/10">
                 {t('landing.changeLanguageCta') || 'Select Language'}
               </div>
               <div className="py-1">
@@ -229,8 +232,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       onSelectLang(opt.code);
                       setShowLangMenu(false);
                     }}
-                    className={`w-full px-3 py-2 text-start text-xs font-bold flex items-center gap-2.5 transition hover:bg-slate-50 cursor-pointer ${
-                      lang === opt.code ? 'text-brand-blue bg-blue-50/60' : 'text-slate-700'
+                    className={`w-full px-3 py-2 text-start text-xs font-bold flex items-center gap-2.5 transition hover:bg-white/10 cursor-pointer ${
+                      lang === opt.code ? 'text-accent-orange bg-white/10' : 'text-white/85'
                     }`}
                   >
                     <LanguageFlagIcon lang={opt.code} className="w-5 h-3.5 shadow-xs" />
@@ -250,10 +253,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         onMouseLeave={() => setIsStoryPaused(false)}
         onTouchStart={() => setIsStoryPaused(true)}
         onTouchEnd={() => setIsStoryPaused(false)}
-        className="relative w-full overflow-hidden bg-white select-none pt-1 pb-2"
+        className="relative z-10 w-full overflow-hidden bg-transparent select-none pt-1 pb-2"
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-6">
-          <div className="relative w-full aspect-[31/10] min-h-[132px] sm:min-h-[210px] overflow-hidden rounded-2xl sm:rounded-3xl bg-[#1b2540] border border-slate-200/90 shadow-md">
+          <div className="relative w-full aspect-[31/10] min-h-[132px] sm:min-h-[210px] overflow-hidden rounded-2xl sm:rounded-3xl bg-[#1b2540] border border-white/20 shadow-md">
             {/* Story Progress Bars at Top */}
             <div className="absolute top-2 sm:top-3 inset-x-3 sm:inset-x-5 z-30 flex items-center gap-1.5">
               {madiStories.map((st, idx) => {
@@ -365,16 +368,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </div>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-8 space-y-16 bg-white">
+      <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-8 space-y-16 bg-transparent">
         {/* B) Hero Section (Frameless / Card-free clean style) */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center pt-2 bg-white relative overflow-hidden">
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center pt-2 bg-transparent relative overflow-hidden">
           {/* Left Column (Text & CTAs) */}
           <div className="lg:col-span-6 space-y-6 text-start relative z-10">
             <div className="flex items-center gap-3">
-              <MishaMascot expression="cheering" size={70} />
+              <div className="rounded-full bg-[#0B3D91] ring-4 ring-[#FF8A1F] shadow-[0_0_28px_rgba(255,138,31,0.35)] p-1 [&>svg>circle:first-child]:fill-[#0B3D91]">
+                <MishaMascot expression="cheering" size={70} />
+              </div>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-display font-black tracking-tight leading-tight text-slate-900">
+            <h1 className="text-3xl sm:text-5xl font-display font-black tracking-tight leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)]">
               {t('landing.heroTitle')}
             </h1>
 
@@ -392,7 +397,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <button
                 type="button"
                 onClick={onLoginClick}
-                className="w-full sm:w-auto min-h-[44px] px-6 py-3 rounded-2xl bg-white border-2 border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition cursor-pointer flex items-center justify-center"
+                className="w-full sm:w-auto min-h-[44px] px-6 py-3 rounded-2xl bg-white/10 border-2 border-white/25 text-white font-bold text-sm hover:bg-white/20 backdrop-blur-sm transition cursor-pointer flex items-center justify-center"
               >
                 {t('landing.haveAccountCta')}
               </button>
@@ -411,23 +416,35 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </section>
 
         {/* Motivational Quote & Character Section */}
-        <section className="space-y-8 pt-8 bg-white">
+        <section className="space-y-8 pt-8 bg-transparent">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
             <div className="max-w-3xl">
-              <p className="text-slate-800 text-xl sm:text-3xl font-display font-black text-start leading-relaxed">
+              <p className="text-white text-xl sm:text-3xl font-display font-black text-start leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
                 {t('landing.motivationalSub')}
               </p>
             </div>
             <div className="w-full lg:w-1/2 flex flex-col items-start space-y-6 pt-2">
-              <div className="w-full relative overflow-hidden border-0 shadow-none ring-0 bg-transparent">
-                <img
-                  src={import.meta.env.BASE_URL + "assets/aistudio/1793061139335_b556fd67.jpg"}
-                  alt="Misha Character"
-                  className="w-full h-auto object-contain border-0 shadow-none bg-transparent"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-              <p className="text-slate-800 text-lg sm:text-2xl font-display font-bold text-start leading-relaxed">
+              {/* Misha, crew-style: transparent sprite, no card/border/background — sways like the crew builder, blends with the university photo */}
+              <button
+                type="button"
+                onClick={() => {
+                  setHeroMishaJump(true);
+                  setTimeout(() => setHeroMishaJump(false), 600);
+                }}
+                className={`fig relative self-center w-56 sm:w-64 bg-transparent border-0 p-0 cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-500 rounded-2xl ${heroMishaJump ? 'jump' : ''}`}
+                aria-label="Misha"
+              >
+                <span className="absolute left-[12%] right-[12%] bottom-[-1%] h-[3%] rounded-full bg-slate-900/25 blur-[2px]" />
+                <span className="bob block animate-sway">
+                  <img
+                    src={import.meta.env.BASE_URL + "assets/madi-crew/sprites/builder.png"}
+                    alt="Misha Character"
+                    className="w-full h-auto select-none"
+                    draggable={false}
+                  />
+                </span>
+              </button>
+              <p className="text-white text-lg sm:text-2xl font-display font-bold text-start leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
                 {t('landing.aiLearningSub')}
               </p>
             </div>
@@ -438,10 +455,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <MadiCrewSection />
 
         {/* G) Footer */}
-        <footer className="pt-10 pb-16 space-y-6 text-xs text-slate-600 bg-white">
+        <footer className="pt-10 pb-16 space-y-6 text-xs text-white/70 bg-transparent">
           {/* Official MADI Social Channels (MAX, Telegram, VK) */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-100">
-            <span className="text-sm font-display font-bold text-slate-800">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-white/15">
+            <span className="text-sm font-display font-bold text-white">
               {lang === 'ar'
                 ? 'تابع جامعة مادي (МАДИ) على الحسابات الرسمية:'
                 : lang === 'ru'
@@ -459,7 +476,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 rel="noopener noreferrer"
                 title="MAX «Университет МАДИ»"
                 data-testid="footer-social-max"
-                className="group inline-flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-display font-bold text-xs transition hover:-translate-y-0.5 cursor-pointer"
+                className="group inline-flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-display font-bold text-xs transition hover:-translate-y-0.5 cursor-pointer"
               >
                 <svg
                   className="w-7 h-7 shrink-0"
@@ -501,7 +518,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 rel="noopener noreferrer"
                 title="МАДИ в Telegram"
                 data-testid="footer-social-telegram"
-                className="group inline-flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-display font-bold text-xs transition hover:-translate-y-0.5 cursor-pointer"
+                className="group inline-flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-display font-bold text-xs transition hover:-translate-y-0.5 cursor-pointer"
               >
                 <svg
                   className="w-7 h-7 shrink-0"
@@ -536,7 +553,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 rel="noopener noreferrer"
                 title="МАДИ ВКонтакте"
                 data-testid="footer-social-vk"
-                className="group inline-flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-display font-bold text-xs transition hover:-translate-y-0.5 cursor-pointer"
+                className="group inline-flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-display font-bold text-xs transition hover:-translate-y-0.5 cursor-pointer"
               >
                 <svg
                   className="w-7 h-7 shrink-0"
@@ -562,23 +579,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div
             dir="ltr"
             data-testid="landing-about-us-section"
-            className="py-5 border-b border-slate-100 flex flex-row items-center justify-between gap-4 sm:gap-6 text-left"
+            className="py-5 border-b border-white/15 flex flex-row items-center justify-between gap-4 sm:gap-6 text-left"
           >
             <div className="flex-1 min-w-0 space-y-1.5">
-              <div className="inline-flex items-center gap-2 text-[11px] font-display font-extrabold uppercase tracking-wider text-brand-blue">
+              <div className="inline-flex items-center gap-2 text-[11px] font-display font-extrabold uppercase tracking-wider text-accent-orange">
                 <span>Who Are We?</span>
               </div>
-              <h3 className="text-sm sm:text-base font-display font-black text-slate-900 leading-snug">
-                I am student <span className="text-brand-blue">Besskek Billel Anisse</span>
+              <h3 className="text-sm sm:text-base font-display font-black text-white leading-snug">
+                I am student <span className="text-accent-orange">Besskek Billel Anisse</span>
               </h3>
-              <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed max-w-xl">
+              <p className="text-xs sm:text-sm text-white/70 font-medium leading-relaxed max-w-xl">
                 I created this application based on my previous experience.
               </p>
             </div>
 
-            <div className="shrink-0 w-28 h-24 sm:w-32 sm:h-28 bg-white flex items-center justify-center overflow-hidden">
+            {/* About Us video, frameless: no card/border/glow — edges dissolve into the university photo */}
+            <div className="shrink-0 w-32 h-28 sm:w-40 sm:h-36 flex items-center justify-center overflow-hidden">
               <video
-                src={import.meta.env.BASE_URL + "assets/aistudio/gemini_generated_video_d8d0f419_ba9d5bac.mp4"}
+                src={import.meta.env.BASE_URL + "assets/aistudio/about-video-night.mp4"}
                 data-testid="landing-about-us-video"
                 autoPlay
                 loop
@@ -594,35 +612,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   e.currentTarget.muted = true;
                   e.currentTarget.volume = 0;
                 }}
-                className="w-full h-full object-contain pointer-events-none select-none mix-blend-multiply brightness-[1.15] contrast-[1.08] saturate-[1.05] [mask-image:radial-gradient(closest-side,black_78%,transparent_100%)]"
+                className="w-full h-full object-cover pointer-events-none select-none"
+                style={{
+                  maskImage: 'radial-gradient(ellipse 92% 92% at 50% 50%, black 62%, transparent 98%)',
+                  WebkitMaskImage: 'radial-gradient(ellipse 92% 92% at 50% 50%, black 62%, transparent 98%)',
+                  filter: 'brightness(0.92)',
+                }}
               />
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <MadingoWordmark size="sm" />
+              <MadingoWordmark size="sm" lightText={true} />
               <span>{t('landing.footerCopy')}</span>
             </div>
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={onOpenPrivacy}
-                className="hover:text-slate-900 cursor-pointer font-medium hover:underline"
+                className="hover:text-white cursor-pointer font-medium hover:underline"
               >
                 Privacy Policy
               </button>
               <button
                 type="button"
                 onClick={onOpenTerms}
-                className="hover:text-slate-900 cursor-pointer font-medium hover:underline"
+                className="hover:text-white cursor-pointer font-medium hover:underline"
               >
                 Terms of Service
               </button>
               <button
                 type="button"
                 onClick={onOpenContact}
-                className="hover:text-slate-900 cursor-pointer font-medium hover:underline"
+                className="hover:text-white cursor-pointer font-medium hover:underline"
               >
                 Contact MADI
               </button>
@@ -633,12 +656,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* H) Mobile Sticky Bottom Bar (appears after hero scrolls out of view) */}
       {showStickyBottomBar && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] flex items-center justify-between gap-4">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0A1F44]/95 backdrop-blur-md border-t border-white/15 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <MishaMascot expression="cheering" size={40} />
+            <div className="rounded-full bg-[#0B3D91] ring-2 ring-[#FF8A1F] p-0.5 [&>svg>circle:first-child]:fill-[#0B3D91]">
+              <MishaMascot expression="cheering" size={40} />
+            </div>
             <div>
-              <div className="text-xs font-bold text-slate-900">madingo</div>
-              <div className="text-[10px] text-slate-500">{t('landing.statsFree')}</div>
+              <div className="text-xs font-bold text-white">madingo</div>
+              <div className="text-[10px] text-white/60">{t('landing.statsFree')}</div>
             </div>
           </div>
           <button

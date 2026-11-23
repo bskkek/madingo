@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import {
   Star,
   Play,
@@ -287,6 +287,9 @@ function buildSerpentineRoadGeometry(lessonCount: number) {
     getXAtY,
     getAngleDegAtY,
     trees,
+    // Road exit (MADI gate): where the arrival flag stands.
+    exitX,
+    endY: totalHeight - 34,
   };
 }
 
@@ -318,6 +321,35 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
   const statuses = computeLessonNodeStatuses(orderedIds, completedLessonIds);
   const badges = evaluateBadges(completedLessonIds, streak);
 
+  // The stop the road view opens on: the current stop; when the journey is
+  // finished, the last completed stop (by the arrival flag); when nothing
+  // is started yet, the very first stop. The road itself keeps scrolling
+  // as a 96-stop journey — only the starting position is anchored here,
+  // so the current stop, the car and the next stop are visible at a
+  // glance with no scrolling needed.
+  const focusLessonId = (() => {
+    const current = orderedIds.find((id) => statuses[id] === 'current');
+    if (current) return current;
+    const completed = orderedIds.filter((id) => statuses[id] === 'completed');
+    if (completed.length > 0) return completed[completed.length - 1];
+    return orderedIds[0];
+  })();
+  const focusNodeRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    const el = focusNodeRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    // Only jump when the focused stop is not already comfortably in view,
+    // so re-renders never yank the user away from where they are looking.
+    // 'instant', not 'auto': the app sets scroll-behavior:smooth in CSS,
+    // so 'auto' would play a long animated scroll on every tab open
+    // instead of simply opening the road at the current stop.
+    if (rect.top < 96 || rect.bottom > window.innerHeight - 120) {
+      el.scrollIntoView({ behavior: 'instant', block: 'center' });
+    }
+  }, [focusLessonId]);
+
   const _activeThemeObj =
     PHASE4_COSMETICS.find((c) => c.id === equippedMapTheme) || PHASE4_COSMETICS[10];
   const _activeCarObj =
@@ -331,7 +363,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
   );
 
   return (
-    <div className="w-full bg-white dark:bg-slate-900">
+    <div className="w-full">
       <div className="max-w-6xl mx-auto px-0 sm:px-6 py-2 sm:py-8 pb-28">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-8 space-y-2">
@@ -350,14 +382,22 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
             const carY = Math.max(58, geo.nodePositions[carTargetIdx].y - 78);
             const carX = geo.getXAtY(carY);
             const carAngle = geo.getAngleDegAtY(carY);
+            // Orange completed segment: road already driven, up to the current stop.
+            const completedFrac =
+              currentLessonIdx !== -1
+                ? Math.min(1, geo.nodePositions[carTargetIdx].y / geo.totalHeight)
+                : unit.lessons.every((l) => statuses[l.id] === 'completed')
+                  ? 1
+                  : 0;
+            const isLastUnit = unitIdx === CURRICULUM_UNITS.length - 1;
 
             return (
               <section
                 key={unit.id}
-                className="bg-white dark:bg-slate-900 border-0 shadow-none overflow-hidden rounded-none"
+                className="bg-transparent overflow-hidden rounded-none"
               >
-                {/* Unit Header with Custom Mascot */}
-                <div className="px-4 py-4 sm:p-6 bg-white dark:bg-slate-900 flex flex-wrap items-center justify-between gap-4">
+                {/* Unit Header — light glass chip over the MADI photo */}
+                <div className="mx-3 sm:mx-0 px-4 py-4 sm:p-5 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-white/50 dark:border-slate-700/60 rounded-3xl shadow-lg flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3.5">
                     <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-slate-800/80 p-1 flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-slate-700 shadow-xs relative overflow-hidden">
                       <img
@@ -395,30 +435,15 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                   )}
                 </div>
 
-                {/* Illustrated Winding Road Map Canvas (Frameless & Gradually Blended into Background) */}
+                {/* Winding Road Canvas — transparent so the fixed MADI
+                    photo behind it is the scenery; the road, car and
+                    stop cards scroll over the photo. */}
                 <div
                   dir="ltr"
                   className="relative w-full overflow-hidden rounded-none border-0 shadow-none select-none"
-                  style={{ height: `${geo.totalHeight}px`, backgroundColor: '#EBE5D8' }}
+                  style={{ height: `${geo.totalHeight}px` }}
                 >
-                  {/* Seamless 4-Edge Feathering Gradients (blends map edges gradually into page background) */}
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-0 top-0 h-24 sm:h-28 z-10 bg-gradient-to-b from-white via-white/75 to-transparent dark:from-slate-900 dark:via-slate-900/75 dark:to-transparent"
-                  />
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-24 sm:h-28 z-10 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-slate-900 dark:via-slate-900/80 dark:to-transparent"
-                  />
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-y-0 left-0 w-6 sm:w-12 z-10 bg-gradient-to-r from-white via-white/50 to-transparent dark:from-slate-900 dark:via-slate-900/50 dark:to-transparent"
-                  />
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-y-0 right-0 w-6 sm:w-12 z-10 bg-gradient-to-l from-white via-white/50 to-transparent dark:from-slate-900 dark:via-slate-900/50 dark:to-transparent"
-                  />
-                  {/* Scenic Background SVG: Moscow Skyline, Moskva River, Bridges, City Blocks, Trees & Winding Highway */}
+                  {/* Road over the fixed MADI photo: layered realistic asphalt */}
                   <svg
                     viewBox={`0 0 600 ${geo.totalHeight}`}
                     preserveAspectRatio="none"
@@ -426,160 +451,19 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                     aria-hidden="true"
                   >
                     <defs>
-                      <linearGradient id={`skyGrad-${unit.id}`} x1="0" y1="0" x2="0" y2="140" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stopColor="#D6E8F8" />
-                        <stop offset="65%" stopColor="#EBF2F8" />
-                        <stop offset="100%" stopColor="#EBE5D8" />
-                      </linearGradient>
-                      <linearGradient id={`riverGrad-${unit.id}`} x1="420" y1="0" x2="600" y2={geo.totalHeight} gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stopColor="#68ADE2" />
-                        <stop offset="50%" stopColor="#7ABBE9" />
-                        <stop offset="100%" stopColor="#5D9FD6" />
+                      <linearGradient id={`asphaltGrad-${unit.id}`} x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#2E3A52" />
+                        <stop offset="50%" stopColor="#232C3F" />
+                        <stop offset="100%" stopColor="#1B2334" />
                       </linearGradient>
                     </defs>
-
-                    {/* Base Urban Map Canvas */}
-                    <rect x="0" y="0" width="600" height={geo.totalHeight} fill="#EBE5D8" />
-
-                    {/* Top Sky & Moscow Stalinist University Skyline */}
-                    <rect x="0" y="0" width="600" height="140" fill={`url(#skyGrad-${unit.id})`} />
-                    <g fill="#B9CDE2" opacity="0.85">
-                      {/* Distant city towers */}
-                      <rect x="290" y="52" width="18" height="45" />
-                      <rect x="312" y="42" width="22" height="55" />
-                      <rect x="340" y="60" width="16" height="37" />
-                      <rect x="362" y="48" width="20" height="49" />
-                      {/* Iconic Moscow Main University Building Silhouette */}
-                      <rect x="435" y="48" width="130" height="50" />
-                      <rect x="455" y="34" width="90" height="64" />
-                      <rect x="480" y="16" width="40" height="82" />
-                      <polygon points="500,2 493,16 507,16" />
-                      <rect x="440" y="36" width="14" height="62" />
-                      <rect x="546" y="36" width="14" height="62" />
-                    </g>
-                    {/* Skyline Window Grid Details */}
-                    <g fill="#E2ECF7" opacity="0.7">
-                      <rect x="492" y="24" width="4" height="50" />
-                      <rect x="504" y="24" width="4" height="50" />
-                      <rect x="466" y="44" width="4" height="40" />
-                      <rect x="530" y="44" width="4" height="40" />
-                    </g>
-
-                    {/* Isometric City Blocks & Streets on Left & Center */}
-                    <g stroke="#F5F2EB" strokeWidth="8" fill="#DFD8C8" opacity="0.9">
-                      <rect x="-10" y="140" width="125" height="110" rx="6" />
-                      <rect x="-10" y="270" width="105" height="120" rx="6" />
-                      <rect x="20" y="410" width="110" height="115" rx="6" />
-                      <rect x="-10" y="545" width="135" height="130" rx="6" />
-                      <rect x="15" y="700" width="115" height="125" rx="6" />
-                      <rect x="-5" y="845" width="120" height="130" rx="6" />
-                      <rect x="10" y="995" width="125" height="140" rx="6" />
-                    </g>
-                    {/* 3D Isometric Building Roofs on City Blocks */}
-                    <g fill="#CFC6B4" stroke="#B8AE9B" strokeWidth="1">
-                      <rect x="12" y="162" width="76" height="44" rx="3" />
-                      <rect x="8" y="295" width="64" height="55" rx="3" />
-                      <rect x="350" y="430" width="95" height="68" rx="4" />
-                      <rect x="368" y="442" width="60" height="42" rx="2" fill="#BDB3A0" />
-                      <rect x="18" y="575" width="84" height="58" rx="3" />
-                      <rect x="345" y="740" width="92" height="64" rx="4" />
-                    </g>
-
-                    {/* Moskva River Winding Along the Right Side */}
-                    <path
-                      d={`M 600 95 C 455 125, 420 265, 495 395 C 555 505, 595 580, 600 680 L 600 ${geo.totalHeight} L 475 ${geo.totalHeight} C 520 ${geo.totalHeight - 120}, 585 520, 600 95 Z`}
-                      fill="#D8D2C5"
-                    />
-                    <path
-                      d={`M 600 105 C 468 135, 434 268, 506 392 C 565 495, 585 610, 520 ${geo.totalHeight} L 600 ${geo.totalHeight} Z`}
-                      fill={`url(#riverGrad-${unit.id})`}
-                    />
-                    {/* River Island Park on Upper Right */}
-                    <path
-                      d="M 600 155 C 535 170, 525 235, 600 268 Z"
-                      fill="#C8DFB8"
-                      stroke="#E5E0D5"
-                      strokeWidth="5"
-                    />
-
-                    {/* River Bridges */}
-                    <g>
-                      {/* Upper Bridge */}
-                      <path
-                        d="M 442 198 L 568 248 L 560 266 L 434 216 Z"
-                        fill="#E5E0D5"
-                        stroke="#CBD5E1"
-                        strokeWidth="1.5"
-                      />
-                      {/* Lower Bridge */}
-                      <path
-                        d={`M 455 ${geo.totalHeight - 115} L 575 ${geo.totalHeight - 45} L 564 ${geo.totalHeight - 28} L 444 ${geo.totalHeight - 98} Z`}
-                        fill="#E5E0D5"
-                        stroke="#CBD5E1"
-                        strokeWidth="1.5"
-                      />
-                    </g>
-
-                    {/* Riverboat & Wake */}
-                    <g transform="translate(548, 342) rotate(32)">
-                      <path d="M0 -18 C 6 -8, 8 12, 0 22 C -8 12, -6 -8, 0 -18 Z" fill="rgba(255,255,255,0.35)" />
-                      <rect x="-5" y="-12" width="10" height="22" rx="4" fill="#FFFFFF" stroke="#475569" strokeWidth="1" />
-                      <rect x="-3" y="-6" width="6" height="10" rx="2" fill="#38BDF8" />
-                    </g>
-
-                    {/* Map Typography Labels ("Université technique" & "Moskva") */}
-                    <text
-                      x="18"
-                      y="232"
-                      fill="#64748B"
-                      fontSize="13"
-                      fontWeight="600"
-                      fontFamily="sans-serif"
-                    >
-                      Université
-                    </text>
-                    <text
-                      x="18"
-                      y="248"
-                      fill="#64748B"
-                      fontSize="13"
-                      fontWeight="600"
-                      fontFamily="sans-serif"
-                    >
-                      technique
-                    </text>
-                    <text
-                      x="492"
-                      y="295"
-                      fill="rgba(255, 255, 255, 0.78)"
-                      fontSize="15"
-                      fontWeight="700"
-                      fontFamily="sans-serif"
-                      transform="rotate(30 492 295)"
-                      letterSpacing="1.5"
-                    >
-                      Moskva
-                    </text>
-
-                    {/* Green Park Patches Along Road */}
-                    {geo.nodePositions.map((pt, idx) => (
-                      <ellipse
-                        key={`lawn-${idx}`}
-                        cx={pt.x + (idx % 2 === 0 ? -65 : 75)}
-                        cy={pt.y}
-                        rx="48"
-                        ry="32"
-                        fill="#C5DFB4"
-                        opacity="0.65"
-                      />
-                    ))}
 
                     {/* === SERPENTINE WINDING ASPHALT HIGHWAY === */}
                     {/* 1. Road Elevation Shadow */}
                     <path
                       d={geo.pathD}
                       fill="none"
-                      stroke="rgba(15, 23, 42, 0.18)"
+                      stroke="rgba(15, 23, 42, 0.28)"
                       strokeWidth="86"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -603,11 +487,11 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
-                    {/* 4. Main Charcoal Asphalt Surface */}
+                    {/* 4. Main Blue-Charcoal Asphalt Surface (app palette) */}
                     <path
                       d={geo.pathD}
                       fill="none"
-                      stroke="#252C37"
+                      stroke={`url(#asphaltGrad-${unit.id})`}
                       strokeWidth="66"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -616,12 +500,26 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                     <path
                       d={geo.pathD}
                       fill="none"
-                      stroke="#2E3746"
+                      stroke="#323E57"
                       strokeWidth="52"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
-                    {/* 6. Crisp Dashed White Centerline */}
+                    {/* 6. Orange Completed Segment (already driven, up to the current stop) */}
+                    {completedFrac > 0 && (
+                      <path
+                        d={geo.pathD}
+                        fill="none"
+                        stroke="#FF8A1F"
+                        strokeWidth="66"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        pathLength={1000}
+                        strokeDasharray={`${Math.round(completedFrac * 1000)} 1000`}
+                        opacity="0.92"
+                      />
+                    )}
+                    {/* 7. Crisp Dashed White Centerline */}
                     <path
                       d={geo.pathD}
                       fill="none"
@@ -631,21 +529,6 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
-
-                    {/* Lush Green Trees Lining Both Sides of the Road */}
-                    {geo.trees.map((tr, idx) => (
-                      <g
-                        key={`tree-${idx}`}
-                        transform={`translate(${tr.x.toFixed(1)}, ${tr.y.toFixed(1)}) scale(${tr.scale.toFixed(2)})`}
-                      >
-                        <ellipse cx="2" cy="12" rx="14" ry="7" fill="rgba(15, 23, 42, 0.16)" />
-                        <rect x="-2.5" y="2" width="5" height="10" rx="1.5" fill="#78553A" />
-                        <circle cx="0" cy="-2" r="12" fill={tr.variant === 0 ? '#5B8C42' : '#4D7C38'} />
-                        <circle cx="-6" cy="1" r="8.5" fill="#6E9E52" />
-                        <circle cx="6" cy="1" r="8.5" fill="#52823B" />
-                        <circle cx="0" cy="-6" r="8" fill="#82B366" />
-                      </g>
-                    ))}
 
                     {/* Blue Highway Sign: "MADI ->" at Upper Right */}
                     <g transform="translate(382, 82)">
@@ -680,38 +563,27 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                       />
                     </g>
 
-                    {/* Blue Highway Sign: "Moscou ↑" at Lower Left Curve */}
-                    {geo.totalHeight > 440 && (
-                      <g transform="translate(18, 438)">
-                        <rect x="24" y="30" width="4" height="22" fill="#64748B" />
-                        <rect x="64" y="30" width="4" height="22" fill="#64748B" />
-                        <rect
-                          x="0"
-                          y="0"
-                          width="92"
-                          height="32"
-                          rx="5"
-                          fill="#1D4ED8"
+                    {/* Arrival flag at the MADI gate (end of the last unit's road) */}
+                    {isLastUnit && (
+                      <g transform={`translate(${geo.exitX}, ${geo.endY})`}>
+                        <rect x="-2" y="-46" width="4" height="48" rx="2" fill="#F8FAFC" />
+                        <path
+                          d="M2 -46 L34 -38 L2 -28 Z"
+                          fill="#FF8A1F"
                           stroke="#FFFFFF"
-                          strokeWidth="2"
+                          strokeWidth="1.5"
                         />
                         <text
-                          x="10"
-                          y="21"
+                          x="2"
+                          y="20"
                           fill="#FFFFFF"
                           fontSize="13"
                           fontWeight="800"
                           fontFamily="sans-serif"
+                          textAnchor="middle"
                         >
-                          Moscou
+                          МАДИ
                         </text>
-                        <path
-                          d="M74 23V9M74 9L69 14M74 9L79 14"
-                          stroke="#FFFFFF"
-                          strokeWidth="2.4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
                       </g>
                     )}
                   </svg>
@@ -758,18 +630,12 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                         ? 'Начать'
                         : 'Start';
 
-                    const replayLabel =
-                      lang === 'fr'
-                        ? 'Réviser'
-                        : lang === 'ar'
-                        ? 'مراجعة'
-                        : lang === 'ru'
-                        ? 'Повторить'
-                        : 'Review';
+                    // (Completed stops open on tap — no button needed.)
 
                     return (
                       <div
                         key={lesson.id}
+                        ref={lesson.id === focusLessonId ? focusNodeRef : undefined}
                         className="absolute inset-x-0 z-20 pointer-events-none"
                         style={{ top: `${nodePt.y}px` }}
                       >
@@ -811,7 +677,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                           style={{
                             left: `calc(${leftPct}% + 36px)`,
                             right: '10px',
-                            maxWidth: '330px',
+                            maxWidth: '260px',
                           }}
                           onClick={() => {
                             if (isLocked) {
@@ -822,8 +688,8 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                               onStartLesson(lesson);
                             }
                           }}
-                          className={`pointer-events-auto absolute top-0 -translate-y-1/2 rounded-[24px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-3 sm:px-5 sm:py-4 shadow-[0_12px_30px_rgba(15,23,42,0.16)] border border-white dark:border-slate-800 transition ${
-                            !isLocked ? 'cursor-pointer hover:shadow-[0_14px_34px_rgba(15,23,42,0.22)]' : ''
+                          className={`pointer-events-auto absolute top-0 -translate-y-1/2 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-[0_10px_24px_rgba(15,23,42,0.18)] border border-white/60 dark:border-slate-700/60 transition ${
+                            !isLocked ? 'cursor-pointer hover:shadow-[0_12px_28px_rgba(15,23,42,0.24)]' : ''
                           }`}
                         >
                           {/* Small Connector Pin on Left Edge Facing the Road Node */}
@@ -865,8 +731,8 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                             </div>
                           </div>
 
-                          {/* Bold Stage Title */}
-                          <h3 className="font-display font-extrabold text-base sm:text-[19px] text-[#0F172A] dark:text-white leading-snug mt-0.5">
+                          {/* Bold Stage Title — one consistent scale */}
+                          <h3 className="font-display font-extrabold text-[15px] sm:text-base text-[#0F172A] dark:text-white leading-snug mt-0.5">
                             {cleanTitle}
                           </h3>
 
@@ -908,21 +774,19 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                               </div>
                             ))}
 
-                          {/* Prominent Rounded Pill Button ("Commencer" / "Réviser") */}
-                          {!isLocked && (
+                          {/* Small Start pill — ONLY on the current stop.
+                              Completed stops open on tap; locked stops show
+                              their preview instead. */}
+                          {isCurrent && (
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onStartLesson(lesson);
                               }}
-                              className={`mt-2.5 w-full min-h-[38px] sm:min-h-[42px] px-4 py-1.5 rounded-full font-display font-extrabold text-xs sm:text-sm transition cursor-pointer ${
-                                isCurrent
-                                  ? 'bg-gradient-to-b from-[#FF9B32] to-[#FF7A00] text-[#0F172A] shadow-[0_4px_12px_rgba(255,122,0,0.35)] hover:brightness-105'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
-                              }`}
+                              className="mt-2 inline-flex items-center min-h-[30px] px-4 py-1 rounded-full font-display font-extrabold text-xs bg-gradient-to-b from-[#FF9B32] to-[#FF7A00] text-[#0F172A] shadow-[0_4px_12px_rgba(255,122,0,0.35)] hover:brightness-105 transition cursor-pointer"
                             >
-                              {isCurrent ? startLabel : replayLabel}
+                              {startLabel}
                             </button>
                           )}
                         </div>
@@ -934,23 +798,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
             );
           })}
 
-          <div className="w-full relative rounded-none overflow-hidden border-0 shadow-none bg-white dark:bg-slate-900">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-16 z-10 bg-gradient-to-b from-white via-white/60 to-transparent dark:from-slate-900 dark:via-slate-900/60 dark:to-transparent"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-16 z-10 bg-gradient-to-t from-white via-white/60 to-transparent dark:from-slate-900 dark:via-slate-900/60 dark:to-transparent"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 left-0 w-6 sm:w-10 z-10 bg-gradient-to-r from-white via-white/40 to-transparent dark:from-slate-900 dark:via-slate-900/40 dark:to-transparent"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 right-0 w-6 sm:w-10 z-10 bg-gradient-to-l from-white via-white/40 to-transparent dark:from-slate-900 dark:via-slate-900/40 dark:to-transparent"
-            />
+          <div className="w-full relative rounded-3xl overflow-hidden border border-white/50 dark:border-slate-700/60 shadow-lg">
             <img
               src={import.meta.env.BASE_URL + "assets/aistudio/1793067979920_f1e14560.jpg"}
               alt="MADI Crew Family in Moscow"
@@ -962,7 +810,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
 
         <aside className="lg:col-span-4 space-y-6">
           {onOpenGarage && (
-            <div className="bg-white dark:bg-slate-900 border-0 p-6 shadow-none space-y-3">
+            <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-white/50 dark:border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-lg space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-accent-orange/15 flex items-center justify-center shrink-0">
                   <Wrench className="w-5 h-5 text-accent-orange" />
@@ -988,7 +836,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
             </div>
           )}
 
-          <div className="bg-white dark:bg-slate-900 border-0 p-6 shadow-none space-y-5">
+          <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-white/50 dark:border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-lg space-y-5">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -1043,7 +891,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border-0 p-6 shadow-none space-y-4">
+          <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-white/50 dark:border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-lg space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white">
                 {t('map.achievementsTitle')}
@@ -1113,7 +961,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
           </div>
 
           {(onOpenExamsAndPlacement || onOpenSpeaking) && (
-            <div className="bg-white dark:bg-slate-900 border-0 p-6 shadow-none space-y-3">
+            <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-white/50 dark:border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-lg space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white">
                   Practice
@@ -1143,7 +991,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
             </div>
           )}
 
-          <div className="bg-white dark:bg-slate-900 border-0 p-5 space-y-3 shadow-none">
+          <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-white/50 dark:border-slate-700/60 rounded-3xl p-5 space-y-3 shadow-lg">
             <div className="flex items-center gap-4">
               <MishaMascot expression="idle" size={72} />
               <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">

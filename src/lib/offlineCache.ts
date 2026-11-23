@@ -24,6 +24,15 @@ export interface DashboardSnapshot {
   };
   completedLessonIds: string[];
   accuracyByLesson: Record<string, number>;
+  /**
+   * Lessons completed WITH mastery proof (every question answered
+   * correctly). A mastered lesson stays completed even when its stored
+   * first-try accuracy is < 100 — without this record the boot migration
+   * cannot tell a mastered-with-retries lesson from a pre-gate lesson
+   * that was completed with wrong answers, and it drops both. Optional
+   * so snapshots written before this field existed still load.
+   */
+  masteredLessonIds?: string[];
   totalFuel: number;
   streak: StreakState;
   todayMinutesCompleted: number;

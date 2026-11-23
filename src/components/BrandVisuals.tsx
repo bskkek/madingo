@@ -417,11 +417,8 @@ export const HeroPanoramaIllustration: React.FC<{ scrollOffset?: number }> = ({
   );
 };
 
-export const VocabIllustration: React.FC<{ iconKey?: string; className?: string }> = ({
-  iconKey = 'car',
-  className = 'w-16 h-16',
-}) => {
-  const badges: Record<string, { bg: string; emoji: string; label: string }> = {
+/** Picture badges for vocabulary words (dictionary + picture-naming rounds). */
+const VOCAB_BADGES: Record<string, { bg: string; emoji: string; label: string }> = {
     bus: { bg: '#DBEAFE', emoji: '🚌', label: 'Bus' },
     pharmacy: { bg: '#DCFCE7', emoji: '➕', label: 'Pharmacy' },
     window: { bg: '#E0F2FE', emoji: '🪟', label: 'Window' },
@@ -485,7 +482,14 @@ export const VocabIllustration: React.FC<{ iconKey?: string; className?: string 
     chat: { bg: '#DCFCE7', emoji: '💬', label: 'Chat' },
   };
 
-  const item = badges[iconKey] || { bg: '#DBEAFE', emoji: '🚗', label: 'Russian Word' };
+/** All iconKey values with a real picture badge (naming rounds must use these). */
+export const VOCAB_ICON_KEYS: string[] = Object.keys(VOCAB_BADGES);
+
+export const VocabIllustration: React.FC<{ iconKey?: string; className?: string }> = ({
+  iconKey = 'car',
+  className = 'w-16 h-16',
+}) => {
+  const item = VOCAB_BADGES[iconKey] || { bg: '#DBEAFE', emoji: '🚗', label: 'Russian Word' };
 
   return (
     <div

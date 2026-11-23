@@ -5,11 +5,33 @@
 //
 // Pipeline in strict order:
 //   1. Pre-recorded teacher file for the item if it exists and loads cleanly.
-//   2. Cached AI speech (Gemini TTS /api/ai/tts, Russian, stress marks stripped).
-//   3. Verified Russian Web Speech API (ru-RU voice verified).
+//      (2026-11-15: the 33 alphabet letters + 66 example words are baked
+//      as MP3s and registered here — see alphabetAudio.ts — so alphabet
+//      speakers play with zero network dependency.)
+//   2. Proxy TTS (POST /speak on the Replit proxy, Gemini TTS voice
+//      'aniss'), with a PERSISTENT IndexedDB cache (lib/ttsCache.ts) keyed
+//      `lang:slow/normal:text` — a word fetched once never hits the network
+//      again. If /speak returns nothing (429 quota / 502 / offline), Stage 2
+//      falls back to POST /api/generate-content TTS (second model's quota
+//      + server-side disk cache, cross-user — see speech.ts).
+//      (The old relative '/api/ai/tts' route never existed on the static
+//      site (GitHub Pages / Capacitor localhost), so Stage 2 always 404'd
+//      — that is the bug fixed 2026-11-15.)
+//   3. Hardened Web Speech API: voices are waited for (voiceschanged),
+//      any installed voice is accepted, and speaking is still attempted
+//      when no ru voice is listed — failure only on a real onerror.
 //   4. No silent fallbacks: if all stages fail, emit a translated error state
 //      with a Retry callback and log full details to console.error.
 // ============================================================================
+
+import {
+  fetchGenerateContentAudio,
+  fetchSpeakAudio,
+  getSpeakUrl,
+  speakAudioToDataUrl,
+} from './speech';
+import { ALPHABET_AUDIO_FILES } from './alphabetAudio';
+import { ttsCacheClear, ttsCacheCount, ttsCacheGet, ttsCachePut } from './ttsCache';
 
 let audioCtx: AudioContext | null = null;
 let audioUnlockInstalled = false;
@@ -168,6 +190,17 @@ export function registerTeacherAudioFile(slugOrId: string, audioUrl: string) {
   }
 }
 
+// BAKED ALPHABET AUDIO (ElevenLabs Brian, dual-ASR validated, 2026-11-15):
+// the 33 letters + 66 example words ship as MP3s in public/alphabet/audio/
+// so the alphabet speakers play with ZERO network dependency — the
+// /speak quota (10/day) can be dead and Окно/Остановка still play.
+// Registered here, at import time, so every call site (LessonPlayer
+// letter_card / example buttons pass the audioSlug) hits Stage 1 first.
+// BASE_URL is '/madingo/' on Pages, './' in the Capacitor native app.
+for (const [slug, file] of Object.entries(ALPHABET_AUDIO_FILES)) {
+  registerTeacherAudioFile(slug, `${import.meta.env.BASE_URL || '/'}${file}`);
+}
+
 function base64DataUrlToArrayBuffer(dataUrl: string): ArrayBuffer | null {
   try {
     const commaIdx = dataUrl.indexOf(',');
@@ -187,9 +220,16 @@ function base64DataUrlToArrayBuffer(dataUrl: string): ArrayBuffer | null {
 
 class UnifiedAudioService {
   private ttsDataUrlCache = new Map<string, string>();
+  private persistentCacheSize = -1; // -1 = unknown yet (IndexedDB not probed)
   private listeners = new Set<AudioStateListener>();
   private activeAudioElement: HTMLAudioElement | null = null;
   private activeSourceNode: AudioBufferSourceNode | null = null;
+  // STALE-AUDIO GUARD (2026-11-18): every speak() bumps this counter.
+  // A slow fetch/decode from an EARLIER step must never play after the
+  // user moved on — the user hears the CURRENT step's sound only. Each
+  // speak() captures its generation and aborts (without playing) as soon
+  // as a newer speak() has started.
+  private speakGeneration = 0;
   private state: AudioServiceState = {
     isPlaying: false,
     lastText: '',
@@ -230,7 +270,15 @@ class UnifiedAudioService {
 
   public clearCache() {
     this.ttsDataUrlCache.clear();
+    this.persistentCacheSize = 0;
+    ttsCacheClear().catch(() => {});
     this.emit();
+  }
+
+  /** Last-known persistent (IndexedDB) entry count; refreshes on cache writes. */
+  public async refreshPersistentCacheSize(): Promise<number> {
+    this.persistentCacheSize = await ttsCacheCount();
+    return this.persistentCacheSize;
   }
 
   public getDiagnostics() {
@@ -241,6 +289,7 @@ class UnifiedAudioService {
     const russianVoices = voices.filter((v) => v.lang.toLowerCase().startsWith('ru'));
     return {
       cacheEntries: this.ttsDataUrlCache.size,
+      persistentCacheEntries: this.persistentCacheSize,
       registeredTeacherFilesCount: registeredTeacherFiles.size,
       totalBrowserVoices: voices.length,
       russianVoices: russianVoices.map((v) => ({
@@ -251,6 +300,24 @@ class UnifiedAudioService {
       lastStageUsed: this.state.lastStageUsed,
       lastError: this.state.lastError,
     };
+  }
+
+  /**
+   * Stop everything right now and invalidate every in-flight speak():
+   * a slow fetch that resolves later is discarded (stale guard) instead
+   * of playing on the wrong screen. Call this when leaving a lesson or
+   * a view that auto-plays audio.
+   */
+  public stopAll() {
+    this.speakGeneration++;
+    this.stopActivePlayback();
+    try {
+      window.speechSynthesis?.cancel();
+    } catch {
+      // ignore
+    }
+    this.state = { ...this.state, isPlaying: false };
+    this.emit();
   }
 
   public async retryLast(): Promise<AudioPlaybackOutcome | null> {
@@ -281,7 +348,7 @@ class UnifiedAudioService {
     }
   }
 
-  private async playViaWebAudioContext(dataUrl: string, rate: number): Promise<boolean> {
+  private async playViaWebAudioContext(dataUrl: string, rate: number, gen?: number): Promise<boolean> {
     try {
       const ctx = getAudioContext();
       if (!ctx) return false;
@@ -304,6 +371,10 @@ class UnifiedAudioService {
       }
 
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+      // Stale guard: a newer speak() started while this one was
+      // fetching/decoding — do NOT start playback (the user is on a
+      // newer step now and must not hear this older sound).
+      if (gen !== undefined && gen !== this.speakGeneration) return false;
       this.stopActivePlayback();
 
       const source = ctx.createBufferSource();
@@ -331,12 +402,16 @@ class UnifiedAudioService {
     }
   }
 
-  private async playAudioDataUrl(dataUrl: string, rate: number): Promise<boolean> {
+  private async playAudioDataUrl(dataUrl: string, rate: number, gen?: number): Promise<boolean> {
     // 1. Prefer WebAudio AudioBufferSourceNode — works reliably across async fetch boundaries & mobile/iFrames
-    const playedWebAudio = await this.playViaWebAudioContext(dataUrl, rate);
+    const playedWebAudio = await this.playViaWebAudioContext(dataUrl, rate, gen);
     if (playedWebAudio) {
       return true;
     }
+    // Stale guard: the WebAudio path may have returned false because a
+    // newer speak() superseded this one — do not fall through to the
+    // HTMLAudioElement and play the old sound anyway.
+    if (gen !== undefined && gen !== this.speakGeneration) return false;
 
     // 2. Fallback to HTMLAudioElement
     return new Promise((resolve) => {
@@ -377,27 +452,85 @@ class UnifiedAudioService {
     });
   }
 
-  private tryWebSpeech(
+  /**
+   * Wait until the browser has loaded its voices (getVoices() is often
+   * empty on first call, especially on mobile). Resolves with whatever
+   * is available after the timeout — possibly an empty list.
+   */
+  private waitForVoices(timeoutMs = 1500): Promise<SpeechSynthesisVoice[]> {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+        resolve([]);
+        return;
+      }
+      const synth = window.speechSynthesis;
+      const loaded = synth.getVoices();
+      if (loaded.length > 0) {
+        resolve(loaded);
+        return;
+      }
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        try {
+          synth.removeEventListener('voiceschanged', finish);
+        } catch {
+          // ignore
+        }
+        resolve(synth.getVoices());
+      };
+      try {
+        synth.addEventListener('voiceschanged', finish);
+      } catch {
+        // ignore
+      }
+      setTimeout(finish, timeoutMs);
+    });
+  }
+
+  /**
+   * Hardened device Web Speech (last-resort stage). Unlike the old code it
+   * NEVER hard-fails just because no voice for the target language is
+   * listed: voices load async, the best available voice is picked
+   * (exact lang -> lang prefix -> Russian -> any voice), and speaking is
+   * still attempted with the ru-RU lang tag when no voice is installed at
+   * all. Failure only on a real onerror / exception — e.g. Brave on a
+   * phone with no Russian TTS voice fires onerror, and only then do we
+   * report failure. Resolves true on onend, or on the safety timeout
+   * when the browser never fires any event (some browsers stay silent).
+   */
+  private async tryWebSpeech(
     cleanText: string,
     rate: number,
-    lang: 'ru' | 'ar' | 'en' | 'fr' = 'ru'
-  ): {
+    lang: 'ru' | 'ar' | 'en' | 'fr' = 'ru',
+    gen?: number
+  ): Promise<{
     ok: boolean;
     reason?: string;
-  } {
+  }> {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return { ok: false, reason: 'window.speechSynthesis is not supported in this browser.' };
     }
     try {
-      const voices = window.speechSynthesis.getVoices();
-      const targetVoice = voices.find((v) => v.lang.toLowerCase().startsWith(lang));
-      if (voices.length > 0 && !targetVoice) {
-        return {
-          ok: false,
-          reason: `No (${lang}) voice found among ${voices.length} installed browser voices.`,
-        };
+      const voices = await this.waitForVoices();
+      // Stale guard: a newer speak() started while voices were loading —
+      // do not speak this older text.
+      if (gen !== undefined && gen !== this.speakGeneration) {
+        return { ok: false, reason: 'superseded by a newer speak() call.' };
       }
-      window.speechSynthesis.cancel();
+      const target = lang.toLowerCase();
+      const targetVoice =
+        voices.find((v) => v.lang.toLowerCase() === `${target}-${target.toUpperCase()}`) ??
+        voices.find((v) => v.lang.toLowerCase().startsWith(target)) ??
+        voices.find((v) => v.lang.toLowerCase().startsWith('ru')) ??
+        voices[0];
+      const synth = window.speechSynthesis;
+      try {
+        synth.cancel();
+      } catch {
+        // ignore
+      }
       const utterance = new SpeechSynthesisUtterance(cleanText);
       const bcp47Map: Record<'ru' | 'ar' | 'en' | 'fr', string> = {
         ru: 'ru-RU',
@@ -410,10 +543,36 @@ class UnifiedAudioService {
       if (targetVoice) {
         utterance.voice = targetVoice;
       }
-      window.speechSynthesis.speak(utterance);
-      return { ok: true };
+      return await new Promise<{ ok: boolean; reason?: string }>((resolve) => {
+        let settled = false;
+        const done = (result: { ok: boolean; reason?: string }) => {
+          if (!settled) {
+            settled = true;
+            resolve(result);
+          }
+        };
+        utterance.onend = () => done({ ok: true });
+        utterance.onerror = (ev: SpeechSynthesisErrorEvent) =>
+          done({
+            ok: false,
+            reason: `speechSynthesis onerror (${(ev as any)?.error || 'unknown'}) with ${
+              voices.length
+            } installed voice(s), best match: ${targetVoice ? targetVoice.name : 'none'}.`,
+          });
+        try {
+          synth.speak(utterance);
+        } catch (err: any) {
+          done({ ok: false, reason: err?.message || 'speechSynthesis.speak threw an exception.' });
+          return;
+        }
+        // Safety net: some browsers never fire onend/onerror.
+        setTimeout(
+          () => done({ ok: true }),
+          Math.min(15000, 1500 + cleanText.length * 90)
+        );
+      });
     } catch (err: any) {
-      return { ok: false, reason: err?.message || 'speechSynthesis.speak threw an exception.' };
+      return { ok: false, reason: err?.message || 'speechSynthesis failed.' };
     }
   }
 
@@ -432,6 +591,19 @@ class UnifiedAudioService {
         cleanText,
         cachedHit: false,
       };
+    }
+
+    // New speak() supersedes every earlier one: stop the previous sound
+    // RIGHT NOW (the user moved on — the old word must not keep playing)
+    // and remember this call's generation so slow fetches from earlier
+    // steps are discarded instead of playing late on the wrong step.
+    const gen = ++this.speakGeneration;
+    const isStale = () => gen !== this.speakGeneration;
+    this.stopActivePlayback();
+    try {
+      window.speechSynthesis?.cancel();
+    } catch {
+      // ignore
     }
 
     this.lastRetryParams = {
@@ -462,7 +634,12 @@ class UnifiedAudioService {
         : undefined;
 
     if (explicitTeacherUrl) {
-      const playedTeacher = await this.playAudioDataUrl(explicitTeacherUrl, rate);
+      const playedTeacher = await this.playAudioDataUrl(explicitTeacherUrl, rate, gen);
+      if (isStale()) {
+        // A newer speak() started while this file was loading — never
+        // report it as played; the newer call owns the speaker now.
+        return { ok: true, stageUsed: 'teacher_file', cleanText, cachedHit: false };
+      }
       if (playedTeacher) {
         this.state = {
           ...this.state,
@@ -480,12 +657,25 @@ class UnifiedAudioService {
       stageErrors.push(`Stage 1 (teacher_file) failed to load: ${explicitTeacherUrl}`);
     }
 
-    // STAGE 2: Cached AI / Neural TTS speech (/api/ai/tts)
+    // STAGE 2: Proxy TTS (POST /speak, Gemini TTS voice 'aniss') + caches,
+    // with POST /api/generate-content TTS as fallback when /speak returns
+    // nothing (429 quota / 502 / offline — see fetchGenerateContentAudio
+    // in lib/speech.ts). A fetched word is stored in the in-memory cache
+    // AND in persistent IndexedDB, so it never hits the network again.
+    // Slow playback is done via playbackRate — /speak has no slow mode.
     const isSlow = rate < 0.78;
     const cacheKey = `${lang}:${isSlow ? 'slow' : 'normal'}:${cleanText}`;
-    const cachedDataUrl = this.ttsDataUrlCache.get(cacheKey);
+    const cachedDataUrl =
+      this.ttsDataUrlCache.get(cacheKey) ?? (await ttsCacheGet(cacheKey));
+    if (isStale()) {
+      return { ok: true, stageUsed: 'gemini_tts_cache', cleanText, cachedHit: false };
+    }
     if (cachedDataUrl) {
-      const playedCached = await this.playAudioDataUrl(cachedDataUrl, isSlow ? 1.0 : rate);
+      this.ttsDataUrlCache.set(cacheKey, cachedDataUrl);
+      const playedCached = await this.playAudioDataUrl(cachedDataUrl, rate, gen);
+      if (isStale()) {
+        return { ok: true, stageUsed: 'gemini_tts_cache', cleanText, cachedHit: true };
+      }
       if (playedCached) {
         this.state = {
           ...this.state,
@@ -500,23 +690,41 @@ class UnifiedAudioService {
           cachedHit: true,
         };
       }
+      stageErrors.push('Stage 2 (gemini_tts_cache) cached audio failed to play.');
     }
 
-    try {
-      const resp = await fetch('/api/ai/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: cleanText,
-          slow: isSlow,
-          lang,
-        }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data && typeof data.audioDataUrl === 'string' && data.audioDataUrl.startsWith('data:audio/')) {
-          this.ttsDataUrlCache.set(cacheKey, data.audioDataUrl);
-          const playedTts = await this.playAudioDataUrl(data.audioDataUrl, isSlow ? 1.0 : rate);
+    if (!getSpeakUrl()) {
+      stageErrors.push('Stage 2 (gemini_tts_cache) skipped: proxy URL is not configured.');
+    } else {
+      let fetched = await fetchSpeakAudio(cleanText);
+      if (!fetched) {
+        // /speak dead (429 quota / 502 / offline): fall back to
+        // POST /api/generate-content TTS (second model's quota +
+        // server-side disk cache, cross-user). A word synthesized
+        // once via either path lands in the IndexedDB cache below.
+        fetched = await fetchGenerateContentAudio(cleanText);
+        if (!fetched) {
+          stageErrors.push(
+            'Stage 2 (gemini_tts_cache) proxy /speak AND /api/generate-content returned no audio (quota 429, proxy down, or offline).'
+          );
+        }
+      }
+      // Stale guard: the fetch was slow and the user already moved to a
+      // newer step — discard this audio, never play it late.
+      if (isStale()) {
+        return { ok: true, stageUsed: 'gemini_tts_cache', cleanText, cachedHit: false };
+      }
+      if (fetched) {
+        const dataUrl = speakAudioToDataUrl(fetched.audioBase64, fetched.mimeType);
+        if (dataUrl) {
+          this.ttsDataUrlCache.set(cacheKey, dataUrl);
+          ttsCachePut(cacheKey, dataUrl)
+            .then(() => this.refreshPersistentCacheSize())
+            .catch(() => {});
+          const playedTts = await this.playAudioDataUrl(dataUrl, rate, gen);
+          if (isStale()) {
+            return { ok: true, stageUsed: 'gemini_tts_cache', cleanText, cachedHit: false };
+          }
           if (playedTts) {
             this.state = {
               ...this.state,
@@ -533,20 +741,21 @@ class UnifiedAudioService {
           }
           stageErrors.push('Stage 2 (gemini_tts_cache) audio playback blocked or failed.');
         } else {
-          stageErrors.push('Stage 2 (gemini_tts_cache) returned no audioDataUrl.');
+          stageErrors.push('Stage 2 (gemini_tts_cache) returned audio that could not be decoded.');
         }
-      } else {
-        const errBody = await resp.json().catch(() => ({}));
-        stageErrors.push(
-          `Stage 2 (gemini_tts_cache) HTTP ${resp.status}: ${errBody.error || resp.statusText}`
-        );
       }
-    } catch (err: any) {
-      stageErrors.push(`Stage 2 (gemini_tts_cache) network error: ${err?.message || 'offline'}`);
+      // (fetched === null: the combined /speak + generate-content error
+      // was already recorded above, before this if.)
     }
 
-    // STAGE 3: Verified Browser Web Speech API
-    const webSpeechOutcome = this.tryWebSpeech(cleanText, rate, lang);
+    // STAGE 3: Hardened Browser Web Speech API (waits for voices, any
+    // voice accepted, fails only on a real onerror)
+    const webSpeechOutcome = await this.tryWebSpeech(cleanText, rate, lang, gen);
+    if (isStale()) {
+      // A newer speak() started while this one was waiting on voices —
+      // do not report it as played; the newer call owns the speaker now.
+      return { ok: true, stageUsed: 'web_speech_ru', cleanText, cachedHit: false };
+    }
     if (webSpeechOutcome.ok) {
       this.state = {
         ...this.state,
@@ -614,5 +823,10 @@ export function speakText(
   rate = 0.9
 ): Promise<AudioPlaybackOutcome> {
   return audioService.speak(text, undefined, soundEnabled, rate, lang);
+}
+
+/** Stop all audio now and discard any in-flight speak() (see stopAll). */
+export function stopAllAudio(): void {
+  audioService.stopAll();
 }
 

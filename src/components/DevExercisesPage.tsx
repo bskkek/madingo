@@ -94,6 +94,9 @@ export const DevExercisesPage: React.FC<DevExercisesPageProps> = ({
           key={previewLesson.id}
           lesson={previewLesson}
           soundEnabled={soundEnabled}
+          // Dev preview only: free click-through so every step type can be
+          // inspected. Road lessons (App.tsx) keep the mastery gate on.
+          requireMastery={false}
           onExitToMap={onBackToApp}
           onRecordMistake={() => {}}
           onCompleteLesson={onBackToApp}

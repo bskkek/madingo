@@ -184,12 +184,16 @@ export function speechRecognitionErrorMessage(
 }
 
 /**
- * Start one recognition session (single utterance, lang ru-RU).
- * Returns a handle to stop/abort it. Throws if the API is unsupported —
- * callers must check isSpeechRecognitionSupported() first.
+ * Start one recognition session (single utterance).
+ * `lang` is a BCP-47 tag (default 'ru-RU'); the assistant passes the
+ * student's UI language so Arabic/English/French students can dictate
+ * in their own language too. Returns a handle to stop/abort it. Throws
+ * if the API is unsupported — callers must check
+ * isSpeechRecognitionSupported() first.
  */
 export function startSpeechRecognition(
-  callbacks: SpeechRecognitionCallbacks
+  callbacks: SpeechRecognitionCallbacks,
+  lang = 'ru-RU'
 ): SpeechRecognitionHandle {
   const Ctor = getSpeechRecognitionConstructor();
   if (!Ctor) {
@@ -197,7 +201,7 @@ export function startSpeechRecognition(
   }
 
   const recognition: WebSpeechRecognitionLike = new Ctor();
-  recognition.lang = 'ru-RU';
+  recognition.lang = lang;
   recognition.interimResults = true;
   recognition.continuous = false;
   recognition.maxAlternatives = 1;

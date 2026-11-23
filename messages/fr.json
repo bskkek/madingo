@@ -48,7 +48,16 @@
     "tabLibrary": "Bibliothèque",
     "tabArena": "Salles de Défi",
     "tabTeacher": "Enseignant",
-    "tabProfile": "Profil"
+    "tabProfile": "Profil",
+    "tabAlphabet": "Alphabet",
+    "tabBuilder": "Construction",
+    "tabLearn": "Apprendre",
+    "tabPractice": "Pratique",
+    "tabVerbs": "Verbes",
+    "verbsSubtitle": "225 verbes · animation + voix"
+  },
+  "builder": {
+    "loading": "Chargement de l'atelier…"
   },
   "landing": {
     "kicker": "Conçu pour les étudiants internationaux de MADI",
@@ -218,6 +227,7 @@
     "clearWordBtn": "Effacer tout",
     "backspaceBtn": "Retour",
     "checkAnswerBtn": "Vérifier",
+    "tryAgainBtn": "Réessayer",
     "feedbackCorrectTitle": "Passage de vitesse parfait ! +10 Carburant",
     "feedbackCorrectBody": "Micha valide — ton moteur de prononciation tourne rond.",
     "feedbackWrongTitle": "Enregistré au Garage pour révision",
@@ -410,5 +420,38 @@
     "deleteConfirmTitle": "Supprimer définitivement votre compte ?",
     "deleteConfirmBody": "Cela effacera votre profil, votre carburant, votre compteur et votre progression de la base de données.",
     "deleteConfirmYes": "Oui, supprimer mes données"
+  },
+  "assistant": {
+    "title": "Assistant personnel",
+    "subtitle": "Aniss répond à toutes vos questions et trouve n'importe quel livre de la bibliothèque MADI.",
+    "placeholder": "Demandez n'importe quoi…",
+    "bookPlaceholder": "Titre du livre — ex. Химия, дороги…",
+    "findBook": "Trouver le livre",
+    "typing": "réfléchit…",
+    "listening": "J'écoute…",
+    "noAi": "L'IA est indisponible — réessayez dans une minute.",
+    "offlineNote": "Le serveur est indisponible — l'assistant fonctionne hors ligne : livres de l'index hors ligne et réponses courtes sans IA.",
+    "anissFound": "Voici !",
+    "librarySourceLive": "Catalogue MADI (en direct)",
+    "librarySourceOffline": "Bibliothèque MADI (index hors ligne)",
+    "libraryOpenCatalog": "Ouvrir le catalogue MADI",
+    "libraryOpenFullText": "Parcourir la bibliothèque",
+    "libraryNoResults": "Aucun livre trouvé dans l'index. Essayez le catalogue complet.",
+    "openBook": "Ouvrir le livre",
+    "madiLibraryTitle": "Bibliothèque MADI — livres intégraux",
+    "madiLibraryHint": "Recherche dans la bibliothèque MADI. Chaque résultat indique sa source ; le catalogue complet est à un tap.",
+    "bookLoading": "Chargement du livre…"
+  },
+  "verbs": {
+    "listen": "Écouter",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "audioUnavailable": "Audio indisponible pour le moment"
+  },
+  "push": {
+    "promptTitle": "Rappels pour continuer à apprendre",
+    "promptBody": "Chaque matin, nous vous envoyons un verbe du jour, et un petit rappel 5 minutes après avoir quitté l'application pour terminer votre niveau.",
+    "promptAllow": "Activer les notifications",
+    "promptLater": "Pas maintenant"
   }
 }

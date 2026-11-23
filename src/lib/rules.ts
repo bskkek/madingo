@@ -66,6 +66,107 @@ export function calculateLessonSummary(
   return { fuelEarned, accuracy };
 }
 
+// ==========================================================================
+// MASTERY GATE — a road stage counts as completed ONLY when the student has
+// answered ALL of its questions correctly. A wrong answer never advances
+// the lesson: the student retries THE SAME question until it is correct.
+// Teach cards (letter_card / phrase_card) are not questions and never
+// block. NOTE: `accuracy` is FIRST-TRY accuracy, so a student who retried
+// can finish with accuracy < 100 — mastery is therefore proven by the
+// explicit `allCorrect` flag, never by accuracy alone.
+// ==========================================================================
+
+export type LessonFeedbackState = 'none' | 'correct' | 'wrong';
+
+/**
+ * Whether the feedback bar's primary button may advance to the next step.
+ * Under mastery, a wrong answer blocks advance (the button retries the
+ * same question instead); without mastery the old behaviour applies and
+ * any shown feedback advances.
+ */
+export function canAdvanceFromFeedback(
+  feedbackState: LessonFeedbackState,
+  requireMastery: boolean
+): boolean {
+  if (feedbackState === 'correct') return true;
+  if (feedbackState === 'wrong') return !requireMastery;
+  return false;
+}
+
+/**
+ * Whether every question step of a lesson was answered correctly.
+ * `correctStepsCount` is incremented once per question step answered
+ * correctly (the player gate only lets a question be passed after a
+ * correct answer, so under mastery this equals the question count by the
+ * time the summary screen is reached). A lesson with no question steps
+ * (teach cards only) counts as mastered.
+ */
+export function hasMasteredAllQuestions(args: {
+  correctStepsCount: number;
+  totalExercises: number;
+}): boolean {
+  return args.correctStepsCount >= args.totalExercises;
+}
+
+/**
+ * Defense in depth for lesson completion: accept only a payload that
+ * proves mastery. `allCorrect` (set by the player gate) is authoritative;
+ * accuracy 100 is accepted as a fallback for payloads recorded before
+ * the flag existed. Anything else is rejected entirely — no completion,
+ * no fuel, no streak, no server call.
+ */
+export function shouldAcceptLessonCompletion(payload: {
+  allCorrect?: boolean;
+  accuracy: number;
+}): boolean {
+  return payload.allCorrect === true || payload.accuracy >= 100;
+}
+
+/**
+ * Migration for pre-gate progress: drop every completed lesson whose
+ * stored accuracy is below 100 — it was completable with wrong answers
+ * under the old rules, so it must be redone correctly to unlock the next
+ * stage. Its accuracy entry is cleared as well. Lessons with no stored
+ * accuracy entry are kept (they predate accuracy tracking, or the server
+ * reported them without one).
+ *
+ * `masteredLessonIds` is the mastery proof recorded for post-gate
+ * completions: a lesson in this set was completed with ALL questions
+ * correct, even when its first-try accuracy is < 100 (the student
+ * retried). Such lessons are ALWAYS kept — dropping them is the bug that
+ * wiped a student's finished stages on every app reopen. The returned
+ * mastered set is pruned to the lessons that are still completed.
+ */
+export function applyMasteryMigration(
+  completedLessonIds: string[],
+  accuracyByLesson: Record<string, number>,
+  masteredLessonIds: string[] = []
+): {
+  completedLessonIds: string[];
+  accuracyByLesson: Record<string, number>;
+  masteredLessonIds: string[];
+} {
+  const mastered = new Set(masteredLessonIds);
+  const keptAccuracy: Record<string, number> = {};
+  const keptIds = completedLessonIds.filter((id) => {
+    const acc = accuracyByLesson[id];
+    // Mastery proof beats accuracy: a mastered lesson stays completed
+    // however many first-try mistakes it took to master it.
+    if (mastered.has(id)) {
+      if (typeof acc === 'number') keptAccuracy[id] = acc;
+      return true;
+    }
+    if (typeof acc === 'number' && acc < 100) return false;
+    if (typeof acc === 'number') keptAccuracy[id] = acc;
+    return true;
+  });
+  return {
+    completedLessonIds: keptIds,
+    accuracyByLesson: keptAccuracy,
+    masteredLessonIds: masteredLessonIds.filter((id) => keptIds.includes(id)),
+  };
+}
+
 /**
  * Validates whether a tapped/typed Cyrillic letter is the valid next character
  * in the Word Builder exercise. Wrong letters are blocked and trigger a shake.

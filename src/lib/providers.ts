@@ -861,7 +861,7 @@ CRITICAL RULES:
 - Keep vocabulary appropriate for CEFR ${params.level} and safe for university students.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -904,7 +904,7 @@ CRITICAL RULES:
             register: params.register,
             lines: parsed.lines,
             vocabulary: parsed.vocabulary || [],
-            providerUsed: 'gemini-3.8-flash',
+            providerUsed: 'gemini-3-flash-preview',
           };
         }
       }
@@ -955,7 +955,7 @@ CRITICAL RULES:
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-3-flash-preview',
       contents: `You are Misha, a friendly Russian conversation partner at MADI University in scenario "${params.scenarioTitle}".
 Learner CEFR level: ${params.level}.
 Learner said: "${params.userMessage}".
@@ -979,7 +979,7 @@ Respond in simple, natural Russian at level ${params.level} with stress marks (U
       const parsed = JSON.parse(response.text);
       return {
         ...parsed,
-        providerUsed: 'gemini-3.8-flash',
+        providerUsed: 'gemini-3-flash-preview',
       };
     }
     throw new Error('Empty response from Gemini conversation model.');

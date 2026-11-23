@@ -17,7 +17,6 @@ import {
   Download,
   ExternalLink,
   Eye,
-  GraduationCap,
   Layers,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
@@ -418,110 +417,40 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-12" data-testid="library-view-root">
+    <div className="space-y-3 pb-6" data-testid="library-view-root">
       {/* =====================================================================
-          HERO HEADER — OFFICIAL MADI PREPARATORY FACULTY & RKI PDF LIBRARY
+          COMPACT HEADER — one line: real MADI emblem + title + book count.
+          No-scroll reorganization: the long hero paragraph, big title block
+          and illustration are removed; upload is now the "+" icon next to
+          the search bar. Same navy card, same emblem image, same colors.
          ===================================================================== */}
-      <div
-        dir="ltr"
-        className="rounded-[32px] bg-[#162453] bg-[radial-gradient(circle_at_58%_45%,#172658_0%,#152350_55%,#0B1536_100%)] text-white p-6 sm:p-8 lg:p-10 shadow-2xl border border-white/10 relative overflow-hidden"
-      >
-        {/* Background Illustration: MADI University Building + 3 Crew Characters with Books */}
-        <img
-          src={import.meta.env.BASE_URL + "assets/aistudio/library-hero-illustration.png"}
-          alt="MADI Library Illustration"
-          className="absolute right-[-4px] sm:right-2 lg:right-6 bottom-[105px] sm:bottom-4 lg:bottom-3 w-[53%] max-w-[330px] sm:max-w-[370px] lg:max-w-[430px] object-contain pointer-events-none select-none z-0"
-        />
-
-        <div className="relative z-10 w-full flex flex-col items-start text-left">
-          <div className="flex items-center justify-between gap-4 mb-2.5 w-full">
-            <GraduationCap className="w-7 h-7 text-amber-400 shrink-0" />
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full p-0.5 bg-white/10 ring-1 ring-white/25 shadow-lg shadow-black/30 shrink-0">
-              <img
-                src={import.meta.env.BASE_URL + "assets/aistudio/madi-emblem-circle.png"}
-                alt="MADI Official Emblem"
-                className="w-full h-full rounded-full object-contain"
-              />
-            </div>
+      <div className="rounded-3xl bg-[#162453] bg-[radial-gradient(circle_at_58%_45%,#172658_0%,#152350_55%,#0B1536_100%)] text-white px-3 py-2.5 shadow-xl border border-white/10 relative overflow-hidden">
+        <div className="relative z-10 flex items-center gap-2.5 min-w-0">
+          <div className="w-11 h-11 rounded-full p-0.5 bg-white/10 ring-1 ring-white/25 shadow-lg shadow-black/30 shrink-0">
+            <img
+              src={import.meta.env.BASE_URL + "assets/aistudio/madi-emblem-circle.png"}
+              alt="MADI Official Emblem"
+              className="w-full h-full rounded-full object-contain"
+            />
           </div>
-
-          <div className="w-full max-w-2xl">
-
-            <div className="text-sm sm:text-base font-extrabold text-amber-400 leading-snug tracking-wide">
-              <span>
-                {lang === 'ar'
-                  ? 'المكتبة الرقمية الرسمية للسنة التحضيرية بجامعة مادي (МАДИ) وأشهر مراجع اللغة الروسية (РКИ)'
-                  : lang === 'ru'
-                  ? 'Официальная электронная библиотека Подготовительного факультета МАДИ и классика РКИ'
-                  : 'Official MADI Preparatory Faculty Digital Library & Classic RKI Books'}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm sm:text-base font-extrabold mt-2">
-              <span className="text-amber-400" aria-hidden="true">·</span>
-              <span className="text-sky-400">
-                {lang === 'ar' ? `${originCounts.all} كتاب رسمي بصيغة PDF` : `${originCounts.all} Official PDF Books`}
-              </span>
-            </div>
-
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight mt-3 max-w-xl">
-              {lang === 'ar'
-                ? 'مكتبة جامعة مادي الرسمية والكتب العالمية (PDF)'
-                : lang === 'ru'
-                ? 'Библиотека учебников ПФ МАДИ и лучших пособий РКИ (PDF)'
-                : t('library.title')}
-            </h1>
-
-            <p className="text-xs sm:text-sm lg:text-base text-slate-200/95 leading-relaxed mt-3.5 max-w-[51%] sm:max-w-[54%] lg:max-w-xl">
-              {lang === 'ar'
-                ? 'تصفح وحمّل جميع كتب ومقررات السنة التحضيرية الرسمية الصادرة عن مطبعة جامعة مادي (lib.madi.ru / madi.ru) بالإضافة إلى أشهر كتب القواعد والتمارين والقراءة العالمية بصيغة PDF مباشرة، مع إمكانية المعاينة الفورية والقراءة الذكية بالضغط على أي كلمة روسية.'
-                : lang === 'ru'
-                ? 'Прямой доступ к официальным PDF-учебникам Подготовительного факультета МАДИ (lib.madi.ru) и самым известным учебникам по русскому языку как иностранному: грамматика, упражнения, чтение и научный стиль речи.'
-                : 'Direct access to official PDF textbooks from the MADI Preparatory Faculty (lib.madi.ru) alongside famous Russian as a Foreign Language (RKI) grammar, exercise, and reading books.'}
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-6 shrink-0">
-            <a
-              href="https://www.madi.ru/6999-podgotovitelnyy-fakultet-dlya-inostrannyhgrazhdan-pfi-.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid="madi-official-portal-link"
-              className="px-5 py-3 rounded-2xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/25 text-xs sm:text-sm font-extrabold inline-flex items-center gap-2.5 transition backdrop-blur-sm"
-            >
-              <ExternalLink className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>
-                {lang === 'ar'
-                  ? 'بوابة كتب السنة التحضيرية بموقع madi.ru'
-                  : lang === 'ru'
-                  ? 'Официальный портал ПФ МАДИ'
-                  : 'Official MADI Prep Portal'}
-              </span>
-            </a>
-
-            <button
-              type="button"
-              onClick={() => {
-                setUploadError(null);
-                setShowUploadModal(true);
-              }}
-              data-testid="library-upload-open-btn"
-              className="px-5 py-3 rounded-2xl bg-[#FFB800] hover:bg-[#FFC629] text-slate-950 text-xs sm:text-sm font-extrabold inline-flex items-center gap-2.5 transition shadow-lg shadow-amber-500/20"
-            >
-              <Upload className="w-4 h-4 stroke-[2.5] shrink-0" />
-              <span>
-                {lang === 'ar'
-                  ? 'إضافة كتاب / مرجع'
-                  : lang === 'ru'
-                  ? 'Загрузить пособие'
-                  : t('library.uploadMaterialBtn')}
-              </span>
-            </button>
-          </div>
+          <h1 className="flex-1 min-w-0 text-base sm:text-lg font-black tracking-tight text-white leading-tight truncate">
+            {lang === 'ar'
+              ? 'مكتبة جامعة مادي الرسمية والكتب العالمية (PDF)'
+              : lang === 'ru'
+              ? 'Библиотека учебников ПФ МАДИ и лучших пособий РКИ (PDF)'
+              : t('library.title')}
+          </h1>
+          <span className="shrink-0 px-2.5 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-xs font-extrabold text-amber-400 whitespace-nowrap">
+            {lang === 'ar'
+              ? `${originCounts.all} كتاب رسمي`
+              : lang === 'ru'
+              ? `${originCounts.all} книг`
+              : `${originCounts.all} books`}
+          </span>
         </div>
 
         {uploadSuccessBanner && (
-          <div className="mt-4 rounded-xl bg-emerald-500/20 border border-emerald-300/40 px-4 py-3 text-xs font-bold text-emerald-100 flex items-center justify-between">
+          <div className="mt-2 rounded-xl bg-emerald-500/20 border border-emerald-300/40 px-3 py-2 text-xs font-bold text-emerald-100 flex items-center justify-between">
             <span>{uploadSuccessBanner}</span>
             <button
               type="button"
@@ -534,7 +463,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         )}
 
         {reportSubmittedMsg && (
-          <div className="mt-4 rounded-xl bg-amber-500/20 border border-amber-300/40 px-4 py-3 text-xs font-bold text-amber-100 flex items-center justify-between">
+          <div className="mt-2 rounded-xl bg-amber-500/20 border border-amber-300/40 px-3 py-2 text-xs font-bold text-amber-100 flex items-center justify-between">
             <span>{reportSubmittedMsg}</span>
             <button
               type="button"
@@ -548,83 +477,59 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       </div>
 
       {/* =====================================================================
-          FILTER BAR: SOURCE TABS + CATEGORY TABS + CEFR LEVEL + SEARCH
+          FILTER BAR (compact, no-scroll): search + upload icon on top,
+          category pills in one scrollable row, source + level rows below.
+          Every filter keeps its exact behavior — layout only.
          ===================================================================== */}
-      <div className="card-Step bg-white p-4 sm:p-5 space-y-4">
-        {/* Row 1: Source Filter (All vs Official MADI vs Famous RKI) + CEFR Level */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Book Source Filter">
-            <button
-              type="button"
-              data-testid="origin-filter-all"
-              onClick={() => setOriginFilter('ALL')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition ${
-                originFilter === 'ALL'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              {lang === 'ar'
-                ? `جميع المصادر (${originCounts.all})`
-                : lang === 'ru'
-                ? `Все издания (${originCounts.all})`
-                : `All Sources (${originCounts.all})`}
-            </button>
-            <button
-              type="button"
-              data-testid="origin-filter-madi"
-              onClick={() => setOriginFilter('madi_official')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition ${
-                originFilter === 'madi_official'
-                  ? 'bg-[#1B4DFF] text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              {lang === 'ar'
-                ? `كتب جامعة مادي الرسمية MADI (${originCounts.madi})`
-                : lang === 'ru'
-                ? `Учебники ПФ МАДИ (${originCounts.madi})`
-                : `Official MADI Prep Books (${originCounts.madi})`}
-            </button>
-            <button
-              type="button"
-              data-testid="origin-filter-rki"
-              onClick={() => setOriginFilter('rki_classic')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition ${
-                originFilter === 'rki_classic'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              {lang === 'ar'
-                ? `أشهر كتب РКИ العالمية (${originCounts.rki})`
-                : lang === 'ru'
-                ? `Бестселлеры РКИ и классика (${originCounts.rki})`
-                : `Famous RKI & Classics (${originCounts.rki})`}
-            </button>
+      <div className="card-Step bg-white p-3 space-y-2.5">
+        {/* Row 1: Instant Search + Upload icon */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              data-testid="library-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={
+                lang === 'ar'
+                  ? 'ابحث بعنوان الكتاب أو المؤلف أو التخصص (مثل: Дорога в Россию, Хавронина, Панова, الفيزياء، القواعد)...'
+                  : lang === 'ru'
+                  ? 'Поиск по названию, автору или предмету (Панова, Хавронина, Дорога в Россию, физика, черчение)...'
+                  : 'Search by book title, author, or subject (e.g. Дорога в Россию, Хавронина, Панова, Physics, Grammar)...'
+              }
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-slate-200 text-sm font-semibold focus:border-[#1B4DFF] focus:outline-none"
+            />
           </div>
-
-          <div className="flex items-center gap-1.5">
-            {['ALL', 'A1', 'A2', 'B1', 'B2'].map((lvl) => (
-              <button
-                key={lvl}
-                type="button"
-                data-testid={`level-filter-${lvl}`}
-                onClick={() => setLevelFilter(lvl)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition ${
-                  levelFilter === lvl
-                    ? 'bg-[#1B4DFF] text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {lvl === 'ALL' ? (lang === 'ar' ? 'كل المستويات' : 'ALL') : lvl}
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setUploadError(null);
+              setShowUploadModal(true);
+            }}
+            data-testid="library-upload-open-btn"
+            aria-label={
+              lang === 'ar'
+                ? 'إضافة كتاب / مرجع'
+                : lang === 'ru'
+                ? 'Загрузить пособие'
+                : t('library.uploadMaterialBtn')
+            }
+            title={
+              lang === 'ar'
+                ? 'إضافة كتاب / مرجع'
+                : lang === 'ru'
+                ? 'Загрузить пособие'
+                : t('library.uploadMaterialBtn')
+            }
+            className="shrink-0 w-11 h-11 rounded-xl bg-[#FFB800] hover:bg-[#FFC629] text-slate-950 inline-flex items-center justify-center transition shadow-lg shadow-amber-500/20"
+          >
+            <Upload className="w-5 h-5 stroke-[2.5]" />
+          </button>
         </div>
 
-        {/* Row 2: Category Tabs (Reading, Exercises, Grammar, Prep Textbooks, Engineering, Exams) */}
-        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Book Categories">
+        {/* Row 2: Category pills — one compact scrollable row */}
+        <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Book Categories">
           {(
             [
               'ALL',
@@ -647,7 +552,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                 aria-selected={sectionFilter === secId}
                 data-testid={`section-tab-${secId}`}
                 onClick={() => setSectionFilter(secId)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
                   sectionFilter === secId
                     ? 'bg-[#1B4DFF] text-white shadow-sm'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -666,42 +571,86 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           })}
         </div>
 
-        {/* Row 3: Instant Search Input */}
-        <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            data-testid="library-search-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={
-              lang === 'ar'
-                ? 'ابحث بعنوان الكتاب أو المؤلف أو التخصص (مثل: Дорога в Россию, Хавронина, Панова, الفيزياء، القواعد)...'
-                : lang === 'ru'
-                ? 'Поиск по названию, автору или предмету (Панова, Хавронина, Дорога в Россию, физика, черчение)...'
-                : 'Search by book title, author, or subject (e.g. Дорога в Россию, Хавронина, Панова, Physics, Grammar)...'
-            }
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-slate-200 text-sm font-semibold focus:border-[#1B4DFF] focus:outline-none"
-          />
+        {/* Row 3: Source filter — one compact scrollable row */}
+        <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Book Source Filter">
+          <button
+            type="button"
+            data-testid="origin-filter-all"
+            onClick={() => setOriginFilter('ALL')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition shrink-0 whitespace-nowrap ${
+              originFilter === 'ALL'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            {lang === 'ar'
+              ? `جميع المصادر (${originCounts.all})`
+              : lang === 'ru'
+              ? `Все издания (${originCounts.all})`
+              : `All Sources (${originCounts.all})`}
+          </button>
+          <button
+            type="button"
+            data-testid="origin-filter-madi"
+            onClick={() => setOriginFilter('madi_official')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition shrink-0 whitespace-nowrap ${
+              originFilter === 'madi_official'
+                ? 'bg-[#1B4DFF] text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            {lang === 'ar'
+              ? `كتب جامعة مادي الرسمية MADI (${originCounts.madi})`
+              : lang === 'ru'
+              ? `Учебники ПФ МАДИ (${originCounts.madi})`
+              : `Official MADI Prep Books (${originCounts.madi})`}
+          </button>
+          <button
+            type="button"
+            data-testid="origin-filter-rki"
+            onClick={() => setOriginFilter('rki_classic')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition shrink-0 whitespace-nowrap ${
+              originFilter === 'rki_classic'
+                ? 'bg-emerald-700 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            {lang === 'ar'
+              ? `أشهر كتب РКИ العالمية (${originCounts.rki})`
+              : lang === 'ru'
+              ? `Бестселлеры РКИ и классика (${originCounts.rki})`
+              : `Famous RKI & Classics (${originCounts.rki})`}
+          </button>
+        </div>
+
+        {/* Row 4: CEFR level pills */}
+        <div className="flex items-center gap-1.5">
+          {['ALL', 'A1', 'A2', 'B1', 'B2'].map((lvl) => (
+            <button
+              key={lvl}
+              type="button"
+              data-testid={`level-filter-${lvl}`}
+              onClick={() => setLevelFilter(lvl)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition shrink-0 ${
+                levelFilter === lvl
+                  ? 'bg-[#1B4DFF] text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              {lvl === 'ALL' ? (lang === 'ar' ? 'كل المستويات' : 'ALL') : lvl}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* =====================================================================
-          MADI UNIVERSITY LIBRARY (НТБ МАДИ) — FULL-TEXT BOOK SEARCH
-          Live MADI catalog first (proxy POST /library), curated offline
-          index as fallback. Every result shows its source; the full
-          catalog is always one tap away.
+          MADI UNIVERSITY LIBRARY (НТБ МАДИ) — FULL-TEXT BOOK SEARCH, compact.
+          The big amber featured section (title + hint paragraph) is removed;
+          only the live-catalog search input stays, in one slim row at the top.
+          Results render below it only after a search. Same proxy search,
+          same sources and deep links — layout only.
          ===================================================================== */}
-      <section className="rounded-3xl bg-gradient-to-br from-amber-50 via-orange-50 to-orange-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 border border-orange-200 dark:border-orange-900/50 p-4 sm:p-5 space-y-3">
-        <div className="flex items-center gap-2">
-          <GraduationCap className="w-5 h-5 text-accent-orange shrink-0" />
-          <h2 className="font-display font-extrabold text-base text-slate-900 dark:text-white">
-            {t('assistant.madiLibraryTitle')}
-          </h2>
-        </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          {t('assistant.madiLibraryHint')}
-        </p>
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900/50 p-2 space-y-2">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -799,14 +748,14 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             </a>
           </div>
         )}
-      </section>
+      </div>
 
       {/* =====================================================================
           BOOKS CATALOG GRID (32 BOOKS WITH 3:4 HARDCOVER COVERS & PDF LINKS)
          ===================================================================== */}
       <div
         data-testid="library-books-grid"
-        className="grid grid-cols-1 lg:grid-cols-2 gap-5"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-3"
       >
         {filteredItems.map((item) => {
           const isBookmarked = bookmarks[item.id] !== undefined;

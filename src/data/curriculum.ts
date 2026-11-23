@@ -155,7 +155,7 @@ export interface CurriculumUnit {
   id: string;
   orderIndex: number;
   slug: string;
-  landmarkKey: 'garage' | 'red_square' | 'sign_garage' | 'river_bridge' | 'metro' | 'vdnkh';
+  landmarkKey: 'garage' | 'red_square' | 'sign_garage' | 'river_bridge' | 'metro' | 'vdnkh' | 'family_home' | 'home_kitchen' | 'health_body' | 'time_clock' | 'cases_grammar' | 'engineer_road';
   levelCode: string;
   isLockedByDefault: boolean;
   title: LocalizedText;
@@ -1506,6 +1506,17 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
+            type: 'letter_sound',
+            content: {
+              targetLetter: 'К',
+              audioText: 'К — Кот',
+              audioSlug: 'letter-k',
+              phoneticHint: '[k]',
+              options: ['К', 'О', 'М', 'Т'],
+              correctAnswer: 'К',
+            },
+          },
+          {
             type: 'picture_word',
             content: {
               iconKey: 'cat',
@@ -1514,6 +1525,17 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               options: ['Ко́т', 'Та́м', 'Те́ма', 'Окно́'],
               correctAnswer: 'Ко́т',
               translation: { en: 'Cat', ru: 'Кот', ar: 'قط', fr: 'Chat' },
+            },
+          },
+          {
+            type: 'picture_word',
+            content: {
+              iconKey: 'bus',
+              audioText: 'Автобус',
+              audioSlug: 'avtobus',
+              options: ['Авто́бус', 'Апте́ка', 'Окно́', 'Ка́рта'],
+              correctAnswer: 'Авто́бус',
+              translation: { en: 'Bus', ru: 'Автобус', ar: 'حافلة', fr: 'Bus' },
             },
           },
           {
@@ -1536,6 +1558,61 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               tiles: ['Е', 'Т', 'А', 'М', 'К'],
               correctAnswer: 'ТЕМА',
               translation: { en: 'Topic / Theme', ru: 'Тема', ar: 'موضوع', fr: 'Thème' },
+            },
+          },
+          {
+            type: 'word_builder',
+            content: {
+              targetWordWithStress: 'А́том',
+              targetCleanWord: 'АТОМ',
+              audioSlug: 'atom',
+              tiles: ['Т', 'А', 'О', 'М', 'К'],
+              correctAnswer: 'АТОМ',
+              translation: { en: 'Atom', ru: 'Атом', ar: 'ذرة', fr: 'Atome' },
+            },
+          },
+          {
+            type: 'stress_placement',
+            content: {
+              targetWordWithStress: 'Апте́ка',
+              wordWithoutStress: 'Аптека',
+              stressedVowelIndex: 1,
+              audioText: 'Аптека',
+              audioSlug: 'apteka',
+              correctAnswer: 'Апте́ка',
+              translation: { en: 'Pharmacy (stress on Е́)', ru: 'Аптека (ударение на Е́)', ar: 'صيدلية (النبر على حرف Е́)', fr: 'Pharmacie (accent sur Е́)' },
+            },
+          },
+          {
+            type: 'matching_pairs',
+            content: {
+              pairs: [
+                { id: 'u1-l1-mp1', russian: 'Окно́', audioSlug: 'okno', translations: { en: 'Window', ru: 'Окно', ar: 'نافذة', fr: 'Fenêtre' } },
+                { id: 'u1-l1-mp2', russian: 'Ка́рта', audioSlug: 'karta', translations: { en: 'Map', ru: 'Карта', ar: 'خريطة', fr: 'Carte' } },
+                { id: 'u1-l1-mp3', russian: 'Еда́', audioSlug: 'yeda', translations: { en: 'Food', ru: 'Еда', ar: 'طعام', fr: 'Nourriture' } },
+                { id: 'u1-l1-mp4', russian: 'Остано́вка', audioSlug: 'ostanovka', translations: { en: 'Bus Stop', ru: 'Остановка', ar: 'موقف حافلات', fr: 'Arrêt de bus' } },
+              ],
+              correctAnswer: 'Окно́ · Ка́рта · Еда́ · Остано́вка',
+            },
+          },
+          {
+            type: 'translation_typing',
+            content: {
+              audioText: 'Такси',
+              audioSlug: 'taksi',
+              sourcePrompt: {
+                ru: 'Напишите по-русски: Такси',
+                en: 'Taxi',
+                ar: 'سيارة أجرة',
+                fr: 'Taxi',
+              },
+              acceptedAnswers: ['Такси́', 'Такси'],
+              acceptedVariants: ['Такси́', 'Такси'],
+              correctAnswer: 'Такси́',
+              translation: { en: 'Taxi', ru: 'Такси', ar: 'سيارة أجرة', fr: 'Taxi' },
+              targetWordWithStress: 'Такси́',
+              targetCleanWord: 'ТАКСИ',
+              tiles: ['Т', 'А', 'К', 'С', 'И'],
             },
           },
         ]),
@@ -1571,6 +1648,17 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
+            type: 'letter_sound',
+            content: {
+              targetLetter: 'С',
+              audioText: 'С — Светофор',
+              audioSlug: 'letter-s',
+              phoneticHint: '[s]',
+              options: ['С', 'Н', 'В', 'У'],
+              correctAnswer: 'С',
+            },
+          },
+          {
             type: 'picture_word',
             content: {
               iconKey: 'metro',
@@ -1579,6 +1667,28 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               options: ['Метро́', 'У́тро', 'Вода́', 'Окно́'],
               correctAnswer: 'Метро́',
               translation: { en: 'Metro', ru: 'Метро', ar: 'مترو الأنفاق', fr: 'Métro' },
+            },
+          },
+          {
+            type: 'picture_word',
+            content: {
+              iconKey: 'water',
+              audioText: 'Вода',
+              audioSlug: 'voda',
+              options: ['Вода́', 'Вхо́д', 'Но́чь', 'Хле́б'],
+              correctAnswer: 'Вода́',
+              translation: { en: 'Water', ru: 'Вода', ar: 'ماء', fr: 'Eau' },
+            },
+          },
+          {
+            type: 'word_builder',
+            content: {
+              targetWordWithStress: 'Но́с',
+              targetCleanWord: 'НОС',
+              audioSlug: 'nos',
+              tiles: ['С', 'Н', 'О', 'В', 'Р'],
+              correctAnswer: 'НОС',
+              translation: { en: 'Nose', ru: 'Нос', ar: 'أنف', fr: 'Nez' },
             },
           },
           {
@@ -1601,6 +1711,50 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               tiles: ['С', 'М', 'Т', 'О', 'Н'],
               correctAnswer: 'МОСТ',
               translation: { en: 'Bridge', ru: 'Мост', ar: 'جسر', fr: 'Pont' },
+            },
+          },
+          {
+            type: 'stress_placement',
+            content: {
+              targetWordWithStress: 'Росси́я',
+              wordWithoutStress: 'Россия',
+              stressedVowelIndex: 1,
+              audioText: 'Россия',
+              audioSlug: 'rossiya',
+              correctAnswer: 'Росси́я',
+              translation: { en: 'Russia (stress on И́)', ru: 'Россия (ударение на И́)', ar: 'روسيا (النبر على حرف И́)', fr: 'Russie (accent sur И́)' },
+            },
+          },
+          {
+            type: 'matching_pairs',
+            content: {
+              pairs: [
+                { id: 'u1-l2-mp1', russian: 'Но́мер', audioSlug: 'nomer', translations: { en: 'Number', ru: 'Номер', ar: 'رقم', fr: 'Numéro' } },
+                { id: 'u1-l2-mp2', russian: 'У́лица', audioSlug: 'ulitsa', translations: { en: 'Street', ru: 'Улица', ar: 'شارع', fr: 'Rue' } },
+                { id: 'u1-l2-mp3', russian: 'Хле́б', audioSlug: 'khleb', translations: { en: 'Bread', ru: 'Хлеб', ar: 'خبز', fr: 'Pain' } },
+                { id: 'u1-l2-mp4', russian: 'Хорошо́', audioSlug: 'khorosho', translations: { en: 'Good / Well', ru: 'Хорошо', ar: 'جيد / بخير', fr: 'Bien' } },
+              ],
+              correctAnswer: 'Но́мер · У́лица · Хле́б · Хорошо́',
+            },
+          },
+          {
+            type: 'translation_typing',
+            content: {
+              audioText: 'Ночь',
+              audioSlug: 'noch',
+              sourcePrompt: {
+                ru: 'Напишите по-русски: Ночь',
+                en: 'Night',
+                ar: 'ليل',
+                fr: 'Nuit',
+              },
+              acceptedAnswers: ['Но́чь', 'Ночь'],
+              acceptedVariants: ['Но́чь', 'Ночь'],
+              correctAnswer: 'Но́чь',
+              translation: { en: 'Night', ru: 'Ночь', ar: 'ليل', fr: 'Nuit' },
+              targetWordWithStress: 'Но́чь',
+              targetCleanWord: 'НОЧЬ',
+              tiles: ['Н', 'О', 'Ч', 'Ь'],
             },
           },
         ]),
@@ -1636,6 +1790,17 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
+            type: 'letter_sound',
+            content: {
+              targetLetter: 'П',
+              audioText: 'П — Парк',
+              audioSlug: 'letter-p',
+              phoneticHint: '[p]',
+              options: ['П', 'Д', 'Л', 'Б'],
+              correctAnswer: 'П',
+            },
+          },
+          {
             type: 'picture_word',
             content: {
               iconKey: 'tree',
@@ -1644,6 +1809,17 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               options: ['Па́рк', 'До́м', 'Зна́к', 'Биле́т'],
               correctAnswer: 'Па́рк',
               translation: { en: 'Park', ru: 'Парк', ar: 'حديقة عامة', fr: 'Parc' },
+            },
+          },
+          {
+            type: 'picture_word',
+            content: {
+              iconKey: 'road',
+              audioText: 'Дорога',
+              audioSlug: 'doroga',
+              options: ['Доро́га', 'Ле́кция', 'Заво́д', 'Зна́к'],
+              correctAnswer: 'Доро́га',
+              translation: { en: 'Road', ru: 'Дорога', ar: 'طريق', fr: 'Route' },
             },
           },
           {
@@ -1666,6 +1842,61 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               tiles: ['К', 'А', 'П', 'Р', 'З'],
               correctAnswer: 'ПАРК',
               translation: { en: 'Park', ru: 'Парк', ar: 'حديقة عامة', fr: 'Parc' },
+            },
+          },
+          {
+            type: 'word_builder',
+            content: {
+              targetWordWithStress: 'Биле́т',
+              targetCleanWord: 'БИЛЕТ',
+              audioSlug: 'bilet',
+              tiles: ['Т', 'Б', 'И', 'Л', 'Е', 'П'],
+              correctAnswer: 'БИЛЕТ',
+              translation: { en: 'Ticket', ru: 'Билет', ar: 'تذكرة', fr: 'Billet' },
+            },
+          },
+          {
+            type: 'stress_placement',
+            content: {
+              targetWordWithStress: 'Инжене́р',
+              wordWithoutStress: 'Инженер',
+              stressedVowelIndex: 2,
+              audioText: 'Инженер',
+              audioSlug: 'inzhener',
+              correctAnswer: 'Инжене́р',
+              translation: { en: 'Engineer (stress on Е́)', ru: 'Инженер (ударение на Е́)', ar: 'مهندس (النبر على حرف Е́)', fr: 'Ingénieur (accent sur Е́)' },
+            },
+          },
+          {
+            type: 'matching_pairs',
+            content: {
+              pairs: [
+                { id: 'u1-l3-mp1', russian: 'Ла́мпа', audioSlug: 'lampa', translations: { en: 'Lamp', ru: 'Лампа', ar: 'مصباح', fr: 'Lampe' } },
+                { id: 'u1-l3-mp2', russian: 'Па́спорт', audioSlug: 'pasport', translations: { en: 'Passport', ru: 'Паспорт', ar: 'جواز سفر', fr: 'Passeport' } },
+                { id: 'u1-l3-mp3', russian: 'Институ́т', audioSlug: 'institut', translations: { en: 'Institute', ru: 'Институт', ar: 'معهد', fr: 'Institut' } },
+                { id: 'u1-l3-mp4', russian: 'Бензи́н', audioSlug: 'benzin', translations: { en: 'Petrol / Gasoline', ru: 'Бензин', ar: 'بنزين', fr: 'Essence' } },
+              ],
+              correctAnswer: 'Ла́мпа · Па́спорт · Институ́т · Бензи́н',
+            },
+          },
+          {
+            type: 'translation_typing',
+            content: {
+              audioText: 'Знак',
+              audioSlug: 'znak',
+              sourcePrompt: {
+                ru: 'Напишите по-русски: Знак',
+                en: 'Sign',
+                ar: 'لافتة / علامة',
+                fr: 'Panneau / Signe',
+              },
+              acceptedAnswers: ['Зна́к', 'Знак'],
+              acceptedVariants: ['Зна́к', 'Знак'],
+              correctAnswer: 'Зна́к',
+              translation: { en: 'Sign', ru: 'Знак', ar: 'لافتة / علامة', fr: 'Panneau / Signe' },
+              targetWordWithStress: 'Зна́к',
+              targetCleanWord: 'ЗНАК',
+              tiles: ['З', 'Н', 'А', 'К'],
             },
           },
         ]),
@@ -1701,6 +1932,17 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
+            type: 'letter_sound',
+            content: {
+              targetLetter: 'Ш',
+              audioText: 'Ш — Шина',
+              audioSlug: 'letter-sh',
+              phoneticHint: '[ʂ]',
+              options: ['Ш', 'Ж', 'Щ', 'Ч'],
+              correctAnswer: 'Ш',
+            },
+          },
+          {
             type: 'picture_word',
             content: {
               iconKey: 'garage',
@@ -1709,6 +1951,17 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               options: ['Гара́ж', 'Го́род', 'Ши́на', 'Часы́'],
               correctAnswer: 'Гара́ж',
               translation: { en: 'Garage', ru: 'Гараж', ar: 'مرآب', fr: 'Garage' },
+            },
+          },
+          {
+            type: 'picture_word',
+            content: {
+              iconKey: 'city',
+              audioText: 'Город',
+              audioSlug: 'gorod',
+              options: ['Го́род', 'Журна́л', 'Часы́', 'Це́нтр'],
+              correctAnswer: 'Го́род',
+              translation: { en: 'City', ru: 'Город', ar: 'مدينة', fr: 'Ville' },
             },
           },
           {
@@ -1731,6 +1984,61 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               tiles: ['Ж', 'А', 'Г', 'Р', 'А'],
               correctAnswer: 'ГАРАЖ',
               translation: { en: 'Garage', ru: 'Гараж', ar: 'مرآب', fr: 'Garage' },
+            },
+          },
+          {
+            type: 'word_builder',
+            content: {
+              targetWordWithStress: 'Це́нтр',
+              targetCleanWord: 'ЦЕНТР',
+              audioSlug: 'tsentr',
+              tiles: ['Р', 'Ц', 'Е', 'Н', 'Т', 'Ш'],
+              correctAnswer: 'ЦЕНТР',
+              translation: { en: 'Centre / Downtown', ru: 'Центр', ar: 'وسط المدينة', fr: 'Centre-ville' },
+            },
+          },
+          {
+            type: 'stress_placement',
+            content: {
+              targetWordWithStress: 'Журна́л',
+              wordWithoutStress: 'Журнал',
+              stressedVowelIndex: 1,
+              audioText: 'Журнал',
+              audioSlug: 'zhurnal',
+              correctAnswer: 'Журна́л',
+              translation: { en: 'Magazine / Journal (stress on А́)', ru: 'Журнал (ударение на А́)', ar: 'مجلة (النبر على حرف А́)', fr: 'Magazine (accent sur А́)' },
+            },
+          },
+          {
+            type: 'matching_pairs',
+            content: {
+              pairs: [
+                { id: 'u1-l4-mp1', russian: 'Светофо́р', audioSlug: 'svetofor', translations: { en: 'Traffic Light', ru: 'Светофор', ar: 'إشارة مرور', fr: 'Feu de circulation' } },
+                { id: 'u1-l4-mp2', russian: 'Студе́нт', audioSlug: 'student', translations: { en: 'Student', ru: 'Студент', ar: 'طالب', fr: 'Étudiant' } },
+                { id: 'u1-l4-mp3', russian: 'Шоссе́', audioSlug: 'shosse', translations: { en: 'Highway', ru: 'Шоссе', ar: 'طريق سريع', fr: 'Autoroute' } },
+                { id: 'u1-l4-mp4', russian: 'Эта́ж', audioSlug: 'etazh', translations: { en: 'Floor / Storey', ru: 'Этаж', ar: 'طابق', fr: 'Étage' } },
+              ],
+              correctAnswer: 'Светофо́р · Студе́нт · Шоссе́ · Эта́ж',
+            },
+          },
+          {
+            type: 'translation_typing',
+            content: {
+              audioText: 'Вход',
+              audioSlug: 'vkhod',
+              sourcePrompt: {
+                ru: 'Напишите по-русски: Вход',
+                en: 'Entrance',
+                ar: 'مدخل',
+                fr: 'Entrée',
+              },
+              acceptedAnswers: ['Вхо́д', 'Вход'],
+              acceptedVariants: ['Вхо́д', 'Вход'],
+              correctAnswer: 'Вхо́д',
+              translation: { en: 'Entrance', ru: 'Вход', ar: 'مدخل', fr: 'Entrée' },
+              targetWordWithStress: 'Вхо́д',
+              targetCleanWord: 'ВХОД',
+              tiles: ['В', 'Х', 'О', 'Д'],
             },
           },
         ]),
@@ -1766,6 +2074,17 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
+            type: 'letter_sound',
+            content: {
+              targetLetter: 'Ф',
+              audioText: 'Ф — Фара',
+              audioSlug: 'letter-f',
+              phoneticHint: '[f]',
+              options: ['Ф', 'Э', 'Ю', 'Я'],
+              correctAnswer: 'Ф',
+            },
+          },
+          {
             type: 'picture_word',
             content: {
               iconKey: 'tea',
@@ -1774,6 +2093,17 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               options: ['Ча́й', 'Ю́г', 'Фа́ра', 'Меню́'],
               correctAnswer: 'Ча́й',
               translation: { en: 'Tea', ru: 'Чай', ar: 'شاي', fr: 'Thé' },
+            },
+          },
+          {
+            type: 'picture_word',
+            content: {
+              iconKey: 'food',
+              audioText: 'Меню',
+              audioSlug: 'menyu',
+              options: ['Меню́', 'Ю́г', 'Я́блоко', 'Фи́зика'],
+              correctAnswer: 'Меню́',
+              translation: { en: 'Menu', ru: 'Меню', ar: 'قائمة طعام', fr: 'Menu' },
             },
           },
           {
@@ -1796,6 +2126,61 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               tiles: ['А', 'Ф', 'Р', 'А', 'Э'],
               correctAnswer: 'ФАРА',
               translation: { en: 'Headlight', ru: 'Фара', ar: 'مصباح السيارة', fr: 'Phare' },
+            },
+          },
+          {
+            type: 'word_builder',
+            content: {
+              targetWordWithStress: 'Фи́зика',
+              targetCleanWord: 'ФИЗИКА',
+              audioSlug: 'fizika',
+              tiles: ['К', 'Ф', 'А', 'И', 'З', 'И'],
+              correctAnswer: 'ФИЗИКА',
+              translation: { en: 'Physics', ru: 'Физика', ar: 'فيزياء', fr: 'Physique' },
+            },
+          },
+          {
+            type: 'stress_placement',
+            content: {
+              targetWordWithStress: 'Экза́мен',
+              wordWithoutStress: 'Экзамен',
+              stressedVowelIndex: 1,
+              audioText: 'Экзамен',
+              audioSlug: 'ekzamen',
+              correctAnswer: 'Экза́мен',
+              translation: { en: 'Exam (stress on А́)', ru: 'Экзамен (ударение на А́)', ar: 'امتحان (النبر على حرف А́)', fr: 'Examen (accent sur А́)' },
+            },
+          },
+          {
+            type: 'matching_pairs',
+            content: {
+              pairs: [
+                { id: 'u1-l5-mp1', russian: 'Я́блоко', audioSlug: 'yabloko', translations: { en: 'Apple', ru: 'Яблоко', ar: 'تفاحة', fr: 'Pomme' } },
+                { id: 'u1-l5-mp2', russian: 'Трамва́й', audioSlug: 'tramvay', translations: { en: 'Tram', ru: 'Трамвай', ar: 'ترام', fr: 'Tramway' } },
+                { id: 'u1-l5-mp3', russian: 'Музе́й', audioSlug: 'muzey', translations: { en: 'Museum', ru: 'Музей', ar: 'متحف', fr: 'Musée' } },
+                { id: 'u1-l5-mp4', russian: 'Шофёр', audioSlug: 'shofor', translations: { en: 'Driver', ru: 'Шофёр', ar: 'سائق', fr: 'Chauffeur' } },
+              ],
+              correctAnswer: 'Я́блоко · Трамва́й · Музе́й · Шофёр',
+            },
+          },
+          {
+            type: 'translation_typing',
+            content: {
+              audioText: 'Экран',
+              audioSlug: 'ekran',
+              sourcePrompt: {
+                ru: 'Напишите по-русски: Экран',
+                en: 'Screen',
+                ar: 'شاشة',
+                fr: 'Écran',
+              },
+              acceptedAnswers: ['Экра́н', 'Экран'],
+              acceptedVariants: ['Экра́н', 'Экран'],
+              correctAnswer: 'Экра́н',
+              translation: { en: 'Screen', ru: 'Экран', ar: 'شاشة', fr: 'Écran' },
+              targetWordWithStress: 'Экра́н',
+              targetCleanWord: 'ЭКРАН',
+              tiles: ['Э', 'К', 'Р', 'А', 'Н'],
             },
           },
         ]),
@@ -1853,6 +2238,17 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
+            type: 'picture_word',
+            content: {
+              iconKey: 'sun',
+              audioText: 'День',
+              audioSlug: 'den',
+              options: ['Де́нь', 'Тетра́дь', 'Подъе́зд', 'Мосты́'],
+              correctAnswer: 'Де́нь',
+              translation: { en: 'Day', ru: 'День', ar: 'يوم / نهار', fr: 'Jour' },
+            },
+          },
+          {
             type: 'word_builder',
             content: {
               targetWordWithStress: 'Мы́',
@@ -1883,6 +2279,44 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
               tiles: ['Д', 'Е', 'В', 'Ъ', 'З', 'Ь'],
               correctAnswer: 'ВЪЕЗД',
               translation: { en: 'Vehicle Entry', ru: 'Въезд', ar: 'مدخل سيارات', fr: 'Entrée véhicules' },
+            },
+          },
+          {
+            type: 'stress_placement',
+            content: {
+              targetWordWithStress: 'Тетра́дь',
+              wordWithoutStress: 'Тетрадь',
+              stressedVowelIndex: 1,
+              audioText: 'Тетрадь',
+              audioSlug: 'tetrad',
+              correctAnswer: 'Тетра́дь',
+              translation: { en: 'Notebook (stress on А́)', ru: 'Тетрадь (ударение на А́)', ar: 'دفتر (النبر على حرف А́)', fr: 'Cahier (accent sur А́)' },
+            },
+          },
+          {
+            type: 'matching_pairs',
+            content: {
+              pairs: [
+                { id: 'u1-l6-mp1', russian: 'Самолёт', audioSlug: 'samolet', translations: { en: 'Plane', ru: 'Самолёт', ar: 'طائرة', fr: 'Avion' } },
+                { id: 'u1-l6-mp2', russian: 'Язы́к', audioSlug: 'yazyk', translations: { en: 'Language', ru: 'Язык', ar: 'لغة', fr: 'Langue' } },
+                { id: 'u1-l6-mp3', russian: 'Подъе́зд', audioSlug: 'podyezd', translations: { en: 'Building Entrance', ru: 'Подъезд', ar: 'مدخل عمارة', fr: 'Entrée d’immeuble' } },
+                { id: 'u1-l6-mp4', russian: 'Мосты́', audioSlug: 'mosty', translations: { en: 'Bridges', ru: 'Мосты', ar: 'جسور', fr: 'Ponts' } },
+              ],
+              correctAnswer: 'Самолёт · Язы́к · Подъе́зд · Мосты́',
+            },
+          },
+          {
+            type: 'listening_dictation',
+            content: {
+              audioText: 'Цифра',
+              audioSlug: 'tsifra',
+              acceptedAnswers: ['Ци́фра', 'Цифра'],
+              acceptedVariants: ['Ци́фра', 'Цифра'],
+              correctAnswer: 'Ци́фра',
+              translation: { en: 'Digit / Number', ru: 'Цифра', ar: 'رقم', fr: 'Chiffre' },
+              targetWordWithStress: 'Ци́фра',
+              targetCleanWord: 'ЦИФРА',
+              tiles: ['Ц', 'И', 'Ф', 'Р', 'А'],
             },
           },
         ]),
@@ -2010,6 +2444,42 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             id: 'u2-l1-step-7',
             lessonId: 'u2-l1',
             orderIndex: 7,
+            type: 'matching_pairs',
+            content: {
+              pairs: [
+                { id: 'u2-l1-mp1', russian: 'Здра́вствуй', audioSlug: 'zdravstvuy', translations: { en: 'Hello (to one person)', ru: 'Здравствуй (одному человеку)', ar: 'مرحباً (لشخص واحد)', fr: 'Bonjour (à une personne)' } },
+                { id: 'u2-l1-mp2', russian: 'До встре́чи', audioSlug: 'do-vstrechi', translations: { en: 'See you / Until we meet', ru: 'До встречи', ar: 'إلى اللقاء / أراك قريباً', fr: 'À bientôt' } },
+                { id: 'u2-l1-mp3', russian: 'До за́втра', audioSlug: 'do-zavtra', translations: { en: 'See you tomorrow', ru: 'До завтра', ar: 'أراك غداً', fr: 'À demain' } },
+                { id: 'u2-l1-mp4', russian: 'Всего́ до́брого', audioSlug: 'vsego-dobrogo', translations: { en: 'All the best', ru: 'Всего доброго', ar: 'كل التوفيق', fr: 'Meilleurs vœux' } },
+              ],
+              correctAnswer: 'Здра́вствуй · До встре́чи · До за́втра · Всего́ до́брого',
+            },
+          },
+          {
+            id: 'u2-l1-step-8',
+            lessonId: 'u2-l1',
+            orderIndex: 8,
+            type: 'fill_blank',
+            content: {
+              sentenceBefore: '— Пока́! — ',
+              sentenceAfter: '!',
+              audioText: 'Пока! Счастливо!',
+              audioSlug: 'schastlivo',
+              options: ['Счастли́во', 'Спаси́бо', 'Пожа́луйста', 'Приве́т'],
+              acceptedAnswers: ['Счастли́во'],
+              correctAnswer: 'Счастли́во',
+              translation: {
+                en: '— Bye! — Good luck!',
+                ru: '— Пока! — Счастливо!',
+                ar: '— إلى اللقاء! — بالتوفيق!',
+                fr: '— Salut ! — Bonne chance !',
+              },
+            },
+          },
+          {
+            id: 'u2-l1-step-9',
+            lessonId: 'u2-l1',
+            orderIndex: 9,
             type: 'word_builder',
             content: {
               targetWordWithStress: 'Пока́',
@@ -2026,9 +2496,9 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
-            id: 'u2-l1-step-8',
+            id: 'u2-l1-step-10',
             lessonId: 'u2-l1',
-            orderIndex: 8,
+            orderIndex: 10,
             type: 'word_builder',
             content: {
               targetWordWithStress: 'Приве́т',
@@ -2045,9 +2515,9 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
-            id: 'u2-l1-step-9',
+            id: 'u2-l1-step-11',
             lessonId: 'u2-l1',
-            orderIndex: 9,
+            orderIndex: 11,
             type: 'stress_placement',
             content: {
               targetWordWithStress: 'Приве́т',
@@ -2065,9 +2535,9 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
-            id: 'u2-l1-step-10',
+            id: 'u2-l1-step-12',
             lessonId: 'u2-l1',
-            orderIndex: 10,
+            orderIndex: 12,
             type: 'sentence_builder',
             content: {
               direction: 'to_ru',
@@ -2088,6 +2558,56 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
                 ar: 'مرحباً، إلى اللقاء',
                 fr: 'Salut, au revoir',
               },
+            },
+          },
+          {
+            id: 'u2-l1-step-13',
+            lessonId: 'u2-l1',
+            orderIndex: 13,
+            type: 'translation_typing',
+            content: {
+              audioText: 'Приветствую',
+              audioSlug: 'privetstvuyu',
+              sourcePrompt: {
+                ru: 'Напишите по-русски: Приветствую',
+                en: 'I greet you / Welcome (formal)',
+                ar: 'أرحب بك (رسمي)',
+                fr: 'Je vous salue (formel)',
+              },
+              acceptedAnswers: ['Приве́тствую', 'Приветствую'],
+              acceptedVariants: ['Приве́тствую', 'Приветствую'],
+              correctAnswer: 'Приве́тствую',
+              translation: {
+                en: 'I greet you / Welcome',
+                ru: 'Приветствую',
+                ar: 'أرحب بك',
+                fr: 'Je vous salue',
+              },
+              targetWordWithStress: 'Приве́тствую',
+              targetCleanWord: 'ПРИВЕТСТВУЮ',
+              tiles: ['П', 'Р', 'И', 'В', 'Е', 'Т', 'С', 'Т', 'В', 'У', 'Ю'],
+            },
+          },
+          {
+            id: 'u2-l1-step-14',
+            lessonId: 'u2-l1',
+            orderIndex: 14,
+            type: 'listening_dictation',
+            content: {
+              audioText: 'Всего хорошего',
+              audioSlug: 'vsego-khoroshego',
+              acceptedAnswers: ['Всего́ хоро́шего', 'Всего хорошего'],
+              acceptedVariants: ['Всего́ хоро́шего', 'Всего хорошего'],
+              correctAnswer: 'Всего́ хоро́шего',
+              translation: {
+                en: 'All the best',
+                ru: 'Всего хорошего',
+                ar: 'كل التوفيق',
+                fr: 'Meilleurs vœux',
+              },
+              targetWordWithStress: 'Всего́ хоро́шего',
+              targetCleanWord: 'ВСЕГОХОРОШЕГО',
+              tiles: ['В', 'С', 'Е', 'Г', 'О', 'Х', 'О', 'Р', 'О', 'Ш', 'Е', 'Г', 'О'],
             },
           },
         ],
@@ -2193,6 +2713,42 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             id: 'u2-l2-step-7',
             lessonId: 'u2-l2',
             orderIndex: 7,
+            type: 'matching_pairs',
+            content: {
+              pairs: [
+                { id: 'u2-l2-mp1', russian: 'О́чень прия́тно', audioSlug: 'ochen-priyatno', translations: { en: 'Nice to meet you', ru: 'Очень приятно', ar: 'سعيد بلقائك', fr: 'Enchanté(e)' } },
+                { id: 'u2-l2-mp2', russian: 'Рад позна́комиться', audioSlug: 'rad-poznakomitsya', translations: { en: 'Pleased to meet you', ru: 'Рад познакомиться', ar: 'سعيد بالتعرف عليك', fr: 'Ravi de vous rencontrer' } },
+                { id: 'u2-l2-mp3', russian: 'Не за что́', audioSlug: 'ne-za-chto', translations: { en: "You're welcome", ru: 'Не за что', ar: 'على الرحب والسعة', fr: 'De rien' } },
+                { id: 'u2-l2-mp4', russian: 'Извини́те', audioSlug: 'izvinite', translations: { en: 'Excuse me / Sorry', ru: 'Извините', ar: 'عذراً', fr: 'Excusez-moi / Pardon' } },
+              ],
+              correctAnswer: 'О́чень прия́тно · Рад позна́комиться · Не за что́ · Извини́те',
+            },
+          },
+          {
+            id: 'u2-l2-step-8',
+            lessonId: 'u2-l2',
+            orderIndex: 8,
+            type: 'fill_blank',
+            content: {
+              sentenceBefore: '— Как дела́? — ',
+              sentenceAfter: '!',
+              audioText: 'Как дела? Хорошо!',
+              audioSlug: 'kak-dela-khorosho',
+              options: ['Хорошо́', 'Спаси́бо', 'Пока́', 'До свида́ния'],
+              acceptedAnswers: ['Хорошо́'],
+              correctAnswer: 'Хорошо́',
+              translation: {
+                en: '— How are you? — Good!',
+                ru: '— Как дела? — Хорошо!',
+                ar: '— كيف حالك؟ — بخير!',
+                fr: '— Comment ça va ? — Bien !',
+              },
+            },
+          },
+          {
+            id: 'u2-l2-step-9',
+            lessonId: 'u2-l2',
+            orderIndex: 9,
             type: 'word_builder',
             content: {
               targetWordWithStress: 'Спаси́бо',
@@ -2209,9 +2765,9 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
-            id: 'u2-l2-step-8',
+            id: 'u2-l2-step-10',
             lessonId: 'u2-l2',
-            orderIndex: 8,
+            orderIndex: 10,
             type: 'word_builder',
             content: {
               targetWordWithStress: 'Как дела́?',
@@ -2228,9 +2784,9 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
-            id: 'u2-l2-step-9',
+            id: 'u2-l2-step-11',
             lessonId: 'u2-l2',
-            orderIndex: 9,
+            orderIndex: 11,
             type: 'stress_placement',
             content: {
               targetWordWithStress: 'Спаси́бо',
@@ -2248,9 +2804,9 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
             },
           },
           {
-            id: 'u2-l2-step-10',
+            id: 'u2-l2-step-12',
             lessonId: 'u2-l2',
-            orderIndex: 10,
+            orderIndex: 12,
             type: 'sentence_builder',
             content: {
               direction: 'to_ru',
@@ -2271,6 +2827,56 @@ export const CURRICULUM_UNITS: CurriculumUnit[] = [
                 ar: 'شكراً، الأمور بخير',
                 fr: 'Merci, ça va bien',
               },
+            },
+          },
+          {
+            id: 'u2-l2-step-13',
+            lessonId: 'u2-l2',
+            orderIndex: 13,
+            type: 'translation_typing',
+            content: {
+              audioText: 'Я студент',
+              audioSlug: 'ya-student',
+              sourcePrompt: {
+                ru: 'Напишите по-русски: Я студент',
+                en: 'I am a student',
+                ar: 'أنا طالب',
+                fr: 'Je suis étudiant',
+              },
+              acceptedAnswers: ['Я студе́нт', 'Я студент'],
+              acceptedVariants: ['Я студе́нт', 'Я студент'],
+              correctAnswer: 'Я студе́нт',
+              translation: {
+                en: 'I am a student',
+                ru: 'Я студент',
+                ar: 'أنا طالب',
+                fr: 'Je suis étudiant',
+              },
+              targetWordWithStress: 'Я студе́нт',
+              targetCleanWord: 'ЯСТУДЕНТ',
+              tiles: ['Я', 'С', 'Т', 'У', 'Д', 'Е', 'Н', 'Т'],
+            },
+          },
+          {
+            id: 'u2-l2-step-14',
+            lessonId: 'u2-l2',
+            orderIndex: 14,
+            type: 'listening_dictation',
+            content: {
+              audioText: 'Как тебя зовут?',
+              audioSlug: 'kak-tebya-zovut',
+              acceptedAnswers: ['Как тебя́ зову́т?', 'Как тебя зовут?'],
+              acceptedVariants: ['Как тебя́ зову́т?', 'Как тебя зовут?'],
+              correctAnswer: 'Как тебя́ зову́т?',
+              translation: {
+                en: 'What is your name?',
+                ru: 'Как тебя зовут?',
+                ar: 'ما اسمك؟',
+                fr: 'Comment tu t’appelles ?',
+              },
+              targetWordWithStress: 'Как тебя́ зову́т?',
+              targetCleanWord: 'КАКТЕБЯЗОВУТ',
+              tiles: ['К', 'А', 'К', 'Т', 'Е', 'Б', 'Я', 'З', 'О', 'В', 'У', 'Т'],
             },
           },
         ],

@@ -7,8 +7,15 @@ import {VitePWA} from 'vite-plugin-pwa';
 export default defineConfig(() => {
   // GitHub Pages serves the project site under /madingo/ — build with the
   // sub-path base only when PAGES=1 (the Pages workflow sets it). Default
-  // builds (Netlify, local) keep the root base '/'.
-  const pagesBase = process.env.PAGES ? '/madingo/' : '/';
+  // builds (Netlify, local) keep the root base '/'. The Capacitor native
+  // build (CAPACITOR=1) uses a relative base './' so every asset resolves
+  // under the app's own origin (https://localhost on Android) with the
+  // whole app bundled locally in the APK — no web load at all.
+  const pagesBase = process.env.CAPACITOR
+    ? './'
+    : process.env.PAGES
+      ? '/madingo/'
+      : '/';
   return {
     base: pagesBase,
     plugins: [
@@ -21,9 +28,9 @@ export default defineConfig(() => {
           name: 'madingo — Learn Russian on the MADI Road',
           short_name: 'madingo',
           description: 'Free Russian-learning PWA for students of MADI (Moscow Automobile and Road Construction State Technical University).',
-          theme_color: '#0B3D91',
-          background_color: '#F7F9FC',
-          display: 'standalone',
+          theme_color: '#050B1A',
+          background_color: '#050B1A',
+          display: 'fullscreen',
           icons: [
             {
               src: 'pwa-192x192.png',
@@ -47,12 +54,28 @@ export default defineConfig(() => {
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+          // Push notifications (2026-11-15): the 'push' + 'notificationclick'
+          // handlers live in public/push-sw.js and are imported into the
+          // generated service worker. The file must stay in public/ so it is
+          // copied to the build output next to sw.js.
+          importScripts: ['push-sw.js'],
           // The storybook lives at /madingo/book/ (same Pages site) and is
           // shown inside the Aniss bubble iframe. Without this, the SPA
           // navigation fallback serves the app's own index.html for the
           // /madingo/book/ navigation and the iframe shows the app itself
-          // instead of the book (seen live 2026-11-11).
-          navigateFallbackDenylist: [/\/madingo\/book\//],
+          // instead of the book (seen live 2026-11-11). The Builder window
+          // at /madingo/builder/ needs the same treatment: it is a
+          // standalone page shown in an iframe (BuilderView.tsx).
+          navigateFallbackDenylist: [
+            /\/madingo\/book\//,
+            /\/madingo\/builder\//,
+            // Capacitor native build: the book/builder live at the app root
+            // (https://localhost/book/, /builder/) with no /madingo/ prefix.
+            // Same exclusion, otherwise the SPA fallback serves the app's
+            // own index.html inside the iframes.
+            /^\/book\//,
+            /^\/builder\//,
+          ],
           globPatterns: ['**/*.{js,css,html,ico,png,webp,svg,woff,woff2,json}'],
           runtimeCaching: [
             {
