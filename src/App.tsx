@@ -1703,9 +1703,46 @@ const MadingoAppInner: React.FC = () => {
     setAuthToken(null);
     clearStoredAuthToken();
     clearDashboardSnapshot();
+    // ROUND 3 — "Delete account & all data" must actually delete the
+    // per-account data that lives outside the dashboard snapshot. The
+    // translator history (madingo_ai_translator_history_v1) and the other
+    // keys below each live in their own localStorage key, so deleting the
+    // account left them behind: a brand-new account opened to a pre-filled
+    // history (6 stale entries from the previous account). The garage
+    // cache also re-seeds reviewItems on boot, and mastered/streak/today
+    // minutes leaked in memory to the next account in the same session.
+    // Device-level keys are deliberately KEPT: UI language choice
+    // (clearing it would pop the language picker on landing right after
+    // the delete), push subscription, the user's own Gemini key, and the
+    // offline lesson-content cache (content, not account data).
+    try {
+      for (const key of [
+        'madingo_ai_translator_history_v1',
+        'madingo_recent_dict_searches_v2',
+        'madingo_library_bookmarks',
+        'madingo_speaking_attempts',
+        'madingo_offline_garage_items_v2',
+        'madingo_offline_garage_sync_queue_v2',
+        'madingo_local_arena_rooms_v1',
+        'madingo_assistant_bubble_pos_v1',
+      ]) {
+        window.localStorage.removeItem(key);
+      }
+    } catch {
+      // ignore storage errors
+    }
     setCompletedLessonIds([]);
     setAccuracyByLesson({});
+    setMasteredLessonIds([]);
     setTotalFuel(0);
+    setStreak({
+      current: 0,
+      best: 0,
+      lastActiveDate: null,
+      spareTireAvailable: true,
+      spareTireUsedDate: null,
+    });
+    setTodayMinutesCompleted(0);
     setMistakes([]);
     setUserWords([]);
     setReviewItems([]);
