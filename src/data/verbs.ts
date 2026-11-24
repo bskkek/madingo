@@ -17,6 +17,8 @@ export interface VerbCategory {
   id: string;
   ar: string;
   ru: string;
+  en: string;
+  fr: string;
   verbs: VerbEntry[];
 }
 
@@ -25,6 +27,8 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     "id": "movement",
     "ar": "أفعال الحركة",
     "ru": "Движение",
+    "en": "Movement",
+    "fr": "Mouvement",
     "verbs": [
       {
         "id": "v001",
@@ -282,6 +286,8 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     "id": "daily",
     "ar": "الحياة اليومية",
     "ru": "Повседневная жизнь",
+    "en": "Daily life",
+    "fr": "Vie quotidienne",
     "verbs": [
       {
         "id": "v026",
@@ -539,6 +545,8 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     "id": "speech",
     "ar": "الكلام والتواصل",
     "ru": "Общение",
+    "en": "Communication",
+    "fr": "Communication",
     "verbs": [
       {
         "id": "v051",
@@ -796,6 +804,8 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     "id": "study",
     "ar": "العمل والدراسة",
     "ru": "Учёба и работа",
+    "en": "Study & Work",
+    "fr": "Études et travail",
     "verbs": [
       {
         "id": "v076",
@@ -1053,6 +1063,8 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     "id": "feelings",
     "ar": "المشاعر",
     "ru": "Чувства",
+    "en": "Feelings",
+    "fr": "Sentiments",
     "verbs": [
       {
         "id": "v101",
@@ -1310,6 +1322,8 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     "id": "body",
     "ar": "أفعال جسدية",
     "ru": "Действия тела",
+    "en": "Body actions",
+    "fr": "Actions du corps",
     "verbs": [
       {
         "id": "v126",
@@ -1567,6 +1581,8 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     "id": "food",
     "ar": "الطعام",
     "ru": "Еда",
+    "en": "Food",
+    "fr": "Nourriture",
     "verbs": [
       {
         "id": "v151",
@@ -1824,6 +1840,8 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     "id": "home",
     "ar": "البيت",
     "ru": "Дом",
+    "en": "Home",
+    "fr": "Maison",
     "verbs": [
       {
         "id": "v176",
@@ -2081,6 +2099,8 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     "id": "travel",
     "ar": "السفر والمواصلات",
     "ru": "Путешествия и транспорт",
+    "en": "Travel & Transport",
+    "fr": "Voyages et transport",
     "verbs": [
       {
         "id": "v201",

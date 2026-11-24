@@ -185,7 +185,15 @@
     "garageDueBannerTitle": "توجد {count} سيارات تنتظر الصيانة في المرآب!",
     "garageDueBannerSub": "راجع كلماتك بنظام لايتنر لتثبيت الحفظ.",
     "serviceNowCta": "ابدأ الصيانة الآن",
-    "assignedByTeacherBadge": "واجب من المدرس · حتى {date}"
+    "assignedByTeacherBadge": "واجب من المدرس · حتى {date}",
+    "garageReviewHint": "مراجعة يومية — 5 وقود لكل إجابة صحيحة.",
+    "garageUpToDate": "لا شيء مستحق الآن — مرآبك محدَّث.",
+    "reviewNow": "راجع الآن ←",
+    "openGarage": "افتح المرآب ←",
+    "exploreBadges": "استكشف الشارات الأربعين والدوريات الأسبوعية ←",
+    "practiceHeading": "التدريب",
+    "placementTestBtn": "اختبار تحديد المستوى — ابدأ من مستواك ←",
+    "speakingPracticeBtn": "تدريب النطق — كرر بعدي ←"
   },
   "lesson": {
     "exitConfirmTitle": "هل تريد مغادرة الطريق الآن؟",
@@ -419,7 +427,9 @@
     "deleteAccountBtn": "حذف الحساب وجميع البيانات",
     "deleteConfirmTitle": "هل تريد حذف حسابك نهائياً؟",
     "deleteConfirmBody": "سيؤدي هذا إلى مسح ملفك الشخصي وسجل الوقود وعداد السلسلة وتقدم الدروس من قاعدة البيانات.",
-    "deleteConfirmYes": "نعم، احذف بياناتي"
+    "deleteConfirmYes": "نعم، احذف بياناتي",
+    "exportDone": "تم تصدير بياناتك — تم تنزيل ملف JSON.",
+    "exportFailed": "فشل التصدير. يرجى المحاولة مرة أخرى."
   },
   "assistant": {
     "title": "مساعدك الشخصي",
@@ -446,7 +456,8 @@
     "listen": "استمع",
     "previous": "السابق",
     "next": "التالي",
-    "audioUnavailable": "الصوت غير متوفر حاليا"
+    "audioUnavailable": "الصوت غير متوفر حاليا",
+    "expandVocab": "وَسِّعْ مُفْرَدَاتِك"
   },
   "push": {
     "promptTitle": "ذكّرني باش نكمّل تعليمي",

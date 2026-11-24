@@ -76,7 +76,8 @@ export const VerbsView: React.FC<{ initialVerbId?: string }> = ({ initialVerbId 
 
   const NextIcon = dir === 'rtl' ? ChevronLeft : ChevronRight;
   const PrevIcon = dir === 'rtl' ? ChevronRight : ChevronLeft;
-  const catLabel = (c: { ar: string; ru: string }) => (lang === 'ar' ? c.ar : c.ru);
+  const catLabel = (c: { ar: string; ru: string; en: string; fr: string }) =>
+    c[lang] ?? c.ru;
   // Meaning in the student's chosen language (ar/fr/en/ru), with fallback.
   const meaning =
     (lang === 'ar' ? verb.ar : lang === 'fr' ? verb.fr : lang === 'en' ? verb.en : verb.ruDef) ||
@@ -93,12 +94,12 @@ export const VerbsView: React.FC<{ initialVerbId?: string }> = ({ initialVerbId 
         {/* Black top bar — yellow bold text, exactly like the video */}
         <div className="flex shrink-0 items-center justify-center bg-black px-3 py-2.5">
           <span className="text-center text-[15px] font-extrabold tracking-wide text-[#ffd94a]">
-            РАСШИРЬ СЛОВАРНЫЙ ЗАПАС
+            {t('verbs.expandVocab')}
           </span>
         </div>
 
-        {/* Category chips */}
-        <div className="flex shrink-0 gap-2 overflow-x-auto bg-[#3a2d1e] px-3 py-2" dir="rtl">
+        {/* Category chips — scroll direction follows the UI language. */}
+        <div className="flex shrink-0 gap-2 overflow-x-auto bg-[#3a2d1e] px-3 py-2" dir={dir}>
           {VERB_CATEGORIES.map((c) => (
             <button
               key={c.id}

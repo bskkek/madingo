@@ -95,7 +95,7 @@ export async function ttsCachePut(key: string, dataUrl: string): Promise<void> {
         store.put({ key, dataUrl, savedAt: Date.now() } as TtsCacheEntry)
       );
       // Enforce the cap: delete oldest entries beyond MAX_ENTRIES.
-      const keys = await runTx<string[]>(db, 'readonly', (store) => store.getAllKeys());
+      const keys = await runTx<IDBValidKey[]>(db, 'readonly', (store) => store.getAllKeys());
       if (keys.length > MAX_ENTRIES) {
         const entries = await runTx<TtsCacheEntry[]>(db, 'readonly', (store) =>
           store.getAll()

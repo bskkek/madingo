@@ -185,7 +185,15 @@
     "garageDueBannerTitle": "{count} voitures attendent un entretien au Garage !",
     "garageDueBannerSub": "Révisez vos boîtes Leitner pour consolider votre mémoire.",
     "serviceNowCta": "Réviser maintenant",
-    "assignedByTeacherBadge": "Devoir enseignant · pour le {date}"
+    "assignedByTeacherBadge": "Devoir enseignant · pour le {date}",
+    "garageReviewHint": "Révision quotidienne — 5 carburants par bonne réponse.",
+    "garageUpToDate": "Rien à réviser pour le moment — votre Garage est à jour.",
+    "reviewNow": "Réviser maintenant →",
+    "openGarage": "Ouvrir le Garage →",
+    "exploreBadges": "Découvrir les 40 badges originaux et les ligues hebdomadaires →",
+    "practiceHeading": "Pratique",
+    "placementTestBtn": "Test de niveau — commencez à votre niveau →",
+    "speakingPracticeBtn": "Pratique orale — Répétez après moi →"
   },
   "lesson": {
     "exitConfirmTitle": "Quitter la route maintenant ?",
@@ -419,7 +427,9 @@
     "deleteAccountBtn": "Supprimer le compte et toutes les données",
     "deleteConfirmTitle": "Supprimer définitivement votre compte ?",
     "deleteConfirmBody": "Cela effacera votre profil, votre carburant, votre compteur et votre progression de la base de données.",
-    "deleteConfirmYes": "Oui, supprimer mes données"
+    "deleteConfirmYes": "Oui, supprimer mes données",
+    "exportDone": "Vos données ont été exportées — le fichier JSON a été téléchargé.",
+    "exportFailed": "Échec de l’export. Veuillez réessayer."
   },
   "assistant": {
     "title": "Assistant personnel",
@@ -446,7 +456,8 @@
     "listen": "Écouter",
     "previous": "Précédent",
     "next": "Suivant",
-    "audioUnavailable": "Audio indisponible pour le moment"
+    "audioUnavailable": "Audio indisponible pour le moment",
+    "expandVocab": "ÉLARGISSEZ VOTRE VOCABULAIRE"
   },
   "push": {
     "promptTitle": "Rappels pour continuer à apprendre",

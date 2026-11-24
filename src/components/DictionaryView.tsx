@@ -16,12 +16,14 @@ import {
   Loader2,
   Trash2,
   AlertCircle,
+  BookOpen,
 } from 'lucide-react';
 import { CurriculumLesson } from '../data/curriculum';
 import { useI18n } from '../lib/i18n';
 import { speakRussian, speakText } from '../lib/audio';
 import { instantTranslateClient } from '../lib/clientTranslate';
 import { SupportedLang } from '../lib/phase2Engine';
+import { DictionaryWordsTab } from './DictionaryWordsTab';
 
 export interface UserWordRecord {
   wordId: string;
@@ -85,6 +87,9 @@ interface DictionaryViewProps {
   soundEnabled: boolean;
   userWords?: UserWordRecord[];
   initialQuery?: string;
+  /** Which tab opens first. The Learn tile opens the word list ('words');
+      lesson lookups and the Road button keep the translator. */
+  defaultSection?: 'translator' | 'history' | 'words';
   onToggleUserWord?: (payload: {
     wordId: string;
     status?: 'learning' | 'known' | 'garage';
@@ -168,6 +173,7 @@ const UI_COPY: Record<
     subtitle: string;
     tabTranslator: string;
     tabHistory: string;
+    tabWords: string;
     autoDetect: string;
     detectedBadge: string;
     swapBtn: string;
@@ -200,6 +206,7 @@ const UI_COPY: Record<
       'ترجمة فورية احترافية ودقيقة بين الروسية والعربية والإنجليزية والفرنسية مع تشكيل النبر الصوتي (Ударение) والنطق الصحيح',
     tabTranslator: 'المترجم الفوري الذكي',
     tabHistory: 'السجل والمحفوظات',
+    tabWords: 'الكلمات (628)',
     autoDetect: 'تعرّف تلقائي على اللغة',
     detectedBadge: 'اللغة المكتشفة',
     swapBtn: 'تبديل اللغتين',
@@ -233,6 +240,7 @@ const UI_COPY: Record<
       'Профессиональный синхронный перевод между русским, арабским, английским и французским языками с ударениями и озвучкой',
     tabTranslator: 'ИИ-Переводчик',
     tabHistory: 'История и избранное',
+    tabWords: 'Слова (628)',
     autoDetect: 'Определить язык',
     detectedBadge: 'Определён',
     swapBtn: 'Поменять языки',
@@ -266,6 +274,7 @@ const UI_COPY: Record<
       'Professional real-time AI translation across Russian, Arabic, English & French with stress marks, phonetics, and audio',
     tabTranslator: 'AI Instant Translator',
     tabHistory: 'History & Saved',
+    tabWords: 'Words (628)',
     autoDetect: 'Auto-Detect Language',
     detectedBadge: 'Detected',
     swapBtn: 'Swap languages',
@@ -299,6 +308,7 @@ const UI_COPY: Record<
       'Traduction IA professionnelle en temps réel entre le russe, l’arabe, l’anglais et le français avec accents toniques et audio',
     tabTranslator: 'Traducteur IA',
     tabHistory: 'Historique & Favoris',
+    tabWords: 'Mots (628)',
     autoDetect: 'Détecter la langue',
     detectedBadge: 'Détecté',
     swapBtn: 'Inverser les langues',
@@ -380,14 +390,15 @@ function persistSavedHistory(items: SavedTranslationRecord[]) {
 export const DictionaryView: React.FC<DictionaryViewProps> = ({
   soundEnabled,
   initialQuery = '',
+  defaultSection = 'translator',
   onToggleUserWord,
   onAddWordToGarage,
 }) => {
   const { lang } = useI18n();
   const copy = UI_COPY[lang] || UI_COPY.en;
 
-  const [sectionTab, setSectionTab] = useState<'translator' | 'history'>(
-    'translator'
+  const [sectionTab, setSectionTab] = useState<'translator' | 'history' | 'words'>(
+    defaultSection
   );
   const [sourceLang, setSourceLang] = useState<'auto' | SupportedLang>('auto');
   const [targetLang, setTargetLang] = useState<SupportedLang>(() =>
@@ -412,6 +423,27 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
       setSectionTab('translator');
     }
   }, [initialQuery]);
+
+  // Follow the entry point: the Learn tile asks for the word list, the
+  // Road button and lesson lookups ask for the translator. A word lookup
+  // (initialQuery) always wins and opens the translator.
+  useEffect(() => {
+    if (!initialQuery?.trim()) setSectionTab(defaultSection);
+  }, [defaultSection]);
+
+  // Warm up the translation service once when the translator opens: the
+  // first request from a fresh profile used to fail on the cold
+  // DNS/TLS handshake to the translation host, while the retry — a
+  // second later, on the warm connection — succeeded. One tiny
+  // background translation (result discarded, errors ignored) warms the
+  // connection so the user's first real translation starts warm. It
+  // touches no UI state.
+  useEffect(() => {
+    instantTranslateClient({ text: 'Hello', sourceLang: 'en', targetLang: 'ru' }).catch(
+      () => {}
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const inputDir: 'ltr' | 'rtl' = useMemo(() => {
     if (sourceLang === 'ar') return 'rtl';
@@ -687,7 +719,7 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
           </h1>
         </div>
 
-        {/* Two tabs only now (translator + history): the strip fits the
+        {/* Three tabs (translator + words + history): the strip fits the
             phone width, no horizontal scrolling needed. */}
         <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-2xl self-start w-full max-w-full overflow-x-auto scrollbar-none sm:w-auto">
           <button
@@ -702,6 +734,20 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
           >
             <Languages className="w-4 h-4 text-brand-blue dark:text-accent-orange" />
             <span>{copy.tabTranslator}</span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="dictionary-tab-words"
+            onClick={() => setSectionTab('words')}
+            className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+              sectionTab === 'words'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-brand-blue dark:text-accent-orange" />
+            <span>{copy.tabWords}</span>
           </button>
 
           <button
@@ -1429,6 +1475,15 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
       )}
 
 
+      {/* ===================================================================== */}
+      {/* TAB 3: BROWSABLE WORD LIST (628 words)                                */}
+      {/* ===================================================================== */}
+      {sectionTab === 'words' && (
+        <DictionaryWordsTab
+          soundEnabled={soundEnabled}
+          onAddWordToGarage={onAddWordToGarage}
+        />
+      )}
     </div>
   );
 };

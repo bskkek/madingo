@@ -43,12 +43,22 @@ export interface InstantTranslationResult {
   providerUsed: string;
 }
 
-const MM_TIMEOUT_MS = 8000;
+const MM_TIMEOUT_MS = 15000;
+// The first translation attempt used to fail on a cold connection (fresh
+// browser profile: DNS + TLS to api.mymemory.translated.net can exceed
+// the old 8s timeout, and the shared egress IP is sometimes throttled
+// for a moment) while the manual Retry — one second later, on the warm
+// connection — succeeded. Retry once automatically so the user never
+// sees that first-attempt failure.
+const MM_MAX_ATTEMPTS = 2;
+const MM_RETRY_DELAY_MS = 600;
 const cache = new Map<string, InstantTranslationResult>();
 
 const SERVICE_ERROR = new Error(
   'Translation service is unreachable right now. Please check your connection and press Retry.'
 );
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function translateViaMyMemory(
   text: string,
@@ -59,27 +69,41 @@ async function translateViaMyMemory(
   const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
     text
   )}&langpair=${src}|${tgt}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), MM_TIMEOUT_MS);
-  const onExternalAbort = () => controller.abort();
-  if (signal) {
-    if (signal.aborted) controller.abort();
-    else signal.addEventListener('abort', onExternalAbort, { once: true });
+  let lastError: any = SERVICE_ERROR;
+  for (let attempt = 1; attempt <= MM_MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), MM_TIMEOUT_MS);
+    const onExternalAbort = () => controller.abort();
+    if (signal) {
+      if (signal.aborted) controller.abort();
+      else signal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw SERVICE_ERROR;
+      const data = await res.json();
+      const out = String(data?.responseData?.translatedText || '').trim();
+      if (!out) throw SERVICE_ERROR;
+      return out;
+    } catch (err: any) {
+      // The user typing a new query aborts the in-flight request — that
+      // is intentional: stop at once and never retry it. A timeout
+      // aborts only the internal controller (the caller's signal is not
+      // aborted), so that one is retried below; on the final attempt it
+      // surfaces as the friendly service error, never a bare AbortError
+      // (the view silently swallows AbortError, which would show the
+      // user nothing at all).
+      if (signal?.aborted) throw err;
+      lastError = SERVICE_ERROR;
+      if (attempt < MM_MAX_ATTEMPTS) {
+        await sleep(MM_RETRY_DELAY_MS);
+      }
+    } finally {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', onExternalAbort);
+    }
   }
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) throw SERVICE_ERROR;
-    const data = await res.json();
-    const out = String(data?.responseData?.translatedText || '').trim();
-    if (!out) throw SERVICE_ERROR;
-    return out;
-  } catch (err: any) {
-    if (err?.name === 'AbortError') throw err;
-    throw SERVICE_ERROR;
-  } finally {
-    clearTimeout(timer);
-    if (signal) signal.removeEventListener('abort', onExternalAbort);
-  }
+  throw lastError;
 }
 
 export async function instantTranslateClient(params: {

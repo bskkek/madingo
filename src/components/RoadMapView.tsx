@@ -821,8 +821,8 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
                     {dueGarageCount > 0
-                      ? 'Daily review — 5 fuel per correct answer.'
-                      : 'Nothing due right now — your Garage is up to date.'}
+                      ? t('map.garageReviewHint')
+                      : t('map.garageUpToDate')}
                   </div>
                 </div>
               </div>
@@ -831,7 +831,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                 onClick={onOpenGarage}
                 className="w-full min-h-[40px] rounded-xl bg-brand-blue/10 dark:bg-slate-800 text-xs font-display font-bold text-brand-blue dark:text-accent-orange hover:bg-brand-blue/20 transition cursor-pointer"
               >
-                {dueGarageCount > 0 ? 'Review now →' : 'Open the Garage →'}
+                {dueGarageCount > 0 ? t('map.reviewNow') : t('map.openGarage')}
               </button>
             </div>
           )}
@@ -955,7 +955,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                 onClick={onOpenLeaguesAndBadges}
                 className="w-full min-h-[40px] rounded-xl bg-brand-blue/10 dark:bg-slate-800 text-xs font-display font-bold text-brand-blue dark:text-accent-orange hover:bg-brand-blue/20 transition cursor-pointer"
               >
-                Explore All 40 Original Badges & Weekly Leagues →
+                {t('map.exploreBadges')}
               </button>
             )}
           </div>
@@ -964,7 +964,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
             <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-white/50 dark:border-slate-700/60 rounded-3xl p-5 sm:p-6 shadow-lg space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white">
-                  Practice
+                  {t('map.practiceHeading')}
                 </h3>
                 <Compass className="w-5 h-5 text-accent-orange" />
               </div>
@@ -975,7 +975,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                   className="w-full min-h-[40px] rounded-xl bg-brand-blue/10 dark:bg-slate-800 text-xs font-display font-bold text-brand-blue dark:text-accent-orange hover:bg-brand-blue/20 transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Target className="w-4 h-4" />
-                  Placement Test — start at your level →
+                  {t('map.placementTestBtn')}
                 </button>
               )}
               {onOpenSpeaking && (
@@ -985,7 +985,7 @@ export const RoadMapView: React.FC<RoadMapViewProps> = ({
                   className="w-full min-h-[40px] rounded-xl bg-brand-blue/10 dark:bg-slate-800 text-xs font-display font-bold text-brand-blue dark:text-accent-orange hover:bg-brand-blue/20 transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Mic className="w-4 h-4" />
-                  Speaking Practice — Repeat After Me →
+                  {t('map.speakingPracticeBtn')}
                 </button>
               )}
             </div>

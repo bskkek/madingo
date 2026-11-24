@@ -38,7 +38,7 @@ interface ProfileSettingsViewProps {
   onDeleteAccount: () => Promise<void>;
   onOpenLegalModal?: () => void;
   onOpenContactModal?: () => void;
-  onExportGdprJson?: () => void;
+  onExportGdprJson?: () => void | Promise<boolean>;
   /** 'glass' = dark glass panels with white text, over the MADI photo
       (Profile window). Default keeps the classic white cards. */
   surface?: 'default' | 'glass';
@@ -93,8 +93,20 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
 
   const [isSaving, setIsSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showMore, setShowMore] = useState(false);
+
+  // GDPR export: the button used to do nothing visible on static hosting
+  // (the old handler fetched a missing /api route and swallowed the
+  // error). The handler now downloads the JSON locally and reports
+  // success, so confirm it right here, under the button.
+  const handleExportClick = async () => {
+    if (!onExportGdprJson) return;
+    const ok = await onExportGdprJson();
+    setExportNotice(ok === false ? t('profile.exportFailed') : t('profile.exportDone'));
+    window.setTimeout(() => setExportNotice(null), 6000);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -368,7 +380,7 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                   <button
                     type="button"
                     data-testid="profile-gdpr-export-btn"
-                    onClick={onExportGdprJson}
+                    onClick={handleExportClick}
                     className="min-h-[36px] px-1 rounded-xl border border-orange-400 text-orange-300 font-display font-bold text-[11px] flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5 shrink-0" />
@@ -376,6 +388,16 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                   </button>
                 )}
               </div>
+
+              {exportNotice && (
+                <div
+                  role="status"
+                  className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300"
+                >
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>{exportNotice}</span>
+                </div>
+              )}
 
               {/* Account actions */}
               <div className="border-t border-white/15 pt-2">
@@ -694,7 +716,7 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
             <button
               type="button"
               data-testid="profile-gdpr-export-btn"
-              onClick={onExportGdprJson}
+              onClick={handleExportClick}
               className={`min-h-[46px] px-4 rounded-2xl ${isGlass ? 'border border-orange-400 text-orange-300 font-display font-bold text-xs' : 'border border-brand-blue text-brand-blue dark:text-sky-400 font-display font-bold text-xs'} flex items-center justify-center gap-2 cursor-pointer}`}
             >
               <Download className="w-4 h-4" />
@@ -702,6 +724,18 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
             </button>
           )}
         </div>
+
+        {exportNotice && (
+          <div
+            role="status"
+            className={`flex items-center gap-1.5 text-xs font-semibold ${
+              isGlass ? 'text-emerald-300' : 'text-emerald-600 dark:text-emerald-400'
+            }`}
+          >
+            <Check className="w-4 h-4 shrink-0" />
+            <span>{exportNotice}</span>
+          </div>
+        )}
       </section>
 
       {/* Account & Privacy Data Actions */}

@@ -185,7 +185,15 @@
     "garageDueBannerTitle": "Машин на техобслуживании в Гараже: {count}",
     "garageDueBannerSub": "Повторите слова по системе Лейтнера, чтобы закрепить память.",
     "serviceNowCta": "Обслужить сейчас",
-    "assignedByTeacherBadge": "Задание преподавателя · до {date}"
+    "assignedByTeacherBadge": "Задание преподавателя · до {date}",
+    "garageReviewHint": "Ежедневное повторение — 5 топлива за правильный ответ.",
+    "garageUpToDate": "Сейчас ничего не нужно повторять — ваш Гараж в порядке.",
+    "reviewNow": "Повторить сейчас →",
+    "openGarage": "Открыть Гараж →",
+    "exploreBadges": "Все 40 оригинальных значков и еженедельные лиги →",
+    "practiceHeading": "Практика",
+    "placementTestBtn": "Вступительный тест — начните со своего уровня →",
+    "speakingPracticeBtn": "Разговорная практика — повторяйте за мной →"
   },
   "lesson": {
     "exitConfirmTitle": "Съехать с трассы прямо сейчас?",
@@ -419,7 +427,9 @@
     "deleteAccountBtn": "Удалить аккаунт и все данные",
     "deleteConfirmTitle": "Удалить аккаунт навсегда?",
     "deleteConfirmBody": "Это действие полностью удалит ваш профиль, журнал топлива, серию и прогресс из базы данных.",
-    "deleteConfirmYes": "Да, удалить мои данные"
+    "deleteConfirmYes": "Да, удалить мои данные",
+    "exportDone": "Данные экспортированы — JSON-файл скачан.",
+    "exportFailed": "Не удалось экспортировать. Попробуйте ещё раз."
   },
   "assistant": {
     "title": "Личный помощник",
@@ -446,7 +456,8 @@
     "listen": "Слушать",
     "previous": "Назад",
     "next": "Вперёд",
-    "audioUnavailable": "Звук пока недоступен"
+    "audioUnavailable": "Звук пока недоступен",
+    "expandVocab": "РАСШИРЬ СЛОВАРНЫЙ ЗАПАС"
   },
   "push": {
     "promptTitle": "Напоминания для учёбы",

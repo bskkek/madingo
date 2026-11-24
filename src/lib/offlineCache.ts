@@ -36,7 +36,41 @@ export interface DashboardSnapshot {
   totalFuel: number;
   streak: StreakState;
   todayMinutesCompleted: number;
+  /** Local calendar day (YYYY-MM-DD) the minutes above belong to. */
+  todayDate?: string;
   savedAt: string;
+}
+
+/** Local calendar day (YYYY-MM-DD) — the daily goal is a local-day goal. */
+export function localTodayString(date: Date = new Date()): string {
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${m}-${d}`;
+}
+
+/**
+ * Minutes to restore from a snapshot on boot.
+ *
+ * Two defects made the daily goal show minutes before any lesson:
+ * 1. The snapshot's minutes were restored verbatim on every boot, even
+ *    on a later day — a new day must start at 0/goal.
+ * 2. The boot mastery migration can drop a lesson completion (accuracy
+ *    < 100, not mastered) while its minutes and fuel survived — the
+ *    road then showed "5/10 min" with "0 stops done". Minutes only ever
+ *    come from completing a lesson, so when no kept completion remains
+ *    the minutes cannot belong to anything and must be 0.
+ * Snapshots written before todayDate existed fall back to savedAt.
+ */
+export function resolveRestoredTodayMinutes(
+  snapshot: DashboardSnapshot,
+  keptCompletedCount: number
+): number {
+  const snapshotDay =
+    snapshot.todayDate ||
+    (snapshot.savedAt ? localTodayString(new Date(snapshot.savedAt)) : '');
+  if (snapshotDay && snapshotDay !== localTodayString()) return 0;
+  if (keptCompletedCount <= 0) return 0;
+  return snapshot.todayMinutesCompleted || 0;
 }
 
 export function saveDashboardSnapshot(snapshot: DashboardSnapshot): void {

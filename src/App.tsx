@@ -76,8 +76,10 @@ import {
   clearDashboardSnapshot,
   getCachedGarageItemsOffline,
   loadDashboardSnapshot,
+  localTodayString,
   queueOfflineGarageReview,
   readJsonSafe,
+  resolveRestoredTodayMinutes,
   saveDashboardSnapshot,
   DashboardSnapshot,
 } from './lib/offlineCache';
@@ -275,6 +277,12 @@ const MadingoAppInner: React.FC = () => {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [activeLesson, setActiveLesson] = useState<CurriculumLesson | null>(null);
   const [dictionaryInitialQuery, setDictionaryInitialQuery] = useState<string>('');
+  // Which Dictionary tab opens first. The Learn tile ("Dictionary —
+  // 628 words") opens the browsable word list; the Road button and
+  // lesson lookups open the translator.
+  const [dictionaryDefaultSection, setDictionaryDefaultSection] = useState<
+    'translator' | 'history' | 'words'
+  >('translator');
 
   const [authToken, setAuthToken] = useState<string | null>(null);
 
@@ -697,22 +705,68 @@ const MadingoAppInner: React.FC = () => {
     } catch {}
   };
 
-  const handleExportGdprJson = async () => {
+  // GDPR export, built entirely on the device: the old version fetched
+  // /api/phase4/gdpr-export, which does not exist on static hosting
+  // (GitHub Pages returns the app HTML for /api/*, res.json() throws,
+  // and the silent catch swallowed it — the button did nothing at all).
+  // The student's data lives in local state + localStorage here, so the
+  // JSON is assembled from that and downloaded directly. Returns true
+  // when the download was triggered so the Profile view can confirm it.
+  const handleExportGdprJson = async (): Promise<boolean> => {
     try {
-      const resp = await fetch('/api/phase4/gdpr-export');
-      const data = await resp.json();
+      let translatorHistory: unknown = [];
+      try {
+        const raw = window.localStorage.getItem('madingo_ai_translator_history_v1');
+        if (raw) translatorHistory = JSON.parse(raw);
+      } catch {
+        translatorHistory = [];
+      }
+      const data = {
+        app: 'Madingo',
+        exportedAt: new Date().toISOString(),
+        profile: {
+          id: profile.id,
+          email: profile.email,
+          displayName: profile.displayName,
+          uiLang: profile.uiLang,
+          goalMinutes: profile.goalMinutes,
+          avatarId: profile.avatarId,
+          soundEnabled: profile.soundEnabled,
+          notificationsEnabled: profile.notificationsEnabled,
+          theme: profile.theme,
+        },
+        progress: {
+          completedLessonIds,
+          accuracyByLesson,
+          masteredLessonIds,
+          totalFuel,
+          todayMinutesCompleted,
+          streak,
+        },
+        mistakes,
+        userWords,
+        garageReviewItems: reviewItems,
+        certificates,
+        friends: friends.map((f) => ({ id: f.id, nickname: f.nickname })),
+        translatorHistory,
+      };
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: 'application/json',
       });
       const url = URL.createObjectURL(blob);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const fileName = `madingo-data-export-${profile.id}-${stamp}.json`;
       const a = document.createElement('a');
       a.href = url;
-      a.download = `madingo-gdpr-data-export-${profile.id}.json`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {}
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const applyServerDashboard = (dashboard: any) => {
@@ -840,7 +894,11 @@ const MadingoAppInner: React.FC = () => {
         setMasteredLessonIds(snapshot.masteredLessonIds || []);
         setTotalFuel(snapshot.totalFuel);
         setStreak(snapshot.streak);
-        setTodayMinutesCompleted(snapshot.todayMinutesCompleted || 0);
+        // Same daily-goal rules as the boot restore: new day → 0, and
+        // no kept completion → 0.
+        setTodayMinutesCompleted(
+          resolveRestoredTodayMinutes(snapshot, snapshot.completedLessonIds.length)
+        );
       }
     }
     setScreen('app');
@@ -1141,7 +1199,12 @@ const MadingoAppInner: React.FC = () => {
       setMasteredLessonIds(migrated.masteredLessonIds);
       setTotalFuel(snapshot.totalFuel);
       setStreak(snapshot.streak);
-      setTodayMinutesCompleted(snapshot.todayMinutesCompleted || 0);
+      // Daily goal: a new day starts at 0, and minutes with no kept
+      // completion behind them (migration-dropped lesson) are 0 too —
+      // the goal must never show minutes before any lesson.
+      setTodayMinutesCompleted(
+        resolveRestoredTodayMinutes(snapshot, migrated.completedLessonIds.length)
+      );
       if (['ru', 'en', 'ar', 'fr'].includes(snapshot.profile.uiLang)) {
         setLang(snapshot.profile.uiLang as SupportedLang);
       }
@@ -1219,6 +1282,7 @@ const MadingoAppInner: React.FC = () => {
       totalFuel,
       streak,
       todayMinutesCompleted,
+      todayDate: localTodayString(),
       savedAt: new Date().toISOString(),
     });
   }, [
@@ -1867,7 +1931,10 @@ const MadingoAppInner: React.FC = () => {
                 equippedMapTheme={equippedMapTheme}
                 onStartLesson={handleStartLesson}
                 onOpenGarage={() => setActiveTab('garage')}
-                onOpenDictionary={() => setActiveTab('dictionary')}
+                onOpenDictionary={() => {
+                  setDictionaryDefaultSection('translator');
+                  setActiveTab('dictionary');
+                }}
                 onOpenDevExercises={() => setScreen('dev_exercises')}
                 onOpenExamsAndPlacement={() => setActiveTab('placement')}
                 onOpenLeaguesAndBadges={() => setActiveTab('leagues')}
@@ -1881,6 +1948,7 @@ const MadingoAppInner: React.FC = () => {
                 soundEnabled={profile.soundEnabled}
                 userWords={userWords}
                 initialQuery={dictionaryInitialQuery}
+                defaultSection={dictionaryDefaultSection}
                 onToggleUserWord={handleToggleUserWord}
                 onAddWordToGarage={handleAddSpeakingOrLibraryWordToGarage}
                 onOpenLessonById={handleStartLesson}
@@ -1970,6 +2038,7 @@ const MadingoAppInner: React.FC = () => {
                 onAddWordToGarage={handleAddSpeakingOrLibraryWordToGarage}
                 onInspectWordInDictionary={(word) => {
                   setDictionaryInitialQuery(word || '');
+                  setDictionaryDefaultSection('translator');
                   setActiveTab('dictionary');
                 }}
               />
@@ -2022,9 +2091,9 @@ const MadingoAppInner: React.FC = () => {
               Profile opens from the top-bar avatar, not from here. */}
           <nav
             aria-label="Primary Bottom Navigation"
-            className="fixed bottom-3 inset-x-3 sm:bottom-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-40"
+            className="fixed bottom-3 inset-x-2 sm:bottom-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-40"
           >
-            <div className="mx-auto max-w-md flex items-end justify-between gap-1 rounded-full bg-[#0A1628]/85 backdrop-blur-xl border border-white/15 shadow-2xl px-2 py-2">
+            <div className="mx-auto max-w-md flex items-end justify-between gap-0.5 rounded-full bg-[#0A1628]/85 backdrop-blur-xl border border-white/15 shadow-2xl px-1.5 py-2">
               {(
                 [
                   { id: 'road', icon: MapPin, label: t('nav.tabMap'), testId: 'nav-tab-road', active: activeTab === 'map', onClick: () => setActiveTab('map'), fab: false },
@@ -2067,14 +2136,14 @@ const MadingoAppInner: React.FC = () => {
                     data-testid={item.testId}
                     onClick={item.onClick}
                     aria-label={item.label}
-                    className={`flex-1 min-w-0 min-h-[48px] flex flex-col items-center justify-center gap-0.5 rounded-full transition cursor-pointer ${
+                    className={`flex-1 min-w-0 min-h-[48px] px-0.5 flex flex-col items-center justify-center gap-0.5 rounded-full transition cursor-pointer ${
                       item.active
                         ? 'bg-accent-orange text-white'
                         : 'text-white/70 hover:text-white'
                     }`}
                   >
                     <item.icon className="w-5 h-5" />
-                    <span className={`text-[10px] leading-none ${item.active ? 'font-bold' : 'font-medium'}`}>
+                    <span className={`text-[9px] sm:text-[10px] leading-none whitespace-nowrap ${item.active ? 'font-bold' : 'font-medium'}`}>
                       {item.label}
                     </span>
                   </button>
@@ -2095,6 +2164,9 @@ const MadingoAppInner: React.FC = () => {
             onClose={() => setShowLearnSheet(false)}
             onSelect={(tab) => {
               setShowLearnSheet(false);
+              // The Learn tile "Dictionary — 628 words" opens the
+              // browsable word list, not the translator.
+              if (tab === 'dictionary') setDictionaryDefaultSection('words');
               setActiveTab(tab);
             }}
           />

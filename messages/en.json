@@ -185,7 +185,15 @@
     "garageDueBannerTitle": "{count} cars waiting for service in the Garage!",
     "garageDueBannerSub": "Keep your Leitner review bays clear for maximum retention.",
     "serviceNowCta": "Service Now",
-    "assignedByTeacherBadge": "Assigned by Teacher · Due {date}"
+    "assignedByTeacherBadge": "Assigned by Teacher · Due {date}",
+    "garageReviewHint": "Daily review — 5 fuel per correct answer.",
+    "garageUpToDate": "Nothing due right now — your Garage is up to date.",
+    "reviewNow": "Review now →",
+    "openGarage": "Open the Garage →",
+    "exploreBadges": "Explore All 40 Original Badges & Weekly Leagues →",
+    "practiceHeading": "Practice",
+    "placementTestBtn": "Placement Test — start at your level →",
+    "speakingPracticeBtn": "Speaking Practice — Repeat After Me →"
   },
   "lesson": {
     "exitConfirmTitle": "Leave the road right now?",
@@ -419,7 +427,9 @@
     "deleteAccountBtn": "Delete Account & All Data",
     "deleteConfirmTitle": "Permanently delete your account?",
     "deleteConfirmBody": "This will erase your profile, fuel log, streak odometer, and lesson progress from the database.",
-    "deleteConfirmYes": "Yes, Delete My Data"
+    "deleteConfirmYes": "Yes, Delete My Data",
+    "exportDone": "Your data was exported — the JSON file has been downloaded.",
+    "exportFailed": "Export failed. Please try again."
   },
   "assistant": {
     "title": "Your Personal Assistant",
@@ -446,7 +456,8 @@
     "listen": "Listen",
     "previous": "Previous",
     "next": "Next",
-    "audioUnavailable": "Audio unavailable right now"
+    "audioUnavailable": "Audio unavailable right now",
+    "expandVocab": "EXPAND YOUR VOCABULARY"
   },
   "push": {
     "promptTitle": "Get reminders to keep learning",

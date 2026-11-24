@@ -9,3 +9,7 @@ coverage/
 
 # Local Netlify folder
 .netlify
+
+# Local build outputs (not tracked)
+dist-netlify/
+dist-test/
