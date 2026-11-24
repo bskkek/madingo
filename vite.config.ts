@@ -30,7 +30,7 @@ export default defineConfig(() => {
           description: 'Free Russian-learning PWA for students of MADI (Moscow Automobile and Road Construction State Technical University).',
           theme_color: '#050B1A',
           background_color: '#050B1A',
-          display: 'fullscreen',
+          display: 'standalone',
           icons: [
             {
               src: 'pwa-192x192.png',
