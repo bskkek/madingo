@@ -54,6 +54,17 @@ const MM_MAX_ATTEMPTS = 2;
 const MM_RETRY_DELAY_MS = 600;
 const cache = new Map<string, InstantTranslationResult>();
 
+// An aborted (superseded) translation must surface as a real AbortError,
+// never as the friendly service error: the caller swallows AbortError
+// silently, while a service error shows the user a "failed, press Retry"
+// banner. Without this, aborting a stale request (user kept typing) made
+// the UI flash a failure even though the newer request was fine.
+const abortError = (): Error => {
+  const err = new Error('Translation aborted (superseded by a newer request).');
+  err.name = 'AbortError';
+  return err;
+};
+
 const SERVICE_ERROR = new Error(
   'Translation service is unreachable right now. Please check your connection and press Retry.'
 );
@@ -133,6 +144,11 @@ export async function instantTranslateClient(params: {
   }
 
   const cacheKey = `${params.sourceLang}:${effectiveTargetLang}:${rawText.toLowerCase()}`;
+  // Never hand a cached result to a call the user already superseded:
+  // the view aborts the previous request on every new keystroke, and a
+  // stale cache hit used to resolve instantly and overwrite the newer
+  // result (e.g. translating "Bon" after the user typed "Bonjour").
+  if (params.signal?.aborted) throw abortError();
   const cached = cache.get(cacheKey);
   if (cached) {
     return { ...cached, latencyMs: 1 };
@@ -144,6 +160,12 @@ export async function instantTranslateClient(params: {
   // Translate into all 4 languages in parallel; the source language reuses
   // the raw text. A failed non-target language falls back to the raw text so
   // one flaky request never blocks the translation the user asked for.
+  // NOTE on aborts: Promise.allSettled waits for every leg, so a request
+  // aborted mid-flight can still "succeed" here (legs that already resolved
+  // stay resolved, rejected non-target legs fall back to the raw text).
+  // That used to let a superseded request ("Bon") resolve AFTER the newer
+  // one ("Bonjour") and overwrite its result. The explicit aborted check
+  // below makes an aborted call reject instead of returning stale data.
   const settled = await Promise.allSettled([
     initialDetected === 'ru'
       ? Promise.resolve(rawText)
@@ -158,6 +180,8 @@ export async function instantTranslateClient(params: {
       ? Promise.resolve(rawText)
       : translateViaMyMemory(rawText, initialDetected, 'fr', params.signal),
   ]);
+
+  if (params.signal?.aborted) throw abortError();
 
   const pick = (index: number, lang: SupportedLang): string => {
     const s = settled[index];

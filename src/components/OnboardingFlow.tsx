@@ -90,7 +90,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   onBackToLanding,
   onAuthenticated,
 }) => {
-  const { lang, setLang, t } = useI18n();
+  const { lang, t, confirmInitialLang } = useI18n();
 
   // Steps: 1=Lang, 2=Reason, 3=Goal, 4=Auth, 5=Welcome Misha
   const [step, setStep] = useState<number>(initialMode === 'login' ? 4 : 1);
@@ -406,7 +406,13 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                     <button
                       key={opt.code}
                       type="button"
-                      onClick={() => setLang(opt.code as SupportedLang)}
+                      // Confirm, don't just set: picking the language here
+                      // is the user choosing their initial language, so it
+                      // must also set hasChosenInitialLang. With plain
+                      // setLang the flag stayed false and the FlagPicker
+                      // modal popped open over the Road right after
+                      // "Prendre la route", asking for the language again.
+                      onClick={() => confirmInitialLang(opt.code as SupportedLang)}
                       className={`min-h-[68px] p-4 rounded-2xl border-2 flex items-center justify-between gap-3 transition cursor-pointer ${
                         selected
                           ? 'border-accent-orange bg-white/10 shadow-[0_0_0_1px_rgba(255,138,31,0.35)]'

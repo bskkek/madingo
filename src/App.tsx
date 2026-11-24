@@ -1787,7 +1787,9 @@ const MadingoAppInner: React.FC = () => {
       )}
 
       <FlagPickerModal
-        isOpen={!hasChosenInitialLang && screen !== 'dev_audio'}
+        isOpen={
+          !hasChosenInitialLang && (screen === 'landing' || screen === 'app')
+        }
         onSelectAndClose={(chosenLang) => confirmInitialLang(chosenLang)}
       />
 
@@ -2091,7 +2093,7 @@ const MadingoAppInner: React.FC = () => {
               Profile opens from the top-bar avatar, not from here. */}
           <nav
             aria-label="Primary Bottom Navigation"
-            className="fixed bottom-3 inset-x-2 sm:bottom-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-40"
+            className="fixed bottom-3 inset-x-2 sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-md z-40"
           >
             <div className="mx-auto max-w-md flex items-end justify-between gap-0.5 rounded-full bg-[#0A1628]/85 backdrop-blur-xl border border-white/15 shadow-2xl px-1.5 py-2">
               {(

@@ -416,6 +416,14 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
 
   const abortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<any>(null);
+  // Generation counter: every executeTranslation call bumps it, and only
+  // the LATEST call may write the result, the error banner, or the history.
+  // Without this, a slow superseded request (e.g. for the keystroke prefix
+  // "Bon") resolved after the current one ("Bonjour") and overwrote the
+  // correct result with garbage — and its detection badge flipped the
+  // language. Aborting alone did not stop it: Promise.allSettled in the
+  // client lets already-resolved legs survive the abort.
+  const translationGenRef = useRef(0);
 
   useEffect(() => {
     if (initialQuery && initialQuery.trim()) {
@@ -431,19 +439,12 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
     if (!initialQuery?.trim()) setSectionTab(defaultSection);
   }, [defaultSection]);
 
-  // Warm up the translation service once when the translator opens: the
-  // first request from a fresh profile used to fail on the cold
-  // DNS/TLS handshake to the translation host, while the retry — a
-  // second later, on the warm connection — succeeded. One tiny
-  // background translation (result discarded, errors ignored) warms the
-  // connection so the user's first real translation starts warm. It
-  // touches no UI state.
-  useEffect(() => {
-    instantTranslateClient({ text: 'Hello', sourceLang: 'en', targetLang: 'ru' }).catch(
-      () => {}
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The mount warm-up from round 1 is REMOVED: it fired 4 parallel
+  // MyMemory fetches on every Dictionary open, competing with the user's
+  // first real translation under the browser's 6-connections-per-host
+  // limit (it could delay or fail that first request), while its result
+  // was discarded. The retry in the client + the generation guard below
+  // are the real fix for first-attempt failures.
 
   const inputDir: 'ltr' | 'rtl' = useMemo(() => {
     if (sourceLang === 'ar') return 'rtl';
@@ -456,6 +457,10 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
     srcLang: 'auto' | SupportedLang,
     tgtLang: SupportedLang
   ) => {
+    // Every invocation — including instant cache hits and the empty-text
+    // clear — becomes the latest generation, so any older in-flight
+    // request is invalidated even if this call returns synchronously.
+    const myGeneration = ++translationGenRef.current;
     const clean = textToTranslate.trim();
     if (!clean) {
       setResult(null);
@@ -496,6 +501,12 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
         targetLang: tgtLang,
         signal: controller.signal,
       });
+
+      // Stale response guard: the user may have typed on (or hit Retry)
+      // while this request was in flight. Only the latest generation
+      // writes state — a superseded response is dropped entirely, so it
+      // can never overwrite a newer result or add a phantom history entry.
+      if (myGeneration !== translationGenRef.current) return;
 
       const clientElapsed = Math.max(1, Math.round(performance.now() - t0));
       const enrichedData: InstantTranslationResponse = {
@@ -538,7 +549,18 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
         return updated;
       });
     } catch (err: any) {
-      if (err?.name === 'AbortError') return;
+      // A superseded or aborted request is NOT a failure: the user kept
+      // typing (or hit Retry) and a newer request is already running.
+      // Showing "Instant translation failed" for it was the phantom
+      // first-attempt error — the banner appeared while the correct
+      // result was still loading (or already shown).
+      if (
+        err?.name === 'AbortError' ||
+        controller.signal.aborted ||
+        myGeneration !== translationGenRef.current
+      ) {
+        return;
+      }
       console.error('[AI Instant Translator Error]:', err);
       setIsTranslating(false);
       // Never surface raw technical errors (e.g. JSON parse failures) to
@@ -551,7 +573,13 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
     }
   };
 
-  // Ultra-fast 160ms debounced instant translation as the user types
+  // 500ms debounced instant translation as the user types. The old 160ms
+  // fired on nearly every keystroke, so typing "Bonjour" translated the
+  // prefixes "Bon", "Bonj" … too — each one a real network request, each
+  // one a history record (a fresh profile showed history entries before
+  // the user ever finished a word), and each one a stale response that
+  // could overwrite the full word's result. 500ms still feels instant
+  // but only fires once the user pauses on the finished word.
   useEffect(() => {
     const trimmed = inputText.trim();
     if (!trimmed) {
@@ -563,7 +591,7 @@ export const DictionaryView: React.FC<DictionaryViewProps> = ({
 
     const timer = setTimeout(() => {
       executeTranslation(trimmed, sourceLang, targetLang);
-    }, 160);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [inputText, sourceLang, targetLang]);
