@@ -1,0 +1,9 @@
+{
+  "appId": "app.madingo.twa",
+  "appName": "Madingo",
+  "webDir": "../dist",
+  "server": {
+    "url": "https://bskkek.github.io/madingo/",
+    "cleartext": false
+  }
+}
